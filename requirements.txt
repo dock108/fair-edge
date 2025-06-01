@@ -18,6 +18,9 @@ supabase==2.1.0
 # Authentication & JWT
 python-jose[cryptography]==3.3.0
 
+# Configuration Management
+pydantic-settings==2.7.1
+
 # Background Tasks & Caching
 celery==5.3.4
 redis==5.0.1
