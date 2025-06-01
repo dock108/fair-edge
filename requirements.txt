@@ -40,3 +40,7 @@ slowapi==0.1.9
 
 # Enhanced Logging
 colorlog==6.8.2
+
+# Real-time updates support
+sse-starlette==1.6.5
+websockets==12.0
