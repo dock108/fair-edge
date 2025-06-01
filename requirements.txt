@@ -18,6 +18,10 @@ supabase==2.1.0
 # Authentication & JWT
 python-jose[cryptography]==3.3.0
 
+# Background Tasks & Caching
+celery==5.3.4
+redis==5.0.1
+
 # Development & Testing
 pytest==7.4.3
 python-dotenv==1.0.0

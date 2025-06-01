@@ -19,6 +19,10 @@ import time
 # Import the data processing services
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 
+# Import background task services
+from services.tasks import refresh_odds_data, health_check as celery_health_check
+from services.redis_cache import get_ev_data, get_analytics_data, get_last_update, clear_cache, health_check as redis_health_check
+
 # Import database connections
 from db import get_db, get_supabase, get_database_status
 
@@ -656,6 +660,249 @@ async def get_user_info(user: User = Depends(get_current_user)):
         "email": user.email,
         "authenticated": True
     }
+
+
+# Background Task Endpoints
+@app.post("/api/refresh", tags=["background-tasks"])
+async def manual_refresh(admin_user: User = Depends(require_role("admin"))):
+    """
+    Manually trigger odds data refresh using Celery background task - ADMIN ONLY
+    """
+    try:
+        # Schedule the task
+        task = refresh_odds_data.delay()
+        
+        return {
+            "status": "scheduled",
+            "task_id": task.id,
+            "message": "Odds refresh task has been scheduled",
+            "admin_user": admin_user.email
+        }
+    except Exception as e:
+        logger.error(f"Failed to schedule refresh task: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to schedule task: {str(e)}")
+
+
+@app.post("/api/test-refresh", tags=["testing"])
+async def test_refresh():
+    """
+    TEST ENDPOINT: Manually trigger odds data refresh for testing (NO AUTH)
+    This endpoint is for development testing only
+    """
+    try:
+        # Schedule the task
+        task = refresh_odds_data.delay()
+        
+        return {
+            "status": "scheduled",
+            "task_id": task.id,
+            "message": "Test odds refresh task has been scheduled",
+            "note": "This is a test endpoint without authentication"
+        }
+    except Exception as e:
+        logger.error(f"Failed to schedule refresh task: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to schedule task: {str(e)}")
+
+
+@app.get("/api/task-status/{task_id}", tags=["background-tasks"])
+async def get_task_status(task_id: str, admin_user: User = Depends(require_role("admin"))):
+    """
+    Get the status of a background task - ADMIN ONLY
+    """
+    try:
+        from services.celery_app import celery_app
+        result = celery_app.AsyncResult(task_id)
+        
+        if result.state == 'PENDING':
+            response = {
+                'state': result.state,
+                'status': 'Task is waiting to be processed'
+            }
+        elif result.state == 'PROGRESS':
+            response = {
+                'state': result.state,
+                'current': result.info.get('current', 0),
+                'total': result.info.get('total', 1),
+                'status': result.info.get('status', '')
+            }
+        elif result.state == 'SUCCESS':
+            response = {
+                'state': result.state,
+                'result': result.result
+            }
+        else:  # FAILURE
+            response = {
+                'state': result.state,
+                'error': str(result.info)
+            }
+        
+        return response
+    except Exception as e:
+        logger.error(f"Failed to get task status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
+
+
+@app.get("/api/test-task-status/{task_id}", tags=["testing"])
+async def get_test_task_status(task_id: str):
+    """
+    TEST ENDPOINT: Get the status of a background task (NO AUTH)
+    This endpoint is for development testing only
+    """
+    try:
+        from services.celery_app import celery_app
+        result = celery_app.AsyncResult(task_id)
+        
+        if result.state == 'PENDING':
+            response = {
+                'state': result.state,
+                'status': 'Task is waiting to be processed'
+            }
+        elif result.state == 'PROGRESS':
+            response = {
+                'state': result.state,
+                'current': result.info.get('current', 0),
+                'total': result.info.get('total', 1),
+                'status': result.info.get('status', '')
+            }
+        elif result.state == 'SUCCESS':
+            response = {
+                'state': result.state,
+                'result': result.result
+            }
+        else:  # FAILURE
+            response = {
+                'state': result.state,
+                'error': str(result.info)
+            }
+        
+        return response
+    except Exception as e:
+        logger.error(f"Failed to get task status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
+
+
+@app.get("/api/odds", tags=["opportunities"])
+async def get_cached_opportunities():
+    """
+    Get cached EV opportunities from Redis (public endpoint)
+    This is the main endpoint for getting opportunities without triggering API calls
+    """
+    try:
+        # Get cached data from Redis
+        opportunities = get_ev_data()
+        analytics = get_analytics_data()
+        last_update = get_last_update()
+        
+        # Process opportunities for UI display
+        if opportunities:
+            ui_opportunities = process_opportunities_for_ui(opportunities)
+            ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
+        else:
+            ui_opportunities = []
+        
+        return {
+            "total": len(opportunities),
+            "opportunities": ui_opportunities,
+            "analytics": analytics,
+            "last_update": last_update,
+            "data_source": "redis_cache"
+        }
+    except Exception as e:
+        logger.error(f"Failed to retrieve cached opportunities: {e}")
+        # Fallback to live data if Redis fails
+        try:
+            raw_data = fetch_raw_odds_data()
+            if raw_data['status'] == 'success':
+                opportunities, analytics = process_opportunities(raw_data)
+                ui_opportunities = process_opportunities_for_ui(opportunities)
+                ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
+                return {
+                    "total": len(opportunities),
+                    "opportunities": ui_opportunities,
+                    "analytics": analytics,
+                    "last_update": datetime.now().isoformat(),
+                    "data_source": "live_fallback"
+                }
+        except Exception as fallback_error:
+            logger.error(f"Fallback also failed: {fallback_error}")
+        
+        return {
+            "total": 0,
+            "opportunities": [],
+            "analytics": {},
+            "error": "Unable to retrieve opportunities data",
+            "data_source": "error"
+        }
+
+
+@app.get("/api/cache-status", tags=["system"])
+async def get_cache_status():
+    """
+    Get Redis cache health and status information
+    """
+    try:
+        redis_status = redis_health_check()
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "redis": redis_status
+        }
+    except Exception as e:
+        logger.error(f"Failed to get cache status: {e}")
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "redis": {
+                "status": "error",
+                "message": str(e)
+            }
+        }
+
+
+@app.post("/api/clear-cache", tags=["system"])
+async def clear_redis_cache(admin_user: User = Depends(require_role("admin"))):
+    """
+    Clear Redis cache - ADMIN ONLY
+    """
+    try:
+        success = clear_cache()
+        if success:
+            return {
+                "status": "success",
+                "message": "Cache cleared successfully",
+                "admin_user": admin_user.email
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Failed to clear cache"
+            }
+    except Exception as e:
+        logger.error(f"Failed to clear cache: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {str(e)}")
+
+
+@app.get("/api/celery-health", tags=["system"])
+async def get_celery_health(admin_user: User = Depends(require_role("admin"))):
+    """
+    Test Celery worker health - ADMIN ONLY
+    """
+    try:
+        # Schedule a simple health check task
+        task = celery_health_check.delay()
+        # Wait briefly for result
+        result = task.get(timeout=10)
+        
+        return {
+            "status": "healthy",
+            "celery_result": result,
+            "admin_user": admin_user.email
+        }
+    except Exception as e:
+        logger.error(f"Celery health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "message": "Celery worker is not responding"
+        }
 
 
 if __name__ == "__main__":
