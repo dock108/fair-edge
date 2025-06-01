@@ -41,18 +41,26 @@
     -->
 
     <!-- Navigation Bar (if needed for future phases) -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light d-none">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
-            <div class="navbar-nav">
+            <div class="navbar-nav me-auto">
                 <a class="nav-link active" href="/">
                     <i class="fas fa-home me-1"></i> Dashboard
                 </a>
-                <a class="nav-link" href="/analytics">
-                    <i class="fas fa-chart-line me-1"></i> Analytics
+                <a class="nav-link" href="/education">
+                    <i class="fas fa-graduation-cap me-1"></i> Education
                 </a>
-                <a class="nav-link" href="/settings">
-                    <i class="fas fa-cog me-1"></i> Settings
+                <a class="nav-link" href="/disclaimer">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Disclaimer
                 </a>
+            </div>
+            <div class="navbar-nav">
+                <!-- Authentication status will be populated by JavaScript -->
+                <div id="auth-status">
+                    <a class="nav-link" href="/login">
+                        <i class="fas fa-sign-in-alt me-1"></i> Login
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
@@ -85,9 +93,19 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        window.supabase = supabase.createClient(
+            "{{ settings.supabase_url }}",
+            "{{ settings.supabase_anon_key }}"
+        );
+    </script>
+    
     <!-- Custom JavaScript -->
     {% block scripts %}{% endblock %}
     
+    <script src="{{ url_for('static', path='/js/auth.js') }}"></script>
     <script src="{{ url_for('static', path='/js/dashboard.js') }}"></script>
 </body>
 </html> 
