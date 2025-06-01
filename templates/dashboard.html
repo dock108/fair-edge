@@ -249,46 +249,130 @@
 <section class="filters-section" role="region" aria-labelledby="filters-heading">
     <div class="filters-container">
         <h2 id="filters-heading" class="sr-only">Filter Controls</h2>
-        <form class="filters-form" method="get" role="search" aria-label="Filter betting opportunities">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label for="sport-filter" class="filter-label">Sport:</label>
-                    <select name="sport" id="sport-filter" class="filter-select" aria-describedby="sport-help">
+        
+        <!-- Client-Side Filters -->
+        <div class="client-filters mb-3">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <!-- Search Box with Icon -->
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                        </span>
+                        <input id="filter-search" 
+                               class="form-control" 
+                               placeholder="Search teams, events, players..."
+                               aria-label="Search betting opportunities"
+                               type="text">
+                        <button class="btn btn-outline-secondary" 
+                                type="button" 
+                                id="clear-search"
+                                aria-label="Clear search">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        <small class="text-muted">
+                            <i class="fas fa-lightbulb me-1"></i>
+                            Try "Lakers", "Over", or player names
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <!-- Sport Filter -->
+                    <select id="sport-filter" class="form-select" aria-label="Filter by sport">
                         <option value="">All Sports</option>
-                        <option value="basketball_nba" {% if current_sport == 'basketball_nba' %}selected{% endif %}>NBA Basketball</option>
-                        <option value="americanfootball_nfl" {% if current_sport == 'americanfootball_nfl' %}selected{% endif %}>NFL Football</option>
-                        <option value="baseball_mlb" {% if current_sport == 'baseball_mlb' %}selected{% endif %}>MLB Baseball</option>
-                        <option value="icehockey_nhl" {% if current_sport == 'icehockey_nhl' %}selected{% endif %}>NHL Hockey</option>
+                        {% for sport in sports_supported %}
+                        <option value="{{ sport }}">
+                            {% if sport == 'americanfootball_nfl' %}NFL Football
+                            {% elif sport == 'basketball_nba' %}NBA Basketball  
+                            {% elif sport == 'baseball_mlb' %}MLB Baseball
+                            {% elif sport == 'icehockey_nhl' %}NHL Hockey
+                            {% else %}{{ sport|title }}
+                            {% endif %}
+                        </option>
+                        {% endfor %}
                     </select>
-                    <div id="sport-help" class="sr-only">Filter opportunities by specific sport or league</div>
                 </div>
                 
-                <div class="filter-group">
-                    <label for="market-filter" class="filter-label">Market:</label>
-                    <select name="market" id="market-filter" class="filter-select" aria-describedby="market-help">
-                        <option value="">All Markets</option>
-                        <option value="h2h" {% if current_market == 'h2h' %}selected{% endif %}>Moneyline</option>
-                        <option value="spreads" {% if current_market == 'spreads' %}selected{% endif %}>Point Spread</option>
-                        <option value="totals" {% if current_market == 'totals' %}selected{% endif %}>Over/Under Totals</option>
-                        <option value="player_props" {% if current_market == 'player_props' %}selected{% endif %}>Player Props</option>
+                <div class="col-md-3">
+                    <!-- EV Filter -->
+                    <select id="ev-filter" class="form-select" aria-label="Filter by expected value">
+                        <option value="">All EV</option>
+                        <option value="high">High EV (4.5%+)</option>
+                        <option value="positive">Positive EV (0%+)</option>
                     </select>
-                    <div id="market-help" class="sr-only">Filter opportunities by betting market type</div>
-                </div>
-                
-                <div class="filter-group filter-actions">
-                    <button type="submit" class="filter-btn filter-btn-apply btn-primary" aria-describedby="apply-help">
-                        <i class="fas fa-search me-1" aria-hidden="true"></i>
-                        Apply Filters
-                    </button>
-                    <a href="/" class="filter-btn filter-btn-clear btn-secondary" aria-describedby="clear-help">
-                        <i class="fas fa-times me-1" aria-hidden="true"></i>
-                        Clear Filters
-                    </a>
-                    <div id="apply-help" class="sr-only">Apply selected filters to update results</div>
-                    <div id="clear-help" class="sr-only">Remove all filters and show all opportunities</div>
                 </div>
             </div>
-        </form>
+            
+            <!-- Filter Status & Clear -->
+            <div class="filter-status mt-2 d-flex justify-content-between align-items-center">
+                <div class="filter-spinner d-none">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Filtering...</span>
+                    </div>
+                    <small class="text-muted">Updating results...</small>
+                </div>
+                <div class="filter-results-count">
+                    <small class="text-muted" id="results-count"></small>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary d-none" 
+                        id="clear-all-filters" 
+                        type="button">
+                    <i class="fas fa-times me-1"></i>
+                    Clear All Filters
+                </button>
+            </div>
+        </div>
+        
+        <!-- Server-Side Filters (Legacy/Fallback) -->
+        <details class="server-filters mt-3">
+            <summary class="text-muted small">
+                <i class="fas fa-cog me-1"></i>
+                Advanced Server Filters (for bookmarking)
+            </summary>
+            <form class="filters-form mt-2" method="get" role="search" aria-label="Server-side filter betting opportunities">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="sport-filter-server" class="filter-label">Sport:</label>
+                        <select name="sport" id="sport-filter-server" class="filter-select" aria-describedby="sport-help">
+                            <option value="">All Sports</option>
+                            <option value="basketball_nba" {% if current_sport == 'basketball_nba' %}selected{% endif %}>NBA Basketball</option>
+                            <option value="americanfootball_nfl" {% if current_sport == 'americanfootball_nfl' %}selected{% endif %}>NFL Football</option>
+                            <option value="baseball_mlb" {% if current_sport == 'baseball_mlb' %}selected{% endif %}>MLB Baseball</option>
+                            <option value="icehockey_nhl" {% if current_sport == 'icehockey_nhl' %}selected{% endif %}>NHL Hockey</option>
+                        </select>
+                        <div id="sport-help" class="sr-only">Filter opportunities by specific sport or league</div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="market-filter-server" class="filter-label">Market:</label>
+                        <select name="market" id="market-filter-server" class="filter-select" aria-describedby="market-help">
+                            <option value="">All Markets</option>
+                            <option value="h2h" {% if current_market == 'h2h' %}selected{% endif %}>Moneyline</option>
+                            <option value="spreads" {% if current_market == 'spreads' %}selected{% endif %}>Point Spread</option>
+                            <option value="totals" {% if current_market == 'totals' %}selected{% endif %}>Over/Under Totals</option>
+                            <option value="player_props" {% if current_market == 'player_props' %}selected{% endif %}>Player Props</option>
+                        </select>
+                        <div id="market-help" class="sr-only">Filter opportunities by betting market type</div>
+                    </div>
+                    
+                    <div class="filter-group filter-actions">
+                        <button type="submit" class="filter-btn filter-btn-apply btn-primary" aria-describedby="apply-help">
+                            <i class="fas fa-search me-1" aria-hidden="true"></i>
+                            Apply Filters
+                        </button>
+                        <a href="/" class="filter-btn filter-btn-clear btn-secondary" aria-describedby="clear-help">
+                            <i class="fas fa-times me-1" aria-hidden="true"></i>
+                            Clear Filters
+                        </a>
+                        <div id="apply-help" class="sr-only">Apply selected filters to update results</div>
+                        <div id="clear-help" class="sr-only">Remove all filters and show all opportunities</div>
+                    </div>
+                </div>
+            </form>
+        </details>
     </div>
 </section>
 
@@ -543,48 +627,291 @@
 </main>
 
 <script>
-// Auto-submit filters on change (progressive enhancement)
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('filters-form');
-    const sportSelect = document.getElementById('sport-filter');
-    const marketSelect = document.getElementById('market-filter');
-    const clearButton = document.getElementById('clear-filters');
-    const clearButtonEmpty = document.getElementById('clear-filters-empty');
+// ===========================
+// DEBOUNCED CLIENT-SIDE FILTERING
+// ===========================
+
+// Debounce helper (MDN-recommended pattern)
+const debounce = (fn, delay = 300) => {
+    let timeout;
+    return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn(...args), delay);
+    };
+};
+
+// Filter state
+let currentFilters = {
+    search: '',
+    sport: '',
+    ev: ''
+};
+
+let originalOpportunities = []; // Store original data
+let isFiltering = false;
+
+// DOM elements
+const searchBox = document.getElementById('filter-search');
+const sportSelect = document.getElementById('sport-filter');
+const evSelect = document.getElementById('ev-filter');
+const clearSearchBtn = document.getElementById('clear-search');
+const clearAllBtn = document.getElementById('clear-all-filters');
+const resultsCount = document.getElementById('results-count');
+const filterSpinner = document.querySelector('.filter-spinner');
+
+// Create debounced filter function
+const debouncedFilter = debounce(() => {
+    applyClientSideFilters();
+}, 300);
+
+// Show/hide filter spinner
+function showFilterSpinner() {
+    if (filterSpinner) {
+        filterSpinner.classList.remove('d-none');
+    }
+}
+
+function hideFilterSpinner() {
+    if (filterSpinner) {
+        filterSpinner.classList.add('d-none');
+    }
+}
+
+// Update results count
+function updateResultsCount(count, total) {
+    if (resultsCount) {
+        if (count === total) {
+            resultsCount.textContent = `Showing all ${total} opportunities`;
+        } else {
+            resultsCount.textContent = `Showing ${count} of ${total} opportunities`;
+        }
+    }
+}
+
+// Show/hide clear all button
+function updateClearAllButton() {
+    const hasFilters = currentFilters.search || currentFilters.sport || currentFilters.ev;
+    if (clearAllBtn) {
+        clearAllBtn.classList.toggle('d-none', !hasFilters);
+    }
+}
+
+// Apply client-side filters to the current data
+function applyClientSideFilters() {
+    if (originalOpportunities.length === 0) return;
     
-    // Auto-submit on select change
-    function autoSubmit() {
-        form.submit();
+    showFilterSpinner();
+    
+    let filtered = [...originalOpportunities];
+    
+    // Search filter
+    if (currentFilters.search) {
+        const searchTerm = currentFilters.search.toLowerCase();
+        filtered = filtered.filter(opp => {
+            return (
+                opp.event.toLowerCase().includes(searchTerm) ||
+                opp.bet_description.toLowerCase().includes(searchTerm) ||
+                opp.bet_type.toLowerCase().includes(searchTerm) ||
+                (opp.best_odds_source && opp.best_odds_source.toLowerCase().includes(searchTerm))
+            );
+        });
     }
     
-    if (sportSelect) {
-        sportSelect.addEventListener('change', autoSubmit);
+    // Sport filter
+    if (currentFilters.sport) {
+        filtered = filtered.filter(opp => {
+            // This would need sport info in the opportunity data
+            // For now, we'll do a basic text match
+            return opp.event.toLowerCase().includes(currentFilters.sport.toLowerCase());
+        });
     }
     
-    if (marketSelect) {
-        marketSelect.addEventListener('change', autoSubmit);
+    // EV filter
+    if (currentFilters.ev) {
+        if (currentFilters.ev === 'high') {
+            filtered = filtered.filter(opp => opp.ev_percentage >= 4.5);
+        } else if (currentFilters.ev === 'positive') {
+            filtered = filtered.filter(opp => opp.ev_percentage > 0);
+        }
     }
     
-    // Clear filters functionality
-    function clearFilters() {
-        if (sportSelect) sportSelect.value = '';
-        if (marketSelect) marketSelect.value = '';
-        form.submit();
+    // Render filtered results
+    renderOpportunities(filtered);
+    updateResultsCount(filtered.length, originalOpportunities.length);
+    updateClearAllButton();
+    
+    hideFilterSpinner();
+}
+
+// Fetch fresh data from API with server-side filters
+async function fetchFilteredData() {
+    try {
+        showFilterSpinner();
+        
+        const params = new URLSearchParams();
+        if (currentFilters.search.trim()) {
+            params.set("search", currentFilters.search.trim());
+        }
+        if (currentFilters.sport) {
+            params.set("sport", currentFilters.sport);
+        }
+        
+        const url = "/api/opportunities?" + params.toString();
+        const response = await fetch(url, { 
+            credentials: "include",
+            headers: {
+                'Cache-Control': 'no-store'
+            }
+        });
+        
+        if (!response.ok) {
+            console.error('Filter request failed:', await response.text());
+            hideFilterSpinner();
+            return;
+        }
+        
+        const data = await response.json();
+        
+        // Update original data and apply client-side filters
+        originalOpportunities = data.opportunities || [];
+        applyClientSideFilters();
+        
+    } catch (error) {
+        console.error('Error fetching filtered data:', error);
+        hideFilterSpinner();
+    }
+}
+
+// Render opportunities in the DOM
+function renderOpportunities(opportunities) {
+    const cardsGrid = document.querySelector('.cards-grid');
+    if (!cardsGrid) return;
+    
+    if (opportunities.length === 0) {
+        cardsGrid.innerHTML = `
+            <div class="col-12">
+                <div class="empty-state text-center py-5">
+                    <i class="fas fa-search fa-3x mb-3 text-muted"></i>
+                    <h3>No matches found</h3>
+                    <p class="text-muted">Try adjusting your search terms or filters</p>
+                    <button class="btn btn-outline-primary" onclick="clearAllFilters()">
+                        <i class="fas fa-times me-1"></i>
+                        Clear Filters
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
     }
     
-    if (clearButton) {
-        clearButton.addEventListener('click', clearFilters);
+    // For now, we'll show a simple list. In production, you'd want to 
+    // recreate the full card HTML structure here
+    cardsGrid.innerHTML = opportunities.map((opp, index) => `
+        <article class="odds-card ev-${opp.ev_classification}" role="listitem">
+            <header class="odds-card__header">
+                <h2 class="odds-card__title">${opp.event}</h2>
+                <p class="odds-card__subtitle">${opp.bet_description}</p>
+            </header>
+            <div class="odds-card__body">
+                <div class="odds-card__details">
+                    <div class="detail-item">
+                        <span class="detail-label">Expected Value:</span>
+                        <span class="detail-value ev-value ${opp.ev_classification}">
+                            ${opp.ev_percentage.toFixed(1)}%
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Fair Odds:</span>
+                        <span class="detail-value">${opp.fair_odds}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Best Available:</span>
+                        <span class="detail-value best-odds">${opp.best_available_odds}</span>
+                    </div>
+                </div>
+            </div>
+        </article>
+    `).join('');
+}
+
+// Clear all filters
+function clearAllFilters() {
+    currentFilters = { search: '', sport: '', ev: '' };
+    
+    if (searchBox) searchBox.value = '';
+    if (sportSelect) sportSelect.value = '';
+    if (evSelect) evSelect.value = '';
+    
+    updateClearAllButton();
+    applyClientSideFilters();
+}
+
+// Clear search only
+function clearSearch() {
+    currentFilters.search = '';
+    if (searchBox) searchBox.value = '';
+    updateClearAllButton();
+    applyClientSideFilters();
+}
+
+// Initialize client-side filtering
+function initializeFiltering() {
+    if (!searchBox || !sportSelect || !evSelect) return;
+    
+    // Store original opportunities data
+    const cardsGrid = document.querySelector('.cards-grid');
+    if (cardsGrid) {
+        // Extract data from existing cards (simplified for now)
+        // In production, you'd want to get this from the template context or API
+        originalOpportunities = window.opportunitiesData || [];
     }
     
-    if (clearButtonEmpty) {
-        clearButtonEmpty.addEventListener('click', clearFilters);
+    // Event listeners
+    searchBox.addEventListener('input', (e) => {
+        currentFilters.search = e.target.value;
+        debouncedFilter();
+    });
+    
+    sportSelect.addEventListener('change', (e) => {
+        currentFilters.sport = e.target.value;
+        debouncedFilter();
+    });
+    
+    evSelect.addEventListener('change', (e) => {
+        currentFilters.ev = e.target.value;
+        debouncedFilter();
+    });
+    
+    // Clear buttons
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', clearSearch);
     }
-});
+    
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', clearAllFilters);
+    }
+    
+    // Keyboard shortcuts
+    searchBox.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            clearSearch();
+        }
+    });
+    
+    console.log('✅ Client-side filtering initialized');
+}
+
+// ===========================
+// REAL-TIME UPDATES (EXISTING)
+// ===========================
 
 // Real-time updates functionality
 let wsConnection = null;
 let sseConnection = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
+let lastUpdateTime = null;
+let hasReceivedFirstUpdate = false;
 
 function showUpdateNotification(message, type = 'info') {
     // Create or update notification element
@@ -628,24 +955,95 @@ function hideLoadingSpinner() {
     }
 }
 
+function formatTimeSince(isoTimestamp) {
+    try {
+        const updateTime = new Date(isoTimestamp);
+        const now = new Date();
+        const diffMs = now - updateTime;
+        const diffSeconds = Math.floor(diffMs / 1000);
+        
+        if (diffSeconds < 5) {
+            return 'just now';
+        } else if (diffSeconds < 60) {
+            return `${diffSeconds}s ago`;
+        } else if (diffSeconds < 3600) {
+            const minutes = Math.floor(diffSeconds / 60);
+            return `${minutes}m ago`;
+        } else {
+            const hours = Math.floor(diffSeconds / 3600);
+            return `${hours}h ago`;
+        }
+    } catch (error) {
+        return 'recently';
+    }
+}
+
+function updateTimestampDisplay() {
+    if (lastUpdateTime) {
+        const timestampDisplay = document.getElementById('last-update-display');
+        if (timestampDisplay) {
+            timestampDisplay.innerHTML = `<i class="fas fa-clock me-1"></i>Updated ${formatTimeSince(lastUpdateTime)}`;
+        }
+    }
+}
+
+function createTimestampDisplay() {
+    // Create timestamp display element if it doesn't exist
+    let timestampDisplay = document.getElementById('last-update-display');
+    if (!timestampDisplay) {
+        timestampDisplay = document.createElement('div');
+        timestampDisplay.id = 'last-update-display';
+        timestampDisplay.className = 'text-muted small text-center mb-3';
+        timestampDisplay.innerHTML = '<i class="fas fa-clock me-1"></i><span>Connecting...</span>';
+        
+        // Insert after the loading spinner
+        const spinner = document.getElementById('loading-spinner');
+        if (spinner && spinner.parentNode) {
+            spinner.parentNode.insertBefore(timestampDisplay, spinner.nextSibling);
+        }
+    }
+    return timestampDisplay;
+}
+
 function updateTableWithNewData(data) {
     try {
-        // Hide loading spinner since we got data
-        hideLoadingSpinner();
+        // Hide loading spinner on first update
+        if (!hasReceivedFirstUpdate) {
+            hideLoadingSpinner();
+            hasReceivedFirstUpdate = true;
+        }
         
-        if (data.type === 'ev_update' && data.opportunities) {
-            // Show update notification
+        if (data.type === 'ev_update') {
+            // Update last update time
+            if (data.updated_at) {
+                lastUpdateTime = data.updated_at;
+                updateTimestampDisplay();
+            }
+            
+            // Update original opportunities data for filtering
+            if (data.data && Array.isArray(data.data)) {
+                // Convert backend format to UI format for filtering
+                originalOpportunities = data.data.map(opp => ({
+                    event: opp.Event || 'Unknown Event',
+                    bet_description: opp['Bet Description'] || 'Unknown Bet',
+                    bet_type: opp.Market || 'Unknown Market',
+                    ev_percentage: (opp.EV_Raw || 0) * 100,
+                    ev_classification: (opp.EV_Raw || 0) >= 0.045 ? 'high' : 
+                                     (opp.EV_Raw || 0) > 0 ? 'positive' : 'neutral',
+                    fair_odds: opp['Fair Odds'] || 'N/A',
+                    best_available_odds: opp['Best Available Odds'] || 'N/A',
+                    best_odds_source: opp['Best_Odds_Source'] || ''
+                }));
+                
+                // Re-apply current filters to new data
+                applyClientSideFilters();
+            }
+            
+            // Show update notification with improved formatting
             showUpdateNotification(
                 `Updated with ${data.summary.total_count} opportunities (${data.summary.positive_ev_count} positive EV)`,
                 'success'
             );
-            
-            // For now, we'll just show a notification
-            // Full table replacement would require more complex implementation
-            // that maintains user state (filters, etc.)
-            
-            // Optional: Auto-refresh the page to show new data
-            // setTimeout(() => window.location.reload(), 2000);
         }
     } catch (error) {
         console.error('Error updating table:', error);
@@ -664,6 +1062,12 @@ function connectWebSocket() {
             console.log('WebSocket connected');
             reconnectAttempts = 0;
             showUpdateNotification('Real-time updates connected', 'success');
+            
+            // Update timestamp display
+            const timestampDisplay = document.getElementById('last-update-display');
+            if (timestampDisplay) {
+                timestampDisplay.innerHTML = '<i class="fas fa-clock me-1"></i><span>Waiting for updates...</span>';
+            }
         };
         
         wsConnection.onmessage = function(event) {
@@ -703,6 +1107,12 @@ function connectSSE() {
         sseConnection.onopen = function() {
             console.log('SSE connected');
             showUpdateNotification('Real-time updates connected (SSE)', 'info');
+            
+            // Update timestamp display
+            const timestampDisplay = document.getElementById('last-update-display');
+            if (timestampDisplay) {
+                timestampDisplay.innerHTML = '<i class="fas fa-clock me-1"></i><span>Waiting for updates...</span>';
+            }
         };
         
         sseConnection.onmessage = function(event) {
@@ -739,13 +1149,31 @@ function connectSSE() {
     }
 }
 
-// Initialize real-time connection when page loads
+// ===========================
+// INITIALIZATION
+// ===========================
+
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    // Only connect if we're on a page with opportunities
+    // Initialize client-side filtering
+    initializeFiltering();
+    
+    // Only connect real-time updates if we're on a page with opportunities
     const opportunitiesContainer = document.querySelector('.cards-grid');
     if (opportunitiesContainer) {
         console.log('Initializing real-time updates...');
+        
+        // Create timestamp display
+        createTimestampDisplay();
+        
+        // Show loading spinner initially (Bootstrap 5 pattern)
+        showLoadingSpinner();
+        
+        // Connect to real-time updates
         connectWebSocket();
+        
+        // Update timestamp display every 5 seconds
+        setInterval(updateTimestampDisplay, 5000);
     }
     
     // Cleanup connections when page unloads
