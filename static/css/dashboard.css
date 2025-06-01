@@ -1,0 +1,2807 @@
+/* ===========================
+   Sports Betting Dashboard CSS - Phase 5 Polish
+   Professional styling with accessibility compliance
+   =========================== */
+
+/* ===== ENHANCED COLOR SYSTEM ===== */
+:root {
+    /* Primary Brand Colors */
+    --color-primary: #2c5aa0;
+    --color-primary-light: #3d6db0;
+    --color-primary-dark: #1e3f73;
+    --color-secondary: #1d4e3f;
+    --color-secondary-light: #2e6b5a;
+    --color-secondary-dark: #0f2922;
+    
+    /* EV Classification Colors - WCAG AA Compliant */
+    --color-ev-excellent: #0f7b0f;          /* Dark green for 5%+ EV */
+    --color-ev-excellent-bg: #e8f5e8;
+    --color-ev-excellent-border: #4caf50;
+    
+    --color-ev-high: #2e7d32;               /* Green for 2.5%+ EV */
+    --color-ev-high-bg: #f1f8e9;
+    --color-ev-high-border: #66bb6a;
+    
+    --color-ev-positive: #f57c00;           /* Orange for positive EV */
+    --color-ev-positive-bg: #fff8e1;
+    --color-ev-positive-border: #ffb74d;
+    
+    --color-ev-neutral: #424242;            /* Dark gray for neutral/negative */
+    --color-ev-neutral-bg: #f5f5f5;
+    --color-ev-neutral-border: #9e9e9e;
+    
+    --color-ev-negative: #c62828;           /* Red for significant negative EV */
+    --color-ev-negative-bg: #ffebee;
+    --color-ev-negative-border: #ef5350;
+    
+    /* UI Colors - Enhanced Contrast */
+    --color-text-primary: #000000;          /* Pure black for maximum readability */
+    --color-text-secondary: #1a1a1a;        /* Very dark gray */
+    --color-text-muted: #333333;           /* Dark gray instead of light gray */
+    --color-text-inverse: #ffffff;
+    
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #fafafa;
+    --color-bg-tertiary: #f5f5f5;
+    
+    --color-border: #e0e0e0;
+    --color-border-light: #eeeeee;
+    --color-border-focus: var(--color-primary);
+    
+    --color-shadow: rgba(0, 0, 0, 0.12);
+    --color-shadow-hover: rgba(0, 0, 0, 0.16);
+    --color-shadow-focus: rgba(44, 90, 160, 0.25);
+    
+    /* Interactive States */
+    --color-hover-bg: #f8f9fa;
+    --color-active-bg: #e9ecef;
+    --color-focus-outline: var(--color-primary);
+    
+    /* Status Colors */
+    --color-success: #2e7d32;
+    --color-warning: #f57c00;
+    --color-error: #c62828;
+    --color-info: var(--color-primary);
+    
+    /* Typography - Enhanced Hierarchy */
+    --font-family-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    --font-family-mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+    
+    --font-weight-light: 300;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* Enhanced Spacing System */
+    --spacing-xs: 0.25rem;     /* 4px */
+    --spacing-sm: 0.5rem;      /* 8px */
+    --spacing-md: 1rem;        /* 16px */
+    --spacing-lg: 1.5rem;      /* 24px */
+    --spacing-xl: 2rem;        /* 32px */
+    --spacing-xxl: 3rem;       /* 48px */
+    --spacing-xxxl: 4rem;      /* 64px */
+    
+    /* Container System */
+    --container-sm: 576px;
+    --container-md: 768px;
+    --container-lg: 992px;
+    --container-xl: 1200px;
+    --container-xxl: 1400px;
+    
+    /* Grid System */
+    --grid-gap-xs: 0.75rem;
+    --grid-gap-sm: 1rem;
+    --grid-gap-md: 1.25rem;
+    --grid-gap-lg: 1.5rem;
+    --grid-gap-xl: 2rem;
+    
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    
+    /* Transitions */
+    --transition-fast: 0.15s ease-out;
+    --transition-base: 0.2s ease-out;
+    --transition-slow: 0.3s ease-out;
+    
+    /* Z-index Scale */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal: 1040;
+    --z-popover: 1050;
+    --z-tooltip: 1060;
+}
+
+body {
+    font-family: var(--font-family-primary);
+    font-weight: var(--font-weight-regular);
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enhanced Typography System */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-family-primary);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    line-height: 1.3;
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1.125rem; }
+h6 { font-size: 1rem; }
+
+p {
+    margin: 0 0 var(--spacing-md) 0;
+    line-height: 1.6;
+}
+
+/* Focus Management for Accessibility */
+*:focus {
+    outline: 2px solid var(--color-focus-outline);
+    outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--color-focus-outline);
+    outline-offset: 2px;
+}
+
+/* Skip Link for Screen Readers - DISABLED */
+.skip-link {
+    display: none !important;
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ===== RESPONSIVE CONTAINER SYSTEM ===== */
+.container-fluid {
+    width: 100%;
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Responsive Container Sizes */
+@media (min-width: 576px) {
+    .container-fluid {
+        max-width: var(--container-sm);
+        padding-left: var(--spacing-lg);
+        padding-right: var(--spacing-lg);
+    }
+}
+
+@media (min-width: 768px) {
+    .container-fluid {
+        max-width: var(--container-md);
+    }
+}
+
+@media (min-width: 992px) {
+    .container-fluid {
+        max-width: var(--container-lg);
+    }
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: var(--container-xl);
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: var(--container-xxl);
+    }
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-container {
+    min-height: auto;
+    padding: var(--spacing-xl) var(--spacing-sm);
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ===== DASHBOARD METRICS ===== */
+.metrics-section {
+    background: white;
+    border-radius: 0;
+    padding: var(--spacing-xl) 0;
+    margin-bottom: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.metric-card {
+    text-align: center;
+    padding: var(--spacing-lg);
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid var(--color-border);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    display: block;
+    margin-bottom: var(--spacing-xs);
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: #333333;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+/* ===== BETTING CARDS - ENHANCED RESPONSIVE GRID ===== */
+.opportunities-section {
+    margin-bottom: 0;
+    background: #fafafa;
+    padding: var(--spacing-xl) 0;
+    min-height: 50vh;
+}
+
+/* Enhanced Grid Container with Responsive Design */
+.cards-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--grid-gap-md);
+    margin-top: var(--spacing-lg);
+    width: 100%;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Individual Betting Card - Enhanced for Horizontal Layout */
+.bet-card {
+    background: white;
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    box-shadow: 0 2px 8px var(--color-shadow);
+    border: 1px solid var(--color-border);
+    transition: all 0.3s ease;
+    position: relative;
+    
+    /* Horizontal layout */
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    grid-template-areas: 
+        "header ev-metric odds-section action-section ev-badge";
+    align-items: start;
+    gap: var(--spacing-lg);
+    min-height: 120px;
+    
+    /* Overflow handling */
+    overflow: hidden;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.bet-card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+}
+
+/* EV-based Card Styling - Enhanced with New Color System */
+.bet-card.ev-excellent {
+    background: linear-gradient(135deg, var(--color-ev-excellent-bg) 0%, rgba(232, 245, 232, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-excellent);
+    border-color: var(--color-ev-excellent-border);
+}
+
+.bet-card.ev-high {
+    background: linear-gradient(135deg, var(--color-ev-high-bg) 0%, rgba(241, 248, 233, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-high);
+    border-color: var(--color-ev-high-border);
+}
+
+.bet-card.ev-positive {
+    background: linear-gradient(135deg, var(--color-ev-positive-bg) 0%, rgba(255, 248, 225, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-positive);
+    border-color: var(--color-ev-positive-border);
+}
+
+.bet-card.ev-neutral {
+    background: linear-gradient(135deg, var(--color-ev-neutral-bg) 0%, rgba(245, 245, 245, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-neutral);
+    border-color: var(--color-ev-neutral-border);
+}
+
+.bet-card.ev-negative {
+    background: linear-gradient(135deg, var(--color-ev-negative-bg) 0%, rgba(255, 235, 238, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-negative);
+    border-color: var(--color-ev-negative-border);
+}
+
+/* Card Header - Now takes first grid area */
+.card-header {
+    grid-area: header;
+    margin-bottom: 0;
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.event-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: var(--spacing-xs);
+    line-height: 1.3;
+    
+    /* Allow more text in horizontal layout */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+}
+
+.bet-description {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #1a1a1a;
+    margin-bottom: var(--spacing-sm);
+    
+    /* Allow more text in horizontal layout */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+}
+
+.bet-type {
+    font-size: 0.85rem;
+    color: #333333;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+/* EV Badge - Enhanced Accessibility and Visual Design */
+.ev-badge {
+    grid-area: ev-badge;
+    position: static;
+    margin-bottom: 0;
+    align-self: flex-start;
+    justify-self: flex-end;
+    width: fit-content;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-xl);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    transition: all var(--transition-base);
+    border: 2px solid transparent;
+}
+
+.ev-badge.excellent {
+    background: var(--color-ev-excellent);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-excellent-border);
+    box-shadow: 0 2px 8px rgba(15, 123, 15, 0.2);
+}
+
+.ev-badge.high {
+    background: var(--color-ev-high);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-high-border);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+}
+
+.ev-badge.positive {
+    background: var(--color-ev-positive);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-positive-border);
+    box-shadow: 0 2px 8px rgba(245, 124, 0, 0.2);
+}
+
+.ev-badge.neutral {
+    background: var(--color-ev-neutral);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-neutral-border);
+    box-shadow: 0 2px 8px rgba(66, 66, 66, 0.2);
+}
+
+.ev-badge.negative {
+    background: var(--color-ev-negative);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-negative-border);
+    box-shadow: 0 2px 8px rgba(198, 40, 40, 0.2);
+}
+
+/* EV Badge Icons with Accessible Labels */
+.ev-badge .ev-icon {
+    font-size: 0.875rem;
+    margin-right: var(--spacing-xs);
+}
+
+.ev-badge .ev-icon[aria-label]::before {
+    content: attr(aria-label);
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.ev-percentage {
+    font-weight: var(--font-weight-bold);
+    font-size: 0.8rem;
+}
+
+/* EV Metric Section - Second grid area */
+.ev-metric {
+    grid-area: ev-metric;
+    text-align: center;
+    margin: 0;
+    padding: var(--spacing-md);
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    align-self: start;
+}
+
+.ev-metric-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #333333;
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ev-metric-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.ev-metric-value.high { color: var(--color-ev-high); }
+.ev-metric-value.positive { color: var(--color-ev-positive); }
+.ev-metric-value.neutral { color: var(--color-ev-neutral); }
+
+/* Odds Section - Third grid area */
+.odds-section {
+    grid-area: odds-section;
+    margin: 0;
+    align-self: start;
+}
+
+.odds-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.odds-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+}
+
+.odds-item {
+    background: white;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    font-size: 0.8rem;
+    text-align: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.odds-item.best {
+    background: #d4edda;
+    border-color: var(--color-ev-high);
+    font-weight: 600;
+    color: #155724;
+    box-shadow: 0 1px 3px rgba(40, 167, 69, 0.2);
+}
+
+.odds-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--color-shadow);
+}
+
+/* Fair and Best Odds - Part of odds section */
+.fair-best-section {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xs);
+    margin: var(--spacing-sm) 0 0 0;
+    padding: var(--spacing-sm);
+    background: rgba(248, 249, 250, 0.5);
+    border-radius: 6px;
+}
+
+.fair-odds, .best-odds {
+    text-align: center;
+}
+
+.fair-odds {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.best-odds {
+    font-weight: 600;
+    color: var(--color-ev-high);
+}
+
+.odds-label {
+    font-size: 0.8rem;
+    color: #333333;
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.odds-value {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* Action Section - Fourth grid area */
+.action-section {
+    grid-area: action-section;
+    margin: 0;
+    padding: 0;
+    border: none;
+    align-self: start;
+}
+
+.recommendation {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: rgba(0, 123, 255, 0.1);
+    border-radius: 4px;
+    border-left: 3px solid #007bff;
+}
+
+.posting-suggestion {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: var(--spacing-md);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    justify-content: center;
+    min-width: 100px;
+}
+
+.action-btn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn.take {
+    background: linear-gradient(135deg, var(--color-ev-high) 0%, #20c997 100%);
+    color: white;
+}
+
+.action-btn.take:hover {
+    background: linear-gradient(135deg, #1e7e34 0%, #1c7a7a 100%);
+    color: white;
+}
+
+.action-btn.post {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+}
+
+.action-btn.post:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    color: white;
+}
+
+/* ===== RESPONSIVE DESIGN - ENHANCED BREAKPOINTS ===== */
+
+/* Mobile First: Base styles for mobile */
+.main-container {
+    padding: 0 var(--spacing-sm);
+}
+
+.cards-grid {
+    gap: var(--grid-gap-sm);
+}
+
+.bet-card {
+    min-height: 320px;
+}
+
+.ev-badge {
+    position: static;
+    margin-bottom: var(--spacing-sm);
+    align-self: flex-start;
+    width: fit-content;
+}
+
+.odds-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xs);
+}
+
+.fair-best-section {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+}
+
+.action-buttons {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.metric-value {
+    font-size: 1.5rem;
+}
+
+.ev-metric-value {
+    font-size: 1.25rem;
+}
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) {
+    .main-container {
+        padding: 0 var(--spacing-md);
+    }
+    
+    .cards-grid {
+        gap: var(--grid-gap-md);
+    }
+    
+    .bet-card {
+        min-height: 340px;
+    }
+    
+    .metric-value {
+        font-size: 1.75rem;
+    }
+    
+    .ev-metric-value {
+        font-size: 1.4rem;
+    }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    .main-container {
+        padding: 0 var(--spacing-lg);
+    }
+    
+    .cards-grid {
+        gap: var(--grid-gap-lg);
+    }
+    
+    .bet-card {
+        min-height: 360px;
+        padding: var(--spacing-lg);
+    }
+    
+    .ev-badge {
+        position: absolute;
+        top: var(--spacing-md);
+        right: var(--spacing-md);
+        margin-bottom: 0;
+    }
+    
+    .odds-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: var(--spacing-sm);
+    }
+    
+    .fair-best-section {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-md);
+    }
+    
+    .action-buttons {
+        flex-direction: row;
+        gap: var(--spacing-md);
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+    }
+    
+    .ev-metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .header-title {
+        font-size: 2.5rem;
+    }
+    
+    .header-subtitle {
+        font-size: 1.2rem;
+    }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    .cards-grid {
+        gap: var(--grid-gap-xl);
+    }
+    
+    .bet-card {
+        min-height: 380px;
+    }
+    
+    .odds-grid {
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    .bet-card {
+        min-height: 400px;
+    }
+}
+
+/* Extra extra large devices (larger desktops, 1400px and up) */
+@media (min-width: 1400px) {
+    .bet-card {
+        min-height: 420px;
+    }
+    
+    .cards-grid {
+        gap: var(--grid-gap-xl);
+    }
+}
+
+/* ===== OVERFLOW AND TEXT HANDLING ===== */
+.bet-card * {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Ensure no horizontal scrolling */
+html, body {
+    overflow-x: hidden;
+}
+
+.cards-grid {
+    overflow: visible;
+}
+
+/* Long text handling */
+.long-text {
+    hyphens: auto;
+    word-break: break-word;
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-center { text-align: center; }
+.fw-bold { font-weight: 700; }
+.fw-semibold { font-weight: 600; }
+.text-muted { color: #6c757d; }
+.mb-0 { margin-bottom: 0; }
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+
+/* ===== LOADING AND EMPTY STATES ===== */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxl) var(--spacing-xl);
+    border-radius: 12px;
+    border: 2px dashed var(--color-border);
+    margin: var(--spacing-xl) 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #6c757d;
+}
+
+.empty-state h3 {
+    color: #495057;
+    margin-bottom: var(--spacing-md);
+    font-weight: 600;
+}
+
+.empty-state p {
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+}
+
+.empty-state .btn {
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.empty-state .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== FILTER CONTROLS SECTION ===== */
+.filters-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--spacing-lg) 0;
+}
+
+.filters-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+}
+
+.filters-form {
+    background: white;
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--color-border);
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-width: 200px;
+}
+
+.filter-group.filter-actions {
+    margin-left: auto;
+    min-width: auto;
+    gap: var(--spacing-sm);
+}
+
+.filter-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    white-space: nowrap;
+    margin-bottom: 0;
+}
+
+.filter-select {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.9rem;
+    color: #495057;
+    min-width: 150px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-select:hover {
+    border-color: var(--color-primary);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(31, 119, 180, 0.1);
+}
+
+.filter-btn {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    text-decoration: none;
+}
+
+.filter-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+}
+
+.filter-btn-clear {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.filter-btn-clear:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.filter-btn-apply {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.filter-btn-apply:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+/* Filter Active Badge */
+.badge.bg-info {
+    background: linear-gradient(135deg, var(--color-primary) 0%, #1e7e34 100%) !important;
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* ===== RESPONSIVE FILTER DESIGN ===== */
+
+/* Large devices - all filters in one row */
+@media (min-width: 992px) {
+    .filter-row {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+    }
+    
+    .filter-group {
+        flex: 0 0 auto;
+    }
+    
+    .filter-group.filter-actions {
+        margin-left: auto;
+        flex: 0 0 auto;
+    }
+}
+
+/* Medium devices - filters may wrap */
+@media (min-width: 768px) and (max-width: 991px) {
+    .filter-row {
+        justify-content: center;
+    }
+    
+    .filter-group {
+        min-width: 180px;
+    }
+    
+    .filter-group.filter-actions {
+        margin-left: 0;
+        order: 3;
+        flex-basis: 100%;
+        justify-content: center;
+        margin-top: var(--spacing-md);
+    }
+}
+
+/* Small devices - stack vertically */
+@media (max-width: 767px) {
+    .filters-container {
+        padding: 0 var(--spacing-sm);
+    }
+    
+    .filters-form {
+        padding: var(--spacing-md);
+    }
+    
+    .filter-row {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .filter-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .filter-group.filter-actions {
+        flex-direction: row;
+        justify-content: center;
+        margin-left: 0;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-sm);
+    }
+    
+    .filter-label {
+        align-self: flex-start;
+    }
+    
+    .filter-select {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .filter-btn {
+        flex: 1;
+        justify-content: center;
+        min-width: 100px;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 576px) {
+    .filter-group.filter-actions {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    .filter-btn {
+        width: 100%;
+    }
+}
+
+/* ===== LOADING STATES ===== */
+.loading-container {
+    text-align: center;
+    padding: var(--spacing-xxl);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border: 2px dashed var(--color-border);
+    margin: var(--spacing-xl) 0;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--color-border);
+    border-top: 4px solid var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto var(--spacing-md);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 768px) {
+    .header-title {
+        font-size: 2rem;
+    }
+    
+    .header-subtitle {
+        font-size: 1.1rem;
+    }
+    
+    .header-tagline {
+        font-size: 0.9rem;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .metric-label {
+        font-size: 0.8rem;
+    }
+    
+    .metrics-section {
+        padding: var(--spacing-lg) 0;
+    }
+    
+    .metric-card {
+        padding: var(--spacing-md);
+    }
+    
+    /* Mobile card layout - stack vertically */
+    .bet-card {
+        grid-template-columns: 1fr;
+        grid-template-areas: 
+            "header"
+            "ev-badge" 
+            "ev-metric"
+            "odds-section"
+            "action-section";
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+    }
+    
+    .ev-badge {
+        justify-self: center;
+        align-self: center;
+    }
+    
+    .ev-metric {
+        text-align: center;
+    }
+    
+    .odds-section {
+        text-align: center;
+    }
+    
+    .action-section {
+        text-align: center;
+    }
+    
+    .action-buttons {
+        flex-direction: row;
+        justify-content: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .action-btn {
+        flex: 1;
+        min-width: auto;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .bet-card {
+        grid-template-columns: 2fr 1fr 1fr;
+        grid-template-areas: 
+            "header ev-badge ev-badge"
+            "ev-metric odds-section action-section";
+        gap: var(--spacing-lg);
+    }
+    
+    .ev-badge {
+        justify-self: flex-end;
+    }
+}
+
+/* ===== TOOLTIP SYSTEM FOR ACCESSIBILITY ===== */
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip-trigger {
+    border-bottom: 1px dotted var(--color-text-muted);
+    cursor: help;
+    color: var(--color-info);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.tooltip-trigger:hover,
+.tooltip-trigger:focus {
+    color: var(--color-primary-dark);
+    border-bottom-color: var(--color-primary);
+    text-decoration: none;
+}
+
+.tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-text-primary);
+    color: var(--color-text-inverse);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-regular);
+    line-height: 1.4;
+    white-space: nowrap;
+    z-index: var(--z-tooltip);
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-base);
+    box-shadow: 0 4px 12px var(--color-shadow);
+    pointer-events: none;
+    margin-bottom: var(--spacing-xs);
+    max-width: 280px;
+    white-space: normal;
+    text-align: center;
+}
+
+.tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--color-text-primary);
+}
+
+.tooltip-container:hover .tooltip,
+.tooltip-container:focus-within .tooltip,
+.tooltip-trigger:focus + .tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
+}
+
+/* Tooltip Variants */
+.tooltip.tooltip-large {
+    max-width: 320px;
+    white-space: normal;
+    line-height: 1.5;
+}
+
+.tooltip.tooltip-left {
+    left: 0;
+    transform: translateX(0);
+}
+
+.tooltip.tooltip-right {
+    left: auto;
+    right: 0;
+    transform: translateX(0);
+}
+
+/* Help Icon Styling */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-info);
+    color: var(--color-text-inverse);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    margin-left: var(--spacing-xs);
+    cursor: help;
+    transition: all var(--transition-fast);
+    border: none;
+    padding: 0;
+}
+
+.help-icon:hover,
+.help-icon:focus {
+    background: var(--color-primary-dark);
+    transform: scale(1.1);
+}
+
+/* Accessible Help Text */
+.help-text {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-top: var(--spacing-xs);
+    display: none;
+}
+
+.help-text.visible {
+    display: block;
+    animation: fadeIn var(--transition-base) ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== ENHANCED INTERACTIVE ELEMENTS ===== */
+
+/* Button Base Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family-primary);
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:focus {
+    outline: 2px solid var(--color-focus-outline);
+    outline-offset: 2px;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Button Variants */
+.btn-primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--color-shadow-hover);
+}
+
+.btn-secondary {
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--color-hover-bg);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-ev-high) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-success);
+}
+
+.btn-success:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-ev-high) 0%, var(--color-success) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-ev-positive) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-warning);
+}
+
+.btn-warning:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-ev-positive) 0%, var(--color-warning) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 124, 0, 0.3);
+}
+
+/* ===== CARD LOADING ANIMATIONS ===== */
+.card-loading {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all var(--transition-slow) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.card-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Staggered animation for cards */
+.bet-card:nth-child(1) { animation-delay: 0.1s; }
+.bet-card:nth-child(2) { animation-delay: 0.2s; }
+.bet-card:nth-child(3) { animation-delay: 0.3s; }
+.bet-card:nth-child(4) { animation-delay: 0.4s; }
+.bet-card:nth-child(5) { animation-delay: 0.5s; }
+
+/* ===== KEYBOARD FOCUS ENHANCEMENTS ===== */
+.using-keyboard *:focus {
+    outline: 3px solid var(--color-focus-outline) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 6px var(--color-shadow-focus) !important;
+}
+
+.using-keyboard .bet-card:focus {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px var(--color-shadow-hover);
+}
+
+.using-keyboard .filter-select:focus,
+.using-keyboard .btn:focus {
+    border-color: var(--color-focus-outline);
+    box-shadow: 0 0 0 3px var(--color-shadow-focus);
+}
+
+/* ===== IMPROVED EV METRIC STYLES ===== */
+.ev-metric-value.excellent { 
+    color: var(--color-ev-excellent); 
+    text-shadow: 0 1px 2px rgba(15, 123, 15, 0.2);
+}
+.ev-metric-value.high { 
+    color: var(--color-ev-high); 
+    text-shadow: 0 1px 2px rgba(46, 125, 50, 0.2);
+}
+.ev-metric-value.positive { 
+    color: var(--color-ev-positive); 
+    text-shadow: 0 1px 2px rgba(245, 124, 0, 0.2);
+}
+.ev-metric-value.neutral { 
+    color: var(--color-ev-neutral); 
+    text-shadow: 0 1px 2px rgba(66, 66, 66, 0.2);
+}
+.ev-metric-value.negative { 
+    color: var(--color-ev-negative); 
+    text-shadow: 0 1px 2px rgba(198, 40, 40, 0.2);
+}
+
+/* ===== ENHANCED ACTION BUTTONS ===== */
+.action-btn.take {
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-ev-high) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-success);
+}
+
+.action-btn.take:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-ev-high) 0%, var(--color-success) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.action-btn.post {
+    background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-ev-positive) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-warning);
+}
+
+.action-btn.post:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-ev-positive) 0%, var(--color-warning) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 124, 0, 0.3);
+}
+
+/* ===== LOADING STATES ===== */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* ===== ENHANCED EMPTY STATES ===== */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxxl) var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--color-border);
+    margin: var(--spacing-xl) 0;
+    background: linear-gradient(135deg, var(--color-bg-tertiary) 0%, var(--color-bg-secondary) 100%);
+    color: var(--color-text-muted);
+    transition: all var(--transition-base);
+}
+
+.empty-state:hover {
+    border-color: var(--color-primary);
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-tertiary) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--color-shadow);
+}
+
+.empty-state h3 {
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+    font-weight: var(--font-weight-semibold);
+}
+
+.empty-state p {
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.empty-state .btn {
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-weight: var(--font-weight-medium);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+}
+
+.empty-state .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.fw-light { font-weight: var(--font-weight-light); }
+.fw-regular { font-weight: var(--font-weight-regular); }
+.fw-medium { font-weight: var(--font-weight-medium); }
+.fw-semibold { font-weight: var(--font-weight-semibold); }
+.fw-bold { font-weight: var(--font-weight-bold); }
+
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-error { color: var(--color-error); }
+
+.bg-primary { background-color: var(--color-primary); }
+.bg-secondary { background-color: var(--color-bg-secondary); }
+.bg-tertiary { background-color: var(--color-bg-tertiary); }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+.mb-4 { margin-bottom: var(--spacing-lg); }
+.mb-5 { margin-bottom: var(--spacing-xl); }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mt-4 { margin-top: var(--spacing-lg); }
+.mt-5 { margin-top: var(--spacing-xl); }
+
+.p-0 { padding: 0; }
+.p-1 { padding: var(--spacing-xs); }
+.p-2 { padding: var(--spacing-sm); }
+.p-3 { padding: var(--spacing-md); }
+.p-4 { padding: var(--spacing-lg); }
+.p-5 { padding: var(--spacing-xl); }
+
+.border-radius-sm { border-radius: var(--radius-sm); }
+.border-radius-md { border-radius: var(--radius-md); }
+.border-radius-lg { border-radius: var(--radius-lg); }
+.border-radius-xl { border-radius: var(--radius-xl); }
+
+.shadow-sm { box-shadow: 0 1px 3px var(--color-shadow); }
+.shadow-md { box-shadow: 0 2px 8px var(--color-shadow); }
+.shadow-lg { box-shadow: 0 4px 16px var(--color-shadow-hover); }
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .skip-link,
+    .filters-section,
+    .action-buttons,
+    .help-icon,
+    .tooltip {
+        display: none !important;
+    }
+
+    .bet-card {
+        border: 1px solid #000 !important;
+        background: white !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        margin-bottom: var(--spacing-md) !important;
+    }
+
+    .header-section {
+        background: white !important;
+        color: black !important;
+        border-bottom: 2px solid #000;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+}
+
+/* ===== ADMIN DEBUG MODE STYLES ===== */
+
+/* Global Admin Debug Panel */
+.admin-debug-panel {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    color: #ffffff;
+    border-bottom: 3px solid #ff6b35;
+    padding: var(--spacing-lg) 0;
+    margin-bottom: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.debug-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.debug-header h2 {
+    color: #ff6b35;
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-sm);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.debug-header p {
+    color: #cccccc;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+
+/* Debug Sections */
+.debug-section {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+    transition: all var(--transition-base);
+}
+
+.debug-section:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 107, 53, 0.5);
+}
+
+.debug-section[open] {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #ff6b35;
+}
+
+.debug-summary {
+    padding: var(--spacing-md);
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+    color: #ff6b35;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+    user-select: none;
+    list-style: none;
+}
+
+.debug-summary:hover {
+    background: rgba(255, 107, 53, 0.1);
+    color: #ffffff;
+}
+
+.debug-summary::marker {
+    display: none;
+}
+
+.debug-summary::before {
+    content: '▶';
+    display: inline-block;
+    width: 1em;
+    margin-right: var(--spacing-xs);
+    transition: transform var(--transition-base);
+}
+
+.debug-section[open] .debug-summary::before {
+    transform: rotate(90deg);
+}
+
+.debug-content {
+    padding: 0 var(--spacing-md) var(--spacing-md) var(--spacing-md);
+    border-top: 1px solid rgba(255, 107, 53, 0.2);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.debug-content h4 {
+    color: #ff6b35;
+    font-size: 1rem;
+    margin-bottom: var(--spacing-sm);
+    border-bottom: 1px solid rgba(255, 107, 53, 0.3);
+    padding-bottom: var(--spacing-xs);
+}
+
+.debug-data {
+    font-family: var(--font-family-mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #e0e0e0;
+    background: rgba(0, 0, 0, 0.3);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid #ff6b35;
+}
+
+.debug-data strong {
+    color: #ffffff;
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Per-Card Debug Information */
+.card-debug-section {
+    margin-top: var(--spacing-md);
+    border-top: 2px dashed rgba(255, 107, 53, 0.3);
+    padding-top: var(--spacing-md);
+}
+
+.card-debug {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #ff6b35;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+}
+
+.card-debug:hover {
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
+    transform: translateY(-2px);
+}
+
+.card-debug[open] {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.15);
+}
+
+.card-debug-summary {
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+    color: #ff6b35;
+    background: rgba(255, 107, 53, 0.1);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+    user-select: none;
+    list-style: none;
+    border-bottom: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.card-debug-summary:hover {
+    background: rgba(255, 107, 53, 0.15);
+    color: #d55a2b;
+}
+
+.card-debug-summary::marker {
+    display: none;
+}
+
+.card-debug-summary::before {
+    content: '🐛';
+    display: inline-block;
+    margin-right: var(--spacing-xs);
+}
+
+.card-debug-content {
+    padding: var(--spacing-md);
+    color: var(--color-text-primary);
+}
+
+.card-debug-content h5 {
+    color: #ff6b35;
+    font-size: 0.95rem;
+    margin-bottom: var(--spacing-sm);
+    font-weight: var(--font-weight-semibold);
+    border-bottom: 1px solid rgba(255, 107, 53, 0.3);
+    padding-bottom: var(--spacing-xs);
+}
+
+.debug-calc, .debug-sources {
+    font-family: var(--font-family-mono);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    background: rgba(255, 107, 53, 0.05);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid #ff6b35;
+    color: var(--color-text-primary);
+}
+
+.debug-calc strong, .debug-sources strong {
+    color: #d55a2b;
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Raw Data Dumps */
+.raw-data-dump, .ui-data-dump {
+    margin-top: var(--spacing-sm);
+}
+
+.raw-data-dump summary, .ui-data-dump summary {
+    cursor: pointer;
+    font-weight: var(--font-weight-medium);
+    color: #ff6b35;
+    padding: var(--spacing-xs) 0;
+    border-bottom: 1px dotted rgba(255, 107, 53, 0.4);
+    transition: color var(--transition-base);
+}
+
+.raw-data-dump summary:hover, .ui-data-dump summary:hover {
+    color: #d55a2b;
+}
+
+.raw-data, .ui-data {
+    font-family: var(--font-family-mono);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    background: #2d2d2d;
+    color: #f8f8f2;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ff6b35;
+    margin-top: var(--spacing-xs);
+}
+
+.raw-data code, .ui-data code {
+    color: inherit;
+    background: none;
+    padding: 0;
+    font-size: inherit;
+}
+
+/* Debug Mode Indicator */
+.debug-mode-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: #ff6b35;
+    color: white;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-xl);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    z-index: var(--z-tooltip);
+    animation: pulse 2s infinite;
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Responsive Debug Styles */
+@media (max-width: 768px) {
+    .admin-debug-panel {
+        padding: var(--spacing-md) 0;
+    }
+    
+    .debug-header h2 {
+        font-size: 1.3rem;
+    }
+    
+    .debug-content .row {
+        flex-direction: column;
+    }
+    
+    .debug-content .col-md-6,
+    .debug-content .col-md-4 {
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .debug-data, .debug-calc, .debug-sources {
+        font-size: 0.8rem;
+    }
+    
+    .raw-data, .ui-data {
+        font-size: 0.7rem;
+        max-height: 200px;
+    }
+    
+    .card-debug-content {
+        padding: var(--spacing-sm);
+    }
+}
+
+/* Accessibility Enhancements for Debug Mode */
+.debug-summary:focus,
+.card-debug-summary:focus,
+.raw-data-dump summary:focus,
+.ui-data-dump summary:focus {
+    outline: 3px solid #ff6b35;
+    outline-offset: 2px;
+}
+
+/* Print Styles - Hide Debug Info */
+@media print {
+    .admin-debug-panel,
+    .card-debug-section,
+    .debug-mode-indicator {
+        display: none !important;
+    }
+}
+
+/* ===== ODDS CARD REDESIGN - NEW SEMANTIC STRUCTURE ===== */
+/* 
+ * This section contains styles for the redesigned betting cards
+ * following the PRD requirements with recommended posting odds as focal point
+ */
+
+/* Main Odds Card Container */
+.odds-card {
+    display: block;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: 0 2px 8px var(--color-shadow);
+    transition: all var(--transition-base);
+    position: relative;
+    
+    /* Overflow handling */
+    overflow: hidden;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.odds-card:hover {
+    box-shadow: 0 4px 12px var(--color-shadow-hover);
+    transform: translateY(-2px);
+}
+
+/* Card Header */
+.odds-card__header {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.odds-card__title {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: #000000;
+    margin-bottom: var(--spacing-xs);
+    line-height: 1.3;
+}
+
+.odds-card__subtitle {
+    font-size: 0.85rem;
+    color: #1a1a1a;
+    margin-bottom: 0;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* Card Body - Flex Container */
+.odds-card__body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+    margin-bottom: 0;
+}
+
+/* Recommended Posting Odds - PRIMARY FOCAL POINT */
+.odds-card__recommended {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: var(--radius-md);
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 2px 8px rgba(44, 90, 160, 0.15);
+    min-width: 200px;
+    max-width: 280px;
+    text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.recommended-label {
+    font-size: 0.75rem;
+    color: #1a1a1a;
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: normal;
+    line-height: 1.3;
+    text-align: center;
+    width: 100%;
+}
+
+.recommended-value {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 1px 2px rgba(44, 90, 160, 0.2);
+    line-height: 1;
+    text-align: center;
+    width: 100%;
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Action Buttons under Recommended Odds */
+.odds-card__recommended .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    width: 100%;
+}
+
+.odds-card__recommended .odds-card__action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.odds-card__recommended .odds-card__action-btn.take {
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-ev-high) 100%);
+    color: var(--color-text-inverse);
+}
+
+.odds-card__recommended .odds-card__action-btn.take:hover {
+    background: linear-gradient(135deg, var(--color-ev-high) 0%, var(--color-success) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.3);
+    text-decoration: none;
+    color: var(--color-text-inverse);
+}
+
+.odds-card__recommended .odds-card__action-btn.post {
+    background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-ev-positive) 100%);
+    color: var(--color-text-inverse);
+}
+
+.odds-card__recommended .odds-card__action-btn.post:hover {
+    background: linear-gradient(135deg, var(--color-ev-positive) 0%, var(--color-warning) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(245, 124, 0, 0.3);
+    text-decoration: none;
+    color: var(--color-text-inverse);
+}
+
+/* ===== RESPONSIVE DESIGN FOR ODDS CARDS ===== */
+
+/* Mobile First: Base styles for mobile (up to 768px) */
+@media (max-width: 767px) {
+    .odds-card {
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .odds-card__body {
+        flex-direction: column;
+        gap: var(--spacing-lg);
+    }
+    
+    .odds-card__recommended {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+        text-align: center;
+        align-self: center;
+        padding: var(--spacing-lg);
+    }
+    
+    .recommended-label {
+        font-size: 0.8rem;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .recommended-value {
+        font-size: 2rem;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .detail-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+        text-align: left;
+    }
+    
+    .detail-value {
+        text-align: left;
+        font-size: 1rem;
+        font-weight: var(--font-weight-semibold);
+    }
+    
+    .available-odds-list {
+        flex-direction: column;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .odds-card__action-btn {
+        justify-content: center;
+        width: 100%;
+    }
+}
+
+/* ===== SPECIFIC MOBILE BREAKPOINT (600px and below) ===== */
+@media (max-width: 600px) {
+    /* Card container adjustments for small screens */
+    .odds-card {
+        padding: var(--spacing-sm) var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+        /* Prevent viewport overflow */
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    
+    /* Stack content vertically and stretch to full width */
+    .odds-card__body {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-md);
+    }
+    
+    /* Header text size adjustments */
+    .odds-card__title {
+        font-size: 1rem;
+        line-height: 1.4;
+        /* Allow natural wrapping for long titles */
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+    }
+    
+    .odds-card__subtitle {
+        font-size: 0.85rem;
+        line-height: 1.3;
+        /* Handle long subtitles gracefully */
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    /* Recommended odds section - focal point adjustments */
+    .odds-card__recommended {
+        margin-bottom: 1rem;
+        padding: var(--spacing-md);
+        /* Ensure full width utilization when stacked */
+        width: 100%;
+        box-sizing: border-box;
+        /* Center the content within */
+        justify-content: center;
+        text-align: center;
+    }
+    
+    .recommended-label {
+        font-size: 0.75rem;
+        /* Ensure it doesn't break awkwardly */
+        white-space: nowrap;
+    }
+    
+    .recommended-value {
+        font-size: 1.3rem;
+        /* Reduce from desktop size to prevent overflow */
+        line-height: 1.2;
+        /* Prevent text from being cut off */
+        white-space: nowrap;
+    }
+    
+    /* Details section adjustments */
+    .odds-card__details {
+        gap: var(--spacing-xs);
+        /* Ensure full width utilization */
+        width: 100%;
+    }
+    
+    .detail-item {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        /* Stack label and value vertically on very small screens */
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
+    
+    .detail-label {
+        font-size: 0.8rem;
+        width: 100%;
+    }
+    
+    .detail-value {
+        font-size: 0.9rem;
+        text-align: left;
+        width: 100%;
+        font-weight: var(--font-weight-semibold);
+    }
+    
+    /* Available odds adjustments - KEEP HORIZONTAL */
+    .available-odds-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+        justify-content: flex-start;
+    }
+    
+    .odds-item {
+        text-align: center;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: 0.75rem;
+        /* Prevent horizontal overflow */
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        flex: 0 0 auto;
+        min-width: fit-content;
+    }
+    
+    /* Footer and actions */
+    .odds-card__footer {
+        padding-top: var(--spacing-sm);
+        margin-top: var(--spacing-sm);
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    
+    .odds-card__action-btn {
+        width: 100%;
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 0.85rem;
+        /* Ensure buttons don't overflow */
+        box-sizing: border-box;
+    }
+}
+
+/* ===== VERY SMALL SCREENS (400px and below) ===== */
+@media (max-width: 400px) {
+    .odds-card {
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .odds-card__title {
+        font-size: 0.95rem;
+    }
+    
+    .recommended-value {
+        font-size: 1.2rem;
+    }
+    
+    .detail-label,
+    .detail-value {
+        font-size: 0.8rem;
+    }
+    
+    .odds-card__action-btn {
+        font-size: 0.8rem;
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+}
+
+/* Tablet devices (768px to 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .odds-card__body {
+        gap: var(--spacing-lg);
+    }
+    
+    .recommended-value {
+        font-size: 1.5rem;
+    }
+    
+    .detail-item {
+        padding: var(--spacing-sm);
+    }
+    
+    .available-odds-list {
+        max-width: 100%;
+    }
+}
+
+/* Large devices (1025px and up) */
+@media (min-width: 1025px) {
+    .odds-card {
+        padding: var(--spacing-xl);
+    }
+    
+    .odds-card__body {
+        gap: var(--spacing-xxl);
+    }
+    
+    .odds-card__recommended {
+        min-width: 280px;
+        padding: var(--spacing-lg);
+    }
+    
+    .recommended-value {
+        font-size: 1.75rem;
+    }
+}
+
+/* ===== VERY LARGE SCREENS (1200px and up) - Readability Optimization ===== */
+@media (min-width: 1200px) {
+    .odds-card {
+        /* Prevent cards from becoming too wide for readability */
+        max-width: 600px;
+        /* Center the card if it's in a flexible container */
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    /* Increase spacing for better visual hierarchy on large screens */
+    .odds-card__body {
+        gap: var(--spacing-xxxl);
+    }
+    
+    .odds-card__recommended {
+        min-width: 320px;
+        padding: var(--spacing-xl);
+    }
+    
+    .recommended-value {
+        font-size: 2rem;
+    }
+    
+    /* Improve typography scaling */
+    .odds-card__title {
+        font-size: 1.4rem;
+    }
+    
+    .detail-item {
+        padding: var(--spacing-md);
+    }
+    
+    .detail-label {
+        font-size: 0.9rem;
+    }
+    
+    .detail-value {
+        font-size: 1rem;
+    }
+}
+
+/* ===== ULTRA-WIDE SCREENS (1600px and up) ===== */
+@media (min-width: 1600px) {
+    .odds-card {
+        /* Maintain readability on ultra-wide screens */
+        max-width: 700px;
+    }
+    
+    .odds-card__recommended {
+        min-width: 360px;
+    }
+    
+    .recommended-value {
+        font-size: 2.2rem;
+    }
+}
+
+/* ===== LANDSCAPE MOBILE ORIENTATION ===== */
+@media (max-width: 767px) and (orientation: landscape) {
+    .odds-card__body {
+        /* On landscape mobile, we can afford horizontal layout */
+        flex-direction: row;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+    
+    .odds-card__recommended {
+        margin-bottom: 0;
+        margin-right: var(--spacing-md);
+        min-width: 200px;
+        flex-shrink: 0;
+    }
+    
+    .recommended-value {
+        font-size: 1.4rem;
+    }
+    
+    .detail-item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .detail-value {
+        text-align: right;
+    }
+    
+    .action-buttons {
+        flex-direction: row;
+        gap: var(--spacing-sm);
+    }
+    
+    .odds-card__action-btn {
+        width: auto;
+        flex: 1;
+    }
+}
+
+/* ===== ACCESSIBILITY ENHANCEMENTS FOR ODDS CARDS ===== */
+
+/* Focus states */
+.odds-card:focus-within {
+    outline: 2px solid var(--color-focus-outline);
+    outline-offset: 2px;
+}
+
+.odds-card__action-btn:focus {
+    outline: 2px solid var(--color-focus-outline);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .odds-card {
+        border: 2px solid var(--color-text-primary);
+    }
+    
+    .recommended-value {
+        color: var(--color-text-primary);
+        -webkit-text-fill-color: var(--color-text-primary);
+    }
+    
+    .detail-item {
+        border: 1px solid var(--color-text-primary);
+    }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .odds-card,
+    .odds-card__action-btn,
+    .odds-item {
+        transition: none;
+    }
+    
+    .odds-card:hover {
+        transform: none;
+    }
+    
+    .odds-card__action-btn:hover {
+        transform: none;
+    }
+}
+
+/* Print styles for odds cards */
+@media print {
+    .odds-card {
+        border: 1px solid #000 !important;
+        background: white !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        margin-bottom: var(--spacing-md) !important;
+    }
+    
+    .odds-card__footer,
+    .help-icon,
+    .tooltip {
+        display: none !important;
+    }
+    
+    .recommended-value {
+        color: #000 !important;
+        -webkit-text-fill-color: #000 !important;
+    }
+}
+
+/* ===== OVERRIDE OLD CARD STYLES (if needed) ===== */
+/* 
+ * These overrides ensure the new odds cards don't conflict 
+ * with any existing bet-card styles
+ */
+
+/* Remove any potential conflicts from old bet-card styles */
+.odds-card {
+    /* Ensure our new cards don't inherit problematic styles */
+    position: static !important;
+    display: block !important;
+    grid-template-columns: none !important;
+    grid-template-areas: none !important;
+}
+
+/* ===== END ODDS CARD REDESIGN SECTION ===== */ 
+
+/* ---------- QUICK FIX FOR NARROW COLUMNS ---------- */
+
+/* 1️⃣  Make every card take the available width */
+.odds-card {
+    width: 100%;          /* instead of max-width:720px;  */
+    max-width: 100%;      /* prevents skinny columns inside grid layouts */
+}
+
+/* 2️⃣  Allow the internal columns to wrap when space is tight */
+.odds-card__body {
+    flex-wrap: wrap;      /* <— critical */
+}
+
+/* 3️⃣  Recommended block: keep it sturdy but not force a huge min-width */
+.odds-card__recommended {
+    flex: 0 0 140px;      /* fixed 140 px on desktop … */
+}
+
+@media (max-width: 768px) {
+    /* On mobile just let it fill and stack naturally */
+    .odds-card__recommended {
+        flex: 1 1 auto;     /* we'll stack, so no fixed width */
+        min-width: 0;
+    }
+    .odds-card__details {
+        flex: 1 1 100%;
+    }
+}
+
+/* EV-based Card Styling - Enhanced with New Color System */
+.odds-card.ev-excellent {
+    background: linear-gradient(135deg, var(--color-ev-excellent-bg) 0%, rgba(232, 245, 232, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-excellent);
+    border-color: var(--color-ev-excellent-border);
+}
+
+.odds-card.ev-high {
+    background: linear-gradient(135deg, var(--color-ev-high-bg) 0%, rgba(241, 248, 233, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-high);
+    border-color: var(--color-ev-high-border);
+}
+
+.odds-card.ev-positive {
+    background: linear-gradient(135deg, var(--color-ev-positive-bg) 0%, rgba(255, 248, 225, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-positive);
+    border-color: var(--color-ev-positive-border);
+}
+
+.odds-card.ev-neutral {
+    background: linear-gradient(135deg, var(--color-ev-neutral-bg) 0%, rgba(245, 245, 245, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-neutral);
+    border-color: var(--color-ev-neutral-border);
+}
+
+.odds-card.ev-negative {
+    background: linear-gradient(135deg, var(--color-ev-negative-bg) 0%, rgba(255, 235, 238, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-negative);
+    border-color: var(--color-ev-negative-border);
+}
+
+/* Details Section - Secondary Information */
+.odds-card__details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    flex: 1;
+    min-width: 0; /* Allow shrinking */
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(248, 249, 250, 0.6);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-light);
+}
+
+.detail-label {
+    font-size: 0.85rem;
+    color: #1a1a1a;
+    font-weight: var(--font-weight-medium);
+    flex-shrink: 0;
+}
+
+.detail-value {
+    font-size: 0.9rem;
+    color: #000000;
+    font-weight: var(--font-weight-medium);
+    text-align: right;
+}
+
+/* EV Value Special Styling */
+.ev-value.excellent { 
+    color: var(--color-ev-excellent); 
+    font-weight: var(--font-weight-bold);
+}
+.ev-value.high { 
+    color: var(--color-ev-high); 
+    font-weight: var(--font-weight-bold);
+}
+.ev-value.positive { 
+    color: var(--color-ev-positive); 
+    font-weight: var(--font-weight-bold);
+}
+.ev-value.neutral { 
+    color: var(--color-ev-neutral); 
+}
+
+/* Best Odds Highlighting */
+.best-odds {
+    color: var(--color-ev-high);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Override for Available Odds - Make it different from other detail items */
+.detail-item.available-odds-section {
+    display: block !important;
+    align-items: unset !important;
+    justify-content: unset !important;
+    padding: var(--spacing-sm);
+}
+
+.available-odds-section .detail-label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+
+.available-odds-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    width: 100%;
+    justify-content: flex-start;
+    margin: 0;
+    padding: 0;
+}
+
+.odds-item {
+    background: var(--color-bg-primary);
+}
+
+/* ========= HERO BANNER ========= */
+.hero-ev {
+    --gradStart: #2c5aa0;
+    --gradEnd: #1d4e3f;
+    background: linear-gradient(135deg, var(--gradStart), var(--gradEnd));
+    color: #ffffff !important;
+    position: relative;
+    text-align: center;
+    padding: 2.75rem 1rem 3.5rem;   /* more bottom-pad b/c of wave */
+}
+
+.hero-ev__content {
+    max-width: 820px;
+    margin-inline: auto;
+}
+
+.hero-ev__title {
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: .5rem;
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hero-ev__title .icon {
+    font-family: "Font Awesome 6 Free"; /* or remove if not using FA */
+    font-weight: 900;
+    font-size: 1.25em;
+    color: #ffffff !important;
+}
+
+.hero-ev__title strong {
+    color: #ffeb3b !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.hero-ev__tagline {
+    font-size: clamp(.9rem, 2.3vw, 1.1rem);
+    font-weight: 500;
+    margin: .5rem 0 0;
+    color: rgba(255, 255, 255, 0.95) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.hero-ev__subtag {
+    font-size: clamp(.75rem, 1.9vw, .95rem);
+    margin: .25rem 0 0;
+    color: rgba(255, 255, 255, 0.85) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* curved bottom edge */
+.hero-ev__wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+}
+
+/* ========== DARK MODE (opt) ========== */
+@media (prefers-color-scheme: dark) {
+    .hero-ev { 
+        --gradStart: #012a49; 
+        --gradEnd: #013a2d; 
+    }
+    .hero-ev__wave path { 
+        fill: #0d1117;         /* replace w/ dark bg colour */
+    }
+}

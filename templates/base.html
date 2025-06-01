@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time sports betting +EV analysis dashboard">
+    <title>{% block title %}{{ page_title or "Sports Betting +EV Analyzer" }}{% endblock %}</title>
+    
+    <!-- CSS Framework and Custom Styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Header Section - COMMENTED OUT: Replaced with hero banner in dashboard.html -->
+    <!--
+    <header class="header-section">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="header-content text-center py-4">
+                        <h1 class="header-title">
+                            <i class="fas fa-crosshairs me-2"></i>
+                            Sports Betting +EV Analyzer
+                        </h1>
+                        <p class="header-subtitle mb-2">
+                            Real-time identification of positive expected value betting opportunities
+                        </p>
+                        <small class="header-tagline">
+                            Professional-grade analysis • Live market data • Smart filtering
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    -->
+
+    <!-- Navigation Bar (if needed for future phases) -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light d-none">
+        <div class="container-fluid">
+            <div class="navbar-nav">
+                <a class="nav-link active" href="/">
+                    <i class="fas fa-home me-1"></i> Dashboard
+                </a>
+                <a class="nav-link" href="/analytics">
+                    <i class="fas fa-chart-line me-1"></i> Analytics
+                </a>
+                <a class="nav-link" href="/settings">
+                    <i class="fas fa-cog me-1"></i> Settings
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="main-container">
+        <div class="container-fluid">
+            {% block content %}
+            <!-- Page-specific content will be inserted here -->
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <small class="text-muted">
+                        Sports Betting +EV Analyzer v2.1.0 | 
+                        <span id="last-updated">Last updated: <span class="fw-bold">Just now</span></span> |
+                        <a href="/education" class="text-muted text-decoration-none" title="Learn about sports betting basics">📚 Learn the Basics</a> |
+                        <a href="/disclaimer" class="text-muted text-decoration-none" title="Important legal disclaimer and risk disclosure">⚠️ Disclaimer</a>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    {% block scripts %}{% endblock %}
+    
+    <script src="{{ url_for('static', path='/js/dashboard.js') }}"></script>
+</body>
+</html> 
