@@ -3,10 +3,10 @@ FastAPI application for Sports Betting +EV Analyzer Dashboard
 Serves the new HTML/CSS UI using Jinja2 templates
 """
 
-from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter
+from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -16,6 +16,9 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 import os
 import time
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Import the data processing services
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
@@ -35,12 +38,22 @@ from core.auth import (
     UserCtx
 )
 
+# Import session management
+from core.session import (
+    SessionManager, 
+    get_current_user_from_cookie, 
+    require_csrf_validation
+)
+
 # Import core settings
 from core.config import settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -49,8 +62,19 @@ app = FastAPI(
     version="2.1.0"
 )
 
-# Add CORS middleware for development
-if settings.environment == "development":
+# Add rate limiting error handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Configure CORS based on environment
+if settings.environment == "production":
+    # Production: Only allow your domain
+    origins = [
+        "https://app.betintel.com",
+        "https://betintel.com"
+    ]
+else:
+    # Development: Allow localhost variations
     origins = [
         "http://localhost:3000",
         "http://localhost:5173",
@@ -59,13 +83,15 @@ if settings.environment == "development":
         "http://localhost:8000",
         "http://127.0.0.1:8000"
     ]
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,  # Required for cookies
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+    expose_headers=["X-CSRF-Token"]  # Allow frontend to read CSRF token
+)
 
 # Configure static files (CSS, JS, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -498,10 +524,12 @@ async def education(request: Request):
         raise HTTPException(status_code=500, detail="Unable to load education page")
 
 @app.get("/api/opportunities")
-async def api_opportunities():
+@limiter.limit("60/minute")
+async def api_opportunities(request: Request):
     """
     API endpoint for getting opportunities data - uses cached data for performance
     Falls back to live data if cache is empty
+    Rate limited to prevent abuse
     """
     try:
         # Try cached data first
@@ -540,6 +568,14 @@ async def api_opportunities():
         logger.error(f"Error in API route: {e}")
         return {"error": str(e), "opportunities": []}
 
+@app.get("/api/bets", tags=["opportunities"])
+@limiter.limit("60/minute")
+async def get_betting_opportunities(request: Request):
+    """
+    Get betting opportunities (alias for /api/opportunities)
+    Rate limited to prevent credential stuffing and abuse
+    """
+    return await api_opportunities(request)
 
 @app.get("/health")
 async def health_check():
@@ -719,10 +755,12 @@ async def get_premium_opportunities(
 
 
 @app.get("/api/user-info")
-async def get_user_info(user: UserCtx = Depends(get_current_user)):
+@limiter.limit("30/minute")
+async def get_user_info(request: Request, user: UserCtx = Depends(get_current_user)):
     """
     Get basic user info using simple JWT validation (no database lookup)
     Useful for quick authentication checks
+    Rate limited to prevent abuse
     """
     return {
         "user_id": user.id,
@@ -733,9 +771,11 @@ async def get_user_info(user: UserCtx = Depends(get_current_user)):
 
 # Background Task Endpoints
 @app.post("/api/refresh", tags=["background-tasks"])
-async def manual_refresh(admin_user: UserCtx = Depends(require_role("admin"))):
+@limiter.limit("5/minute")  # Lower limit for admin operations
+async def manual_refresh(request: Request, admin_user: UserCtx = Depends(require_role("admin")), csrf_valid: bool = Depends(require_csrf_validation)):
     """
     Manually trigger odds data refresh using Celery background task - ADMIN ONLY
+    Requires CSRF token validation
     """
     try:
         # Schedule the task
@@ -753,9 +793,11 @@ async def manual_refresh(admin_user: UserCtx = Depends(require_role("admin"))):
 
 
 @app.get("/api/task-status/{task_id}", tags=["background-tasks"])
-async def get_task_status(task_id: str, admin_user: UserCtx = Depends(require_role("admin"))):
+@limiter.limit("20/minute")
+async def get_task_status(task_id: str, request: Request, admin_user: UserCtx = Depends(require_role("admin"))):
     """
     Get the status of a background task - ADMIN ONLY
+    Rate limited to prevent abuse
     """
     try:
         from services.celery_app import celery_app
@@ -791,10 +833,12 @@ async def get_task_status(task_id: str, admin_user: UserCtx = Depends(require_ro
 
 
 @app.get("/api/odds", tags=["opportunities"])
-async def get_cached_opportunities():
+@limiter.limit("60/minute")
+async def get_cached_opportunities(request: Request):
     """
     Get cached EV opportunities from Redis (public endpoint)
     This is the main endpoint for getting opportunities without triggering API calls
+    Rate limited to prevent abuse
     """
     try:
         # Get cached data from Redis
@@ -845,9 +889,11 @@ async def get_cached_opportunities():
 
 
 @app.get("/api/cache-status", tags=["system"])
-async def get_cache_status():
+@limiter.limit("30/minute")
+async def get_cache_status(request: Request):
     """
     Get Redis cache health and status information
+    Rate limited to prevent abuse
     """
     try:
         redis_status = redis_health_check()
@@ -867,9 +913,11 @@ async def get_cache_status():
 
 
 @app.post("/api/clear-cache", tags=["system"])
-async def clear_redis_cache(admin_user: UserCtx = Depends(require_role("admin"))):
+@limiter.limit("10/minute")
+async def clear_redis_cache(request: Request, admin_user: UserCtx = Depends(require_role("admin")), csrf_valid: bool = Depends(require_csrf_validation)):
     """
     Clear Redis cache - ADMIN ONLY
+    Requires CSRF token validation
     """
     try:
         success = clear_cache()
@@ -890,9 +938,11 @@ async def clear_redis_cache(admin_user: UserCtx = Depends(require_role("admin"))
 
 
 @app.get("/api/celery-health", tags=["system"])
-async def get_celery_health(admin_user: UserCtx = Depends(require_role("admin"))):
+@limiter.limit("10/minute")
+async def get_celery_health(request: Request, admin_user: UserCtx = Depends(require_role("admin"))):
     """
     Test Celery worker health - ADMIN ONLY
+    Rate limited to prevent abuse
     """
     try:
         # Schedule a simple health check task
@@ -912,6 +962,107 @@ async def get_celery_health(admin_user: UserCtx = Depends(require_role("admin"))
             "error": str(e),
             "message": "Celery worker is not responding"
         }
+
+
+# Session Management Endpoints (Production Cookie-based Auth)
+@app.post("/api/session")
+@limiter.limit("20/minute")  # Rate limit session creation
+async def create_session(request: Request, response: Response):
+    """
+    Create secure session with httpOnly cookies
+    Called after successful Supabase authentication on frontend
+    Rate limited to prevent abuse
+    """
+    try:
+        # Parse request body
+        body = await request.json()
+        access_token = body.get("access_token")
+        user_data = body.get("user_data", {})
+        
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Missing access_token")
+        
+        # Validate the token by attempting to decode it
+        try:
+            import jwt
+            payload = jwt.decode(
+                access_token, 
+                settings.supabase_jwt_secret, 
+                algorithms=[settings.jwt_algorithm],
+                options={"verify_aud": False}
+            )
+            
+            # Extract user info from token
+            user_id = payload.get("sub")
+            email = payload.get("email")
+            
+            if not user_id or not email:
+                raise HTTPException(status_code=400, detail="Invalid token payload")
+            
+            # Update user_data with token info
+            user_data.update({
+                "id": user_id,
+                "email": email
+            })
+            
+        except jwt.PyJWTError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid token: {str(e)}")
+        
+        # Set secure cookies and get CSRF token
+        csrf_token = SessionManager.set_auth_cookie(response, access_token, user_data)
+        
+        return JSONResponse(
+            content={
+                "status": "success",
+                "csrf_token": csrf_token,
+                "user": {
+                    "id": user_data.get("id"),
+                    "email": user_data.get("email"),
+                    "role": user_data.get("role", "free")
+                }
+            },
+            headers={"X-CSRF-Token": csrf_token}
+        )
+        
+    except Exception as e:
+        logger.error(f"Session creation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create session")
+
+@app.post("/api/logout-secure")
+@limiter.limit("30/minute")  # Rate limit logout attempts
+async def logout_secure(request: Request, response: Response):
+    """
+    Secure logout that clears httpOnly cookies
+    No CSRF validation required for logout (as specified)
+    Rate limited to prevent abuse
+    """
+    try:
+        # Clear session cookies
+        SessionManager.clear_auth_cookies(response)
+        
+        return {"status": "success", "message": "Session cleared successfully"}
+        
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
+        raise HTTPException(status_code=500, detail="Logout failed")
+
+@app.get("/api/session/user")
+@limiter.limit("30/minute")
+async def get_session_user(request: Request):
+    """
+    Get current user from session cookie
+    Rate limited to prevent abuse
+    """
+    user = get_current_user_from_cookie(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    return {
+        "id": user.id,
+        "email": user.email,
+        "role": user.role,
+        "subscription_status": user.subscription_status
+    }
 
 
 if __name__ == "__main__":
