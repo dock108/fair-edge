@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 import uvicorn
@@ -34,6 +35,9 @@ from core.auth import (
     UserCtx
 )
 
+# Import core settings
+from core.config import settings
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -44,6 +48,24 @@ app = FastAPI(
     description="Real-time identification of positive expected value betting opportunities",
     version="2.1.0"
 )
+
+# Add CORS middleware for development
+if settings.environment == "development":
+    origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000", 
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000"
+    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Configure static files (CSS, JS, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -334,8 +356,7 @@ def _extract_action_link(links_str: str) -> str:
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, admin: Optional[str] = None):
     """
-    Main dashboard route - serves the sports betting +EV opportunities
-    Uses cached data from Redis for fast loading, with optional admin debugging features
+    Main dashboard endpoint - Display betting opportunities with admin mode support
     """
     try:
         # Get debug metrics if needed
@@ -364,34 +385,37 @@ async def dashboard(request: Request, admin: Optional[str] = None):
         # Process opportunities for UI
         ui_opportunities = process_opportunities_for_ui(opportunities)
         
-        # Enhanced analytics for UI
-        ui_analytics = {
-            'total_opportunities': len(opportunities),
-            'high_ev_count': analytics.get('high_ev_count', 0),
-            'positive_ev_count': analytics.get('positive_ev_count', 0),
-            'max_ev_percentage': round(analytics.get('max_ev', 0) * 100, 1),
-            'avg_ev_percentage': round(analytics.get('avg_ev', 0) * 100, 1),
-            'sports_breakdown': analytics.get('sports_breakdown', {}),
-            'last_updated': last_update or datetime.now().strftime('%I:%M %p EST'),
-            'processing_time': analytics.get('processing_time', 0),
-            'data_source': data_source
+        # Apply filters from query parameters
+        sport_filter = request.query_params.get('sport', '').strip()
+        market_filter = request.query_params.get('market', '').strip()
+        
+        if sport_filter:
+            ui_opportunities = [op for op in ui_opportunities if sport_filter.lower() in op.get('sport', '').lower()]
+        
+        if market_filter:
+            ui_opportunities = [op for op in ui_opportunities if market_filter.lower() in op.get('market', '').lower()]
+        
+        # Generate analytics
+        analytics = {
+            'total_opportunities': len(ui_opportunities),
+            'positive_ev_count': len([op for op in ui_opportunities if op.get('ev_percentage', 0) > 0]),
+            'high_ev_count': len([op for op in ui_opportunities if op.get('ev_percentage', 0) >= 4.5]),
+            'max_ev_percentage': round(max([op.get('ev_percentage', 0) for op in ui_opportunities], default=0), 2)
         }
         
-        # Template context
+        # Prepare template context
         context = {
             "request": request,
+            "settings": settings,  # Add settings for template
             "opportunities": ui_opportunities,
-            "analytics": ui_analytics,
-            "debug": debug_metrics,
+            "analytics": analytics,
             "admin_mode": is_admin_mode_enabled(request, admin),
-            "current_time": datetime.now().strftime('%I:%M %p EST'),
-            "cache_info": {
-                "status": "active" if data_source == "cache" else "miss",
-                "last_update": last_update
-            }
+            "filter_applied": bool(sport_filter or market_filter),
+            "current_sport": sport_filter,
+            "current_market": market_filter,
+            "page_title": "Live Betting Dashboard - Sports +EV Analysis"
         }
         
-        # Add debug calculations if in admin mode
         if is_admin_mode_enabled(request, admin):
             performance_start = debug_metrics["performance"]["page_generation_start"]
             
@@ -416,29 +440,29 @@ async def dashboard(request: Request, admin: Optional[str] = None):
         
     except Exception as e:
         logger.error(f"Dashboard error: {e}")
-        
-        # Error context
-        error_context = {
-            "request": request,
-            "error_message": "Unable to load betting data. Please try again later.",
-            "error_details": str(e) if is_admin_mode_enabled(request, admin) else None,
-            "opportunities": [],
-            "analytics": {
-                'total_opportunities': 0,
-                'high_ev_count': 0,
-                'positive_ev_count': 0,
-                'max_ev_percentage': 0,
-                'avg_ev_percentage': 0,
-                'sports_breakdown': {},
-                'last_updated': 'Error',
-                'processing_time': 0,
-                'data_source': 'error'
-            },
-            "admin_mode": is_admin_mode_enabled(request, admin),
-            "current_time": datetime.now().strftime('%I:%M %p EST')
-        }
-        
-        return templates.TemplateResponse("dashboard.html", error_context)
+        return HTMLResponse(
+            content=f"<h1>Dashboard Error</h1><p>Unable to load dashboard: {str(e)}</p>",
+            status_code=500
+        )
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Login page"""
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "settings": settings,
+        "page_title": "Login - Sports Betting +EV Analyzer"
+    })
+
+@app.post("/api/logout")
+async def logout_api():
+    """API endpoint for logout (for completeness - main logout is handled client-side)"""
+    return {"status": "success", "message": "Logged out successfully"}
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_redirect(request: Request, admin: Optional[str] = None):
+    """Dashboard redirect route for login.js"""
+    return await dashboard(request, admin)
 
 @app.get("/disclaimer", response_class=HTMLResponse)
 async def disclaimer(request: Request):
