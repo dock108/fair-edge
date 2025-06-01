@@ -23,6 +23,10 @@ class Profile(Base):
     role = Column(Text, default="free", nullable=False)
     subscription_status = Column(Text, default="none", nullable=False)
     
+    # Stripe integration
+    stripe_customer_id = Column(Text, nullable=True)
+    stripe_subscription_id = Column(Text, nullable=True)
+    
     # Metadata
     created_at = Column(TIMESTAMP, server_default=text("NOW()"), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=text("NOW()"), onupdate=text("NOW()"))

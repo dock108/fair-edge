@@ -47,7 +47,10 @@ from core.session import (
 
 # Import core settings
 from core.config import settings
-from core.constants import FREE_BET_LIMIT, MASK_FIELDS_FOR_FREE, ROLE_FEATURES
+from core.constants import MASK_FIELDS_FOR_FREE, ROLE_FEATURES
+
+# Import routes
+from routes.billing import router as billing_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -140,6 +143,9 @@ async def get_my_profile_main(current_user: UserCtx = Depends(get_current_user))
 
 # Include auth router
 app.include_router(auth_router)
+
+# Include billing router
+app.include_router(billing_router)
 
 # Admin mode configuration
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
@@ -381,12 +387,31 @@ def _extract_action_link(links_str: str) -> str:
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, admin: Optional[str] = None, user: UserCtx = Depends(get_current_user)):
+async def home(request: Request, admin: Optional[str] = None):
     """
-    Main dashboard endpoint - Display betting opportunities with admin mode support
-    Now requires authentication and passes user role to template
+    Home page - shows free-tier dashboard for everyone, with upgrade prompts for premium features
+    No authentication required - this showcases the product value
     """
     try:
+        # Try to get current user if logged in, but don't require it
+        user = None
+        try:
+            from core.session import get_current_user_from_cookie
+            user = get_current_user_from_cookie(request)
+        except Exception:
+            # User not authenticated, that's fine - show free tier
+            pass
+        
+        # If no user, create a guest user context for free tier
+        if not user:
+            from types import SimpleNamespace
+            user = SimpleNamespace(
+                id="guest",
+                email="guest@example.com",
+                role="free",
+                subscription_status="none"
+            )
+        
         # Get debug metrics if needed
         debug_metrics = get_debug_metrics() if is_admin_mode_enabled(request, admin) else None
         
@@ -413,7 +438,7 @@ async def dashboard(request: Request, admin: Optional[str] = None, user: UserCtx
         # Process opportunities for UI
         ui_opportunities = process_opportunities_for_ui(opportunities)
         
-        # Apply role-based filtering
+        # Apply role-based filtering (free tier for guests, full access for subscribers)
         filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
         
         # Apply filters from query parameters
@@ -445,8 +470,9 @@ async def dashboard(request: Request, admin: Optional[str] = None, user: UserCtx
         context = {
             "request": request,
             "settings": settings,
-            "user": user,  # Pass user object to template
+            "user": user,  # Pass user object to template (could be guest)
             "user_role": user.role,  # Pass role explicitly for easy access
+            "is_guest": user.id == "guest",  # Flag to show login prompts
             "opportunities": filtered_opportunities,
             "analytics": ui_analytics,
             "admin_mode": is_admin_mode_enabled(request, admin),
@@ -487,11 +513,22 @@ async def dashboard(request: Request, admin: Optional[str] = None, user: UserCtx
         return templates.TemplateResponse("dashboard.html", context)
         
     except Exception as e:
-        logger.error(f"Dashboard error: {e}")
+        logger.error(f"Home page error: {e}")
         return HTMLResponse(
-            content=f"<h1>Dashboard Error</h1><p>Unable to load dashboard: {str(e)}</p>",
+            content=f"<h1>Error</h1><p>Unable to load page: {str(e)}</p>",
             status_code=500
         )
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_redirect(request: Request, admin: Optional[str] = None):
+    """
+    Dashboard redirect - just redirect to home page now that home shows the dashboard
+    """
+    from fastapi.responses import RedirectResponse
+    query_params = str(request.query_params)
+    redirect_url = "/" + ("?" + query_params if query_params else "")
+    return RedirectResponse(url=redirect_url, status_code=302)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -506,11 +543,6 @@ async def login_page(request: Request):
 async def logout_api():
     """API endpoint for logout (for completeness - main logout is handled client-side)"""
     return {"status": "success", "message": "Logged out successfully"}
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_redirect(request: Request, admin: Optional[str] = None):
-    """Dashboard redirect route for login.js"""
-    return await dashboard(request, admin)
 
 @app.get("/disclaimer", response_class=HTMLResponse)
 async def disclaimer(request: Request):
@@ -563,6 +595,24 @@ async def pricing_page(request: Request):
         logger.error(f"Pricing page error: {e}")
         raise HTTPException(status_code=500, detail="Unable to load pricing page")
 
+@app.get("/upgrade/success", response_class=HTMLResponse)
+async def upgrade_success_page(request: Request):
+    """
+    Upgrade success page route - serves the post-checkout success page
+    """
+    try:
+        context = {
+            "request": request,
+            "settings": settings,
+            "page_title": "Upgrade Successful - Sports Betting +EV Analyzer"
+        }
+        
+        return templates.TemplateResponse("upgrade_success.html", context)
+        
+    except Exception as e:
+        logger.error(f"Upgrade success page error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to load upgrade success page")
+
 def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role: str) -> Dict[str, Any]:
     """
     Filter and mask opportunities based on user role
@@ -600,16 +650,52 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
         "opportunities": filtered_opportunities
     }
 
+@app.get("/dashboard/premium", response_class=HTMLResponse)
+async def premium_dashboard(request: Request, admin: Optional[str] = None, user: UserCtx = Depends(get_current_user)):
+    """
+    Premium dashboard endpoint - requires authentication and shows full features
+    This is where authenticated users get redirected for premium features
+    """
+    try:
+        # Redirect to home with user context - the home page will show full features for authenticated users
+        from fastapi.responses import RedirectResponse
+        query_params = str(request.query_params)
+        redirect_url = "/" + ("?" + query_params if query_params else "")
+        return RedirectResponse(url=redirect_url, status_code=302)
+        
+    except Exception as e:
+        logger.error(f"Premium dashboard error: {e}")
+        return HTMLResponse(
+            content=f"<h1>Error</h1><p>Unable to load premium dashboard: {str(e)}</p>",
+            status_code=500
+        )
+
 @app.get("/api/bets", tags=["opportunities"])
 @limiter.limit("60/minute")
-async def get_betting_opportunities(request: Request, user: UserCtx = Depends(get_current_user)):
+async def get_betting_opportunities(request: Request):
     """
     Get betting opportunities with role-based filtering
+    Now supports guest access with free tier limits
     Free users: Limited to first 10 opportunities with masked advanced fields
     Subscribers: Up to 100 opportunities with full data
     Admins: Unlimited access
     """
     try:
+        # Try to get current user, but allow guest access
+        user = None
+        try:
+            from core.session import get_current_user_from_cookie
+            user = get_current_user_from_cookie(request)
+        except Exception:
+            # Create guest user for free tier access
+            from types import SimpleNamespace
+            user = SimpleNamespace(
+                id="guest",
+                email="guest@example.com", 
+                role="free",
+                subscription_status="none"
+            )
+        
         # Get cached data from Redis
         opportunities = get_ev_data()
         analytics = get_analytics_data()
@@ -629,32 +715,50 @@ async def get_betting_opportunities(request: Request, user: UserCtx = Depends(ge
         filtered_response.update({
             "analytics": analytics,
             "last_update": last_update,
-            "data_source": "redis_cache"
+            "data_source": "redis_cache",
+            "is_guest": user.id == "guest"
         })
         
         return filtered_response
         
     except Exception as e:
-        logger.error(f"Failed to retrieve opportunities for user {user.email}: {e}")
+        logger.error(f"Failed to retrieve opportunities: {e}")
         return {
-            "role": user.role,
+            "role": "free",
             "truncated": False,
             "total_available": 0,
             "shown": 0,
             "opportunities": [],
             "error": "Unable to retrieve opportunities data",
-            "data_source": "error"
+            "data_source": "error",
+            "is_guest": True
         }
 
 @app.get("/api/opportunities")
 @limiter.limit("60/minute")
-async def api_opportunities(request: Request, user: UserCtx = Depends(get_current_user)):
+async def api_opportunities(request: Request):
     """
     API endpoint for getting opportunities data with role-based access control
+    Now supports guest access with free tier limits
     Falls back to live data if cache is empty
     Rate limited to prevent abuse
     """
     try:
+        # Try to get current user, but allow guest access
+        user = None
+        try:
+            from core.session import get_current_user_from_cookie
+            user = get_current_user_from_cookie(request)
+        except Exception:
+            # Create guest user for free tier access
+            from types import SimpleNamespace
+            user = SimpleNamespace(
+                id="guest",
+                email="guest@example.com",
+                role="free", 
+                subscription_status="none"
+            )
+        
         # Try cached data first
         cached_opportunities = get_ev_data()
         cached_analytics = get_analytics_data()
@@ -686,14 +790,15 @@ async def api_opportunities(request: Request, user: UserCtx = Depends(get_curren
         filtered_response.update({
             "analytics": analytics,
             "last_update": last_update or datetime.now().isoformat(),
-            "data_source": data_source
+            "data_source": data_source,
+            "is_guest": user.id == "guest"
         })
         
         return filtered_response
         
     except Exception as e:
-        logger.error(f"Error in API route for user {user.email}: {e}")
-        return {"error": str(e), "opportunities": []}
+        logger.error(f"Error in API route: {e}")
+        return {"error": str(e), "opportunities": [], "is_guest": True}
 
 @app.get("/health")
 async def health_check():
@@ -956,9 +1061,24 @@ async def get_cached_opportunities(request: Request):
     """
     Get cached EV opportunities from Redis (public endpoint)
     This is the main endpoint for getting opportunities without triggering API calls
+    Now applies free-tier filtering for unauthenticated users
     Rate limited to prevent abuse
     """
     try:
+        # Try to get current user, but allow guest access
+        user_role = "free"  # Default to free tier
+        is_guest = True
+        
+        try:
+            from core.session import get_current_user_from_cookie
+            user = get_current_user_from_cookie(request)
+            if user:
+                user_role = user.role
+                is_guest = False
+        except Exception:
+            # Guest access - use free tier
+            pass
+        
         # Get cached data from Redis
         opportunities = get_ev_data()
         analytics = get_analytics_data()
@@ -971,12 +1091,19 @@ async def get_cached_opportunities(request: Request):
         else:
             ui_opportunities = []
         
+        # Apply role-based filtering
+        filtered_response = filter_opportunities_by_role(ui_opportunities, user_role)
+        
         return {
-            "total": len(opportunities),
-            "opportunities": ui_opportunities,
+            "total": filtered_response.get('total_available', 0),
+            "shown": filtered_response.get('shown', 0),
+            "opportunities": filtered_response.get('opportunities', []),
             "analytics": analytics,
             "last_update": last_update,
-            "data_source": "redis_cache"
+            "data_source": "redis_cache",
+            "role": user_role,
+            "is_guest": is_guest,
+            "truncated": filtered_response.get('truncated', False)
         }
     except Exception as e:
         logger.error(f"Failed to retrieve cached opportunities: {e}")
@@ -987,22 +1114,34 @@ async def get_cached_opportunities(request: Request):
                 opportunities, analytics = process_opportunities(raw_data)
                 ui_opportunities = process_opportunities_for_ui(opportunities)
                 ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
+                
+                # Apply free tier filtering for fallback
+                filtered_response = filter_opportunities_by_role(ui_opportunities, "free")
+                
                 return {
-                    "total": len(opportunities),
-                    "opportunities": ui_opportunities,
+                    "total": filtered_response.get('total_available', 0),
+                    "shown": filtered_response.get('shown', 0),
+                    "opportunities": filtered_response.get('opportunities', []),
                     "analytics": analytics,
                     "last_update": datetime.now().isoformat(),
-                    "data_source": "live_fallback"
+                    "data_source": "live_fallback",
+                    "role": "free",
+                    "is_guest": True,
+                    "truncated": True
                 }
         except Exception as fallback_error:
             logger.error(f"Fallback also failed: {fallback_error}")
         
         return {
             "total": 0,
+            "shown": 0,
             "opportunities": [],
             "analytics": {},
             "error": "Unable to retrieve opportunities data",
-            "data_source": "error"
+            "data_source": "error",
+            "role": "free",
+            "is_guest": True,
+            "truncated": False
         }
 
 
