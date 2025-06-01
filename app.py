@@ -613,6 +613,24 @@ async def upgrade_success_page(request: Request):
         logger.error(f"Upgrade success page error: {e}")
         raise HTTPException(status_code=500, detail="Unable to load upgrade success page")
 
+@app.get("/account", response_class=HTMLResponse)
+async def account_page(request: Request):
+    """
+    Account management page - allows users to view and manage their subscription
+    """
+    try:
+        context = {
+            "request": request,
+            "settings": settings,
+            "page_title": "My Account - Sports Betting +EV Analyzer"
+        }
+        
+        return templates.TemplateResponse("account.html", context)
+        
+    except Exception as e:
+        logger.error(f"Account page error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to load account page")
+
 def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role: str) -> Dict[str, Any]:
     """
     Filter and mask opportunities based on user role
