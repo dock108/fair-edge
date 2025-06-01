@@ -107,7 +107,7 @@ async function checkSubscriptionStatus() {
         // Refresh the user session first
         await refreshUserSession();
         
-        // Get current user info
+        // Get current user info with fresh data
         const response = await authenticatedFetch('/me', {
             credentials: 'include'
         });
@@ -131,9 +131,14 @@ async function checkSubscriptionStatus() {
 
 async function refreshUserSession() {
     try {
-        // Try to refresh the Supabase session
+        // Try to refresh the Supabase session to get latest user data
         if (window.supabase && window.supabase.auth) {
-            await window.supabase.auth.refreshSession();
+            const { data, error } = await window.supabase.auth.refreshSession();
+            if (error) {
+                console.warn('Session refresh failed:', error);
+            } else {
+                console.log('Session refreshed successfully');
+            }
         }
     } catch (error) {
         console.error('Error refreshing session:', error);
@@ -144,6 +149,15 @@ function showSuccessState() {
     document.getElementById('loading-state').classList.add('d-none');
     document.getElementById('error-state').classList.add('d-none');
     document.getElementById('success-state').classList.remove('d-none');
+    
+    // Show celebration animation
+    if (window.confetti) {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+    }
 }
 
 function showErrorState() {
@@ -155,34 +169,58 @@ function showErrorState() {
 async function pollSubscriptionStatus() {
     checkAttempts++;
     
+    console.log(`Polling attempt ${checkAttempts}/${maxAttempts}...`);
+    
     const isUpgraded = await checkSubscriptionStatus();
     
     if (isUpgraded) {
+        console.log('✅ Account successfully upgraded!');
         return; // Success, stop polling
     }
     
     if (checkAttempts >= maxAttempts) {
-        // Max attempts reached, show error state
+        // Max attempts reached, show delayed processing state
+        console.log('⏰ Max polling attempts reached, showing delayed processing message');
         showErrorState();
         return;
     }
     
-    // Continue polling every 2 seconds
-    setTimeout(pollSubscriptionStatus, 2000);
+    // Continue polling every 3 seconds (Stripe events usually arrive <3s)
+    setTimeout(pollSubscriptionStatus, 3000);
 }
 
 // Start checking subscription status when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Get session ID from URL if present
+    // Get session ID from URL if present for debugging
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
     
     if (sessionId) {
-        console.log('Stripe session ID:', sessionId);
+        console.log('Stripe checkout session ID:', sessionId);
     }
     
-    // Start polling for subscription status
-    setTimeout(pollSubscriptionStatus, 1000); // Start after 1 second
+    // Show helpful loading message
+    const loadingState = document.getElementById('loading-state');
+    if (loadingState) {
+        // Add progress indicator
+        let dots = 0;
+        const progressInterval = setInterval(() => {
+            dots = (dots + 1) % 4;
+            const loadingText = loadingState.querySelector('h3');
+            if (loadingText) {
+                loadingText.textContent = 'Processing your upgrade' + '.'.repeat(dots);
+            }
+        }, 500);
+        
+        // Clear progress when done
+        setTimeout(() => clearInterval(progressInterval), 30000);
+    }
+    
+    // Start polling after a brief delay
+    setTimeout(pollSubscriptionStatus, 1000);
 });
 </script>
+
+<!-- Add confetti for celebration -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 {% endblock %} 

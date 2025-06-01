@@ -50,11 +50,26 @@
                 <a class="nav-link" href="/education">
                     <i class="fas fa-graduation-cap me-1"></i> Education
                 </a>
+                <a class="nav-link" href="/pricing">
+                    <i class="fas fa-tags me-1"></i> Pricing
+                </a>
                 <a class="nav-link" href="/disclaimer">
                     <i class="fas fa-exclamation-triangle me-1"></i> Disclaimer
                 </a>
             </div>
             <div class="navbar-nav">
+                <!-- Upgrade CTA for free users -->
+                <div id="upgrade-cta" class="d-none me-3">
+                    <button onclick="goPremium()" class="btn btn-warning btn-sm px-3 py-1 rounded-pill fw-bold" style="box-shadow: 0 2px 4px rgba(255,193,7,0.3);">
+                        <i class="fas fa-star me-1"></i> Upgrade
+                    </button>
+                </div>
+                <!-- Account link for authenticated users -->
+                <div id="account-link" class="d-none me-2">
+                    <a class="nav-link" href="/account">
+                        <i class="fas fa-user me-1"></i> My Account
+                    </a>
+                </div>
                 <!-- Authentication status will be populated by JavaScript -->
                 <div id="auth-status">
                     <a class="nav-link" href="/login">
@@ -107,5 +122,145 @@
     
     <script src="{{ url_for('static', path='/js/auth.js') }}"></script>
     <script src="{{ url_for('static', path='/js/dashboard.js') }}"></script>
+    
+    <!-- Upgrade Flow JavaScript -->
+    <script>
+        // Seamless upgrade flow function
+        async function goPremium() {
+            const upgradeBtn = document.querySelector('#upgrade-cta button');
+            const originalContent = upgradeBtn.innerHTML;
+            
+            try {
+                // Show loading state
+                upgradeBtn.disabled = true;
+                upgradeBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processing...';
+                
+                // Check if user is authenticated
+                const user = await getCurrentUser();
+                if (!user) {
+                    // Redirect to login with upgrade intent
+                    window.location.href = '/login?intent=upgrade';
+                    return;
+                }
+                
+                // Check if already a subscriber
+                if (user.role === 'subscriber' && user.subscription_status === 'active') {
+                    showToast('You are already a Premium subscriber!', 'info');
+                    return;
+                }
+                
+                // Create Stripe checkout session
+                const response = await authenticatedFetch('/api/billing/create-checkout-session', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to create checkout session');
+                }
+                
+                const data = await response.json();
+                
+                // Redirect to Stripe Checkout
+                window.location.replace(data.checkout_url);
+                
+            } catch (error) {
+                console.error('Error upgrading to premium:', error);
+                showToast('Error: ' + error.message, 'error');
+            } finally {
+                // Reset button state
+                upgradeBtn.disabled = false;
+                upgradeBtn.innerHTML = originalContent;
+            }
+        }
+        
+        // Show premium feature gate toast
+        function showPremiumGate(featureName) {
+            showToast(`${featureName} is available on Premium`, 'warning');
+            // Animate the upgrade button
+            const upgradeBtn = document.querySelector('#upgrade-cta button');
+            if (upgradeBtn) {
+                upgradeBtn.classList.add('animate__animated', 'animate__pulse');
+                setTimeout(() => {
+                    upgradeBtn.classList.remove('animate__animated', 'animate__pulse');
+                }, 1000);
+            }
+        }
+        
+        // Toast notification system
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container') || createToastContainer();
+            
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'info'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // Remove from DOM after hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+        
+        // Create toast container if it doesn't exist
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            container.style.zIndex = '1055';
+            document.body.appendChild(container);
+            return container;
+        }
+        
+        // Update auth status and show/hide upgrade CTAs
+        function updateUpgradeVisibility(user) {
+            const upgradeCTA = document.getElementById('upgrade-cta');
+            const upgradeBanner = document.getElementById('upgrade-banner');
+            const accountLink = document.getElementById('account-link');
+            
+            if (user && user.role === 'free') {
+                // Show upgrade CTA for free users
+                if (upgradeCTA) upgradeCTA.classList.remove('d-none');
+                // Show account link for authenticated users
+                if (accountLink) accountLink.classList.remove('d-none');
+            } else if (user && user.role === 'subscriber') {
+                // Hide upgrade CTA for premium users
+                if (upgradeCTA) upgradeCTA.classList.add('d-none');
+                // Show account link for authenticated users
+                if (accountLink) accountLink.classList.remove('d-none');
+            } else {
+                // Hide both for guests/unauthenticated users
+                if (upgradeCTA) upgradeCTA.classList.add('d-none');
+                if (accountLink) accountLink.classList.add('d-none');
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const user = await getCurrentUser();
+                updateUpgradeVisibility(user);
+            } catch (error) {
+                // User not authenticated - hide upgrade CTA
+                updateUpgradeVisibility(null);
+            }
+        });
+    </script>
 </body>
 </html> 

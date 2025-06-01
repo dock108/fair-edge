@@ -257,4 +257,61 @@ async def get_subscription_status(user: UserCtx = Depends(get_current_user)):
         "subscription_status": user.subscription_status,
         "is_subscriber": user.role == "subscriber" and user.subscription_status == "active",
         "stripe_configured": settings.stripe_configured
-    } 
+    }
+
+
+@router.post("/create-portal-session")
+async def create_customer_portal_session(
+    user: UserCtx = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Create a Stripe Customer Portal session for subscription management.
+    Allows users to update payment methods, cancel subscriptions, view invoices, etc.
+    
+    Returns:
+        dict: Contains portal_url for redirecting to Stripe Customer Portal
+    """
+    try:
+        # Check if Stripe is configured
+        if not settings.stripe_configured:
+            raise HTTPException(
+                status_code=503,
+                detail="Subscription management is not configured. Please contact support."
+            )
+        
+        # Get user's Stripe customer ID
+        result = await db.execute(
+            text("SELECT stripe_customer_id FROM profiles WHERE id = :user_id"),
+            {"user_id": user.id}
+        )
+        user_data = result.fetchone()
+        
+        if not user_data or not user_data.stripe_customer_id:
+            raise HTTPException(
+                status_code=404,
+                detail="No subscription found. Please contact support if you believe this is an error."
+            )
+        
+        # Create Customer Portal session
+        portal_session = stripe.billing_portal.Session.create(
+            customer=user_data.stripe_customer_id,
+            return_url=f"{settings.checkout_success_url.replace('/upgrade/success', '')}/"
+        )
+        
+        logger.info(f"Created customer portal session for user {user.id}")
+        return {"portal_url": portal_session.url}
+        
+    except ValueError as e:
+        # Stripe configuration error
+        logger.error(f"Stripe configuration error: {e}")
+        raise HTTPException(
+            status_code=503, 
+            detail="Subscription management is temporarily unavailable"
+        )
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error creating portal session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create portal session")
+    except Exception as e:
+        logger.error(f"Unexpected error creating portal session: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error") 
