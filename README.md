@@ -31,7 +31,8 @@ A comprehensive FastAPI application for identifying positive expected value (EV)
 ### SaaS Infrastructure (New!)
 - **Supabase Integration** for user management and data persistence
 - **PostgreSQL database** for scalable data storage
-- **User authentication** ready for implementation
+- **JWT Authentication** with role-based access control
+- **Background task processing** with Celery and Redis
 - **Database monitoring** and health checks
 
 ## 📋 Requirements
@@ -320,56 +321,41 @@ For issues or questions:
 3. Ensure all dependencies are installed
 4. Check API quota status
 
-## Authentication & Authorization
+## 🔐 Authentication System
 
-The application now supports JWT-based authentication using Supabase tokens.
+### JWT-Based Authentication
+The application uses Supabase JWT tokens for secure authentication:
 
-### Environment Setup
-
-Add your Supabase JWT secret to `.env`:
-
-```env
-SUPABASE_JWT_SECRET=your_anon_key_or_jwt_secret_here
-```
-
-### Protected Endpoints
-
-- **`/me`** - Get current user profile information (requires valid JWT)
-- **`/auth/test-token`** - Test JWT token validation
-- **`/auth/me`** - Alternative user profile endpoint
-- **`/premium/opportunities`** - Enhanced opportunities (requires subscription)
-- **`/debug/profiles`** - Admin-only database debug endpoint
-- **`/api/user-info`** - Basic user info from JWT
-
-### Authentication Headers
-
-Include JWT token in requests:
-
-```bash
-curl -H "Authorization: Bearer <your_jwt_token>" http://localhost:8000/me
-```
+- **JWT Validation**: Server-side token verification using Supabase JWT secret
+- **Role-Based Access Control**: `free`, `subscriber`, `admin` roles
+- **Database Integration**: User profiles stored in Supabase with role/subscription status
+- **Graceful Fallbacks**: Missing profiles default to "free" role
 
 ### User Roles
+- **Free**: Basic access to opportunities data (limited features)
+- **Subscriber**: Full access to premium features and analytics
+- **Admin**: Administrative access to background tasks and system management
 
-- **`free`** - Default role for new users
-- **`subscriber`** - Paid subscription users
-- **`admin`** - Administrative access
-
-### Testing Authentication
-
-1. Create a user in Supabase Auth
-2. Get JWT token via Supabase client or API
-3. Test with protected endpoints:
-
+### Protected Endpoints
 ```bash
-# Test basic authentication
-curl -H "Authorization: Bearer <jwt>" http://localhost:8000/me
+# User info (authenticated users)
+GET /api/user-info
+GET /auth/me
 
-# Test admin endpoint (requires admin role)
-curl -H "Authorization: Bearer <admin_jwt>" http://localhost:8000/debug/profiles
+# Premium features (subscribers + admins)
+GET /premium/opportunities
 
-# Test premium features (requires subscription)
-curl -H "Authorization: Bearer <subscriber_jwt>" http://localhost:8000/premium/opportunities
+# Admin only (system management)
+POST /api/refresh          # Trigger background tasks
+GET /api/task-status/{id}  # Check task status  
+POST /api/clear-cache      # Clear Redis cache
+GET /api/celery-health     # Check worker status
+```
+
+### Authentication Headers
+All protected endpoints require a valid JWT token:
+```bash
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:8000/api/user-info
 ```
 
 ## Database Integration

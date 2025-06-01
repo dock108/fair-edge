@@ -27,12 +27,11 @@ from services.redis_cache import get_ev_data, get_analytics_data, get_last_updat
 from db import get_db, get_supabase, get_database_status
 
 # Import authentication services
-from services.auth import (
-    get_current_user_with_role, 
+from core.auth import (
     get_current_user, 
     require_role, 
     require_subscription,
-    User
+    UserCtx
 )
 
 # Configure logging
@@ -56,7 +55,7 @@ templates = Jinja2Templates(directory="templates")
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 @auth_router.get("/test-token")
-async def test_token(user: User = Depends(get_current_user_with_role)):
+async def test_token(user: UserCtx = Depends(get_current_user)):
     """Test endpoint to verify JWT token validation"""
     return {
         "status": "success",
@@ -70,7 +69,7 @@ async def test_token(user: User = Depends(get_current_user_with_role)):
     }
 
 @auth_router.get("/me")
-async def get_my_profile(current_user: User = Depends(get_current_user_with_role)):
+async def get_my_profile(current_user: UserCtx = Depends(get_current_user)):
     """Get the current user's profile information"""
     return {
         "id": current_user.id,
@@ -81,7 +80,7 @@ async def get_my_profile(current_user: User = Depends(get_current_user_with_role
 
 # Main user profile endpoint (alternative to /auth/me)
 @app.get("/me")
-async def get_my_profile_main(current_user: User = Depends(get_current_user_with_role)):
+async def get_my_profile_main(current_user: UserCtx = Depends(get_current_user)):
     """Get the current user's profile information - main endpoint"""
     return {
         "id": current_user.id,
@@ -336,21 +335,31 @@ def _extract_action_link(links_str: str) -> str:
 async def dashboard(request: Request, admin: Optional[str] = None):
     """
     Main dashboard route - serves the sports betting +EV opportunities
-    with optional admin debugging features for development
+    Uses cached data from Redis for fast loading, with optional admin debugging features
     """
     try:
         # Get debug metrics if needed
         debug_metrics = get_debug_metrics() if is_admin_mode_enabled(request, admin) else None
         
-        # Fetch data
-        logger.info("Fetching real betting opportunities data...")
-        raw_data = fetch_raw_odds_data()
-        opportunities, analytics = process_opportunities(raw_data)
+        # Try to get cached data first for better performance
+        logger.info("Loading betting opportunities from cache...")
+        cached_opportunities = get_ev_data()
+        cached_analytics = get_analytics_data()
+        last_update = get_last_update()
         
-        # Log summary
-        high_ev_count = analytics.get('high_ev_count', 0)
-        positive_ev_count = analytics.get('positive_ev_count', 0)
-        logger.info(f"Serving {len(opportunities)} opportunities ({high_ev_count} high EV, {positive_ev_count} positive EV)")
+        if cached_opportunities and cached_analytics:
+            # Use cached data
+            opportunities = cached_opportunities
+            analytics = cached_analytics
+            data_source = "cache"
+            logger.info(f"Serving {len(opportunities)} cached opportunities")
+        else:
+            # Fallback to live data if cache is empty
+            logger.info("Cache empty, fetching live betting opportunities data...")
+            raw_data = fetch_raw_odds_data()
+            opportunities, analytics = process_opportunities(raw_data)
+            data_source = "live"
+            logger.info(f"Serving {len(opportunities)} live opportunities")
         
         # Process opportunities for UI
         ui_opportunities = process_opportunities_for_ui(opportunities)
@@ -358,13 +367,14 @@ async def dashboard(request: Request, admin: Optional[str] = None):
         # Enhanced analytics for UI
         ui_analytics = {
             'total_opportunities': len(opportunities),
-            'high_ev_count': high_ev_count,
-            'positive_ev_count': positive_ev_count,
+            'high_ev_count': analytics.get('high_ev_count', 0),
+            'positive_ev_count': analytics.get('positive_ev_count', 0),
             'max_ev_percentage': round(analytics.get('max_ev', 0) * 100, 1),
             'avg_ev_percentage': round(analytics.get('avg_ev', 0) * 100, 1),
             'sports_breakdown': analytics.get('sports_breakdown', {}),
-            'last_updated': datetime.now().strftime('%I:%M %p EST'),
-            'processing_time': analytics.get('processing_time', 0)
+            'last_updated': last_update or datetime.now().strftime('%I:%M %p EST'),
+            'processing_time': analytics.get('processing_time', 0),
+            'data_source': data_source
         }
         
         # Template context
@@ -376,8 +386,8 @@ async def dashboard(request: Request, admin: Optional[str] = None):
             "admin_mode": is_admin_mode_enabled(request, admin),
             "current_time": datetime.now().strftime('%I:%M %p EST'),
             "cache_info": {
-                "status": "active",
-                "duration": "30 minutes"
+                "status": "active" if data_source == "cache" else "miss",
+                "last_update": last_update
             }
         }
         
@@ -395,10 +405,10 @@ async def dashboard(request: Request, admin: Optional[str] = None):
             context.update({
                 "debug_opportunities": debug_opportunities,
                 "performance_metrics": get_performance_metrics(performance_start),
-                "raw_data_sample": {
-                    "total_events": raw_data.get('total_events', 0),
-                    "fetch_time": raw_data.get('fetch_time', datetime.now()).strftime('%I:%M:%S %p'),
-                    "status": raw_data.get('status', 'unknown')
+                "cache_status": {
+                    "data_source": data_source,
+                    "total_cached": len(cached_opportunities) if cached_opportunities else 0,
+                    "last_update": last_update
                 }
             })
         
@@ -421,7 +431,8 @@ async def dashboard(request: Request, admin: Optional[str] = None):
                 'avg_ev_percentage': 0,
                 'sports_breakdown': {},
                 'last_updated': 'Error',
-                'processing_time': 0
+                'processing_time': 0,
+                'data_source': 'error'
             },
             "admin_mode": is_admin_mode_enabled(request, admin),
             "current_time": datetime.now().strftime('%I:%M %p EST')
@@ -464,13 +475,30 @@ async def education(request: Request):
 
 @app.get("/api/opportunities")
 async def api_opportunities():
-    """API endpoint for getting opportunities data (for future AJAX updates)"""
+    """
+    API endpoint for getting opportunities data - uses cached data for performance
+    Falls back to live data if cache is empty
+    """
     try:
-        raw_data = fetch_raw_odds_data()
-        if raw_data['status'] != 'success':
-            return {"error": raw_data.get('error', 'Unknown error'), "opportunities": []}
+        # Try cached data first
+        cached_opportunities = get_ev_data()
+        cached_analytics = get_analytics_data()
+        last_update = get_last_update()
         
-        opportunities, analytics = process_opportunities(raw_data)
+        if cached_opportunities and cached_analytics:
+            # Use cached data
+            opportunities = cached_opportunities
+            analytics = cached_analytics
+            data_source = "cache"
+        else:
+            # Fallback to live data
+            raw_data = fetch_raw_odds_data()
+            if raw_data['status'] != 'success':
+                return {"error": raw_data.get('error', 'Unknown error'), "opportunities": []}
+            
+            opportunities, analytics = process_opportunities(raw_data)
+            data_source = "live"
+        
         ui_opportunities = process_opportunities_for_ui(opportunities)
         
         # Sort by EV percentage (highest first) for better user experience
@@ -480,7 +508,8 @@ async def api_opportunities():
             "opportunities": ui_opportunities,
             "analytics": analytics,
             "total_opportunities": len(ui_opportunities),
-            "last_update": datetime.now().isoformat()
+            "last_update": last_update or datetime.now().isoformat(),
+            "data_source": data_source
         }
         
     except Exception as e:
@@ -490,21 +519,37 @@ async def api_opportunities():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint with data pipeline validation"""
+    """Health check endpoint with data pipeline and Redis cache validation"""
     try:
-        # Quick validation
-        raw_data = fetch_raw_odds_data()
-        status = "healthy" if raw_data['status'] == 'success' else "degraded"
+        # Check Redis cache status
+        redis_status = redis_health_check()
+        
+        # Try cached data first, fallback to live data
+        cached_opportunities = get_ev_data()
+        if cached_opportunities:
+            data_status = "healthy"
+            total_events = len(cached_opportunities)
+            last_update = get_last_update()
+            data_source = "cache"
+        else:
+            # Fallback to live data check
+            raw_data = fetch_raw_odds_data()
+            data_status = "healthy" if raw_data['status'] == 'success' else "degraded"
+            total_events = raw_data.get('total_events', 0)
+            last_update = raw_data.get('fetch_time', '').isoformat() if raw_data.get('fetch_time') else None
+            data_source = "live"
         
         # Include database status
         db_status = await get_database_status()
         
         return {
-            "status": status,
+            "status": "healthy" if data_status == "healthy" and redis_status.get('status') == 'healthy' else "degraded",
             "version": "2.1.0",
-            "data_status": raw_data['status'],
-            "total_events": raw_data.get('total_events', 0),
-            "last_fetch": raw_data.get('fetch_time', '').isoformat() if raw_data.get('fetch_time') else None,
+            "data_status": data_status,
+            "data_source": data_source,
+            "total_events": total_events,
+            "last_update": last_update,
+            "redis": redis_status,
             "database": db_status
         }
     except Exception as e:
@@ -518,7 +563,7 @@ async def health_check():
 @app.get("/debug/profiles")
 async def get_profiles_debug(
     db: AsyncSession = Depends(get_db),
-    admin_user: User = Depends(require_role("admin"))
+    admin_user: UserCtx = Depends(require_role("admin"))
 ):
     """
     Debug endpoint to verify Supabase database integration - ADMIN ONLY
@@ -606,7 +651,7 @@ async def database_status_debug():
 
 @app.get("/premium/opportunities")
 async def get_premium_opportunities(
-    subscriber: User = Depends(require_subscription())
+    subscriber: UserCtx = Depends(require_subscription())
 ):
     """
     Premium endpoint for subscribers - enhanced opportunities with additional analysis
@@ -650,7 +695,7 @@ async def get_premium_opportunities(
 
 
 @app.get("/api/user-info")
-async def get_user_info(user: User = Depends(get_current_user)):
+async def get_user_info(user: UserCtx = Depends(get_current_user)):
     """
     Get basic user info using simple JWT validation (no database lookup)
     Useful for quick authentication checks
@@ -664,7 +709,7 @@ async def get_user_info(user: User = Depends(get_current_user)):
 
 # Background Task Endpoints
 @app.post("/api/refresh", tags=["background-tasks"])
-async def manual_refresh(admin_user: User = Depends(require_role("admin"))):
+async def manual_refresh(admin_user: UserCtx = Depends(require_role("admin"))):
     """
     Manually trigger odds data refresh using Celery background task - ADMIN ONLY
     """
@@ -683,70 +728,10 @@ async def manual_refresh(admin_user: User = Depends(require_role("admin"))):
         raise HTTPException(status_code=500, detail=f"Failed to schedule task: {str(e)}")
 
 
-@app.post("/api/test-refresh", tags=["testing"])
-async def test_refresh():
-    """
-    TEST ENDPOINT: Manually trigger odds data refresh for testing (NO AUTH)
-    This endpoint is for development testing only
-    """
-    try:
-        # Schedule the task
-        task = refresh_odds_data.delay()
-        
-        return {
-            "status": "scheduled",
-            "task_id": task.id,
-            "message": "Test odds refresh task has been scheduled",
-            "note": "This is a test endpoint without authentication"
-        }
-    except Exception as e:
-        logger.error(f"Failed to schedule refresh task: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to schedule task: {str(e)}")
-
-
 @app.get("/api/task-status/{task_id}", tags=["background-tasks"])
-async def get_task_status(task_id: str, admin_user: User = Depends(require_role("admin"))):
+async def get_task_status(task_id: str, admin_user: UserCtx = Depends(require_role("admin"))):
     """
     Get the status of a background task - ADMIN ONLY
-    """
-    try:
-        from services.celery_app import celery_app
-        result = celery_app.AsyncResult(task_id)
-        
-        if result.state == 'PENDING':
-            response = {
-                'state': result.state,
-                'status': 'Task is waiting to be processed'
-            }
-        elif result.state == 'PROGRESS':
-            response = {
-                'state': result.state,
-                'current': result.info.get('current', 0),
-                'total': result.info.get('total', 1),
-                'status': result.info.get('status', '')
-            }
-        elif result.state == 'SUCCESS':
-            response = {
-                'state': result.state,
-                'result': result.result
-            }
-        else:  # FAILURE
-            response = {
-                'state': result.state,
-                'error': str(result.info)
-            }
-        
-        return response
-    except Exception as e:
-        logger.error(f"Failed to get task status: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
-
-
-@app.get("/api/test-task-status/{task_id}", tags=["testing"])
-async def get_test_task_status(task_id: str):
-    """
-    TEST ENDPOINT: Get the status of a background task (NO AUTH)
-    This endpoint is for development testing only
     """
     try:
         from services.celery_app import celery_app
@@ -858,7 +843,7 @@ async def get_cache_status():
 
 
 @app.post("/api/clear-cache", tags=["system"])
-async def clear_redis_cache(admin_user: User = Depends(require_role("admin"))):
+async def clear_redis_cache(admin_user: UserCtx = Depends(require_role("admin"))):
     """
     Clear Redis cache - ADMIN ONLY
     """
@@ -881,7 +866,7 @@ async def clear_redis_cache(admin_user: User = Depends(require_role("admin"))):
 
 
 @app.get("/api/celery-health", tags=["system"])
-async def get_celery_health(admin_user: User = Depends(require_role("admin"))):
+async def get_celery_health(admin_user: UserCtx = Depends(require_role("admin"))):
     """
     Test Celery worker health - ADMIN ONLY
     """
