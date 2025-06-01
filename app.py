@@ -768,7 +768,11 @@ async def api_opportunities(request: Request):
             from core.session import get_current_user_from_cookie
             user = get_current_user_from_cookie(request)
         except Exception:
-            # Create guest user for free tier access
+            # User not authenticated, that's fine - will create guest user below
+            pass
+        
+        # If no user, create a guest user context for free tier
+        if not user:
             from types import SimpleNamespace
             user = SimpleNamespace(
                 id="guest",
@@ -791,7 +795,7 @@ async def api_opportunities(request: Request):
             # Fallback to live data
             raw_data = fetch_raw_odds_data()
             if raw_data['status'] != 'success':
-                return {"error": raw_data.get('error', 'Unknown error'), "opportunities": []}
+                return {"error": raw_data.get('error', 'Unknown error'), "opportunities": [], "role": user.role, "is_guest": user.id == "guest"}
             
             opportunities, analytics = process_opportunities(raw_data)
             data_source = "live"
@@ -816,7 +820,7 @@ async def api_opportunities(request: Request):
         
     except Exception as e:
         logger.error(f"Error in API route: {e}")
-        return {"error": str(e), "opportunities": [], "is_guest": True}
+        return {"error": str(e), "opportunities": [], "role": "free", "is_guest": True}
 
 @app.get("/health")
 async def health_check():
