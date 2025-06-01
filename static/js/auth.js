@@ -1,10 +1,14 @@
 /**
  * Authentication Helper for Sports Betting Dashboard
  * Manages JWT tokens, auth state, and API calls with authentication
+ * Supports both localStorage (dev) and httpOnly cookies (production)
  */
 
 (function() {
     'use strict';
+
+    // Configuration - should match login.js
+    const USE_SECURE_COOKIES = true;
 
     // Initialize auth when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
@@ -28,39 +32,102 @@
      * Check if user is authenticated
      */
     function isAuthenticated() {
-        const token = localStorage.getItem('sb_token');
-        return token && token.length > 0;
-    }
-
-    /**
-     * Get current user info from localStorage
-     */
-    function getCurrentUser() {
-        try {
-            const userStr = localStorage.getItem('sb_user');
-            return userStr ? JSON.parse(userStr) : null;
-        } catch (error) {
-            console.error('Error parsing user data:', error);
-            return null;
+        if (USE_SECURE_COOKIES) {
+            // Check for session cookie presence (not accessible via JS)
+            // We'll make a quick API call to verify
+            return checkCookieAuthentication();
+        } else {
+            const token = localStorage.getItem('sb_token');
+            return token && token.length > 0;
         }
     }
 
     /**
-     * Get authentication token
+     * Check authentication via cookie-based API call
+     */
+    async function checkCookieAuthentication() {
+        try {
+            const response = await fetch('/api/session/user', {
+                credentials: 'include'
+            });
+            return response.ok;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Get current user info
+     */
+    async function getCurrentUser() {
+        if (USE_SECURE_COOKIES) {
+            try {
+                const response = await fetch('/api/session/user', {
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    return await response.json();
+                }
+                return null;
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                return null;
+            }
+        } else {
+            // localStorage fallback
+            try {
+                const userStr = localStorage.getItem('sb_user');
+                return userStr ? JSON.parse(userStr) : null;
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Get authentication token (for localStorage mode)
      */
     function getAuthToken() {
-        return localStorage.getItem('sb_token');
+        if (!USE_SECURE_COOKIES) {
+            return localStorage.getItem('sb_token');
+        }
+        return null; // Token is in httpOnly cookie
+    }
+
+    /**
+     * Get CSRF token for API calls
+     */
+    function getCSRFToken() {
+        if (USE_SECURE_COOKIES) {
+            // Extract CSRF token from cookie
+            const name = 'csrf_token=';
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const cookieArray = decodedCookie.split(';');
+            
+            for (let i = 0; i < cookieArray.length; i++) {
+                let cookie = cookieArray[i];
+                while (cookie.charAt(0) === ' ') {
+                    cookie = cookie.substring(1);
+                }
+                if (cookie.indexOf(name) === 0) {
+                    return cookie.substring(name.length, cookie.length);
+                }
+            }
+            return null;
+        }
+        return null; // No CSRF in localStorage mode
     }
 
     /**
      * Update authentication UI based on current state
      */
-    function updateAuthUI() {
+    async function updateAuthUI() {
         const authStatus = document.getElementById('auth-status');
         if (!authStatus) return;
 
-        if (isAuthenticated()) {
-            const user = getCurrentUser();
+        if (await isAuthenticated()) {
+            const user = await getCurrentUser();
             const userEmail = user ? user.email : 'Unknown User';
             const userRole = user ? user.role : 'free';
             
@@ -99,16 +166,18 @@
             }
         });
 
-        // Listen for storage changes (logout from other tabs)
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'sb_token' && !e.newValue) {
-                // Token was removed in another tab
-                updateAuthUI();
-                if (isProtectedPage()) {
-                    redirectToLogin();
+        // Listen for storage changes (logout from other tabs) - localStorage mode only
+        if (!USE_SECURE_COOKIES) {
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'sb_token' && !e.newValue) {
+                    // Token was removed in another tab
+                    updateAuthUI();
+                    if (isProtectedPage()) {
+                        redirectToLogin();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     /**
@@ -132,14 +201,22 @@
      */
     async function logout() {
         try {
-            // Sign out from Supabase
-            if (window.supabase) {
-                await window.supabase.auth.signOut();
+            if (USE_SECURE_COOKIES) {
+                // Use secure logout endpoint
+                await fetch('/api/logout-secure', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } else {
+                // Sign out from Supabase
+                if (window.supabase) {
+                    await window.supabase.auth.signOut();
+                }
+                
+                // Clear local storage
+                localStorage.removeItem('sb_token');
+                localStorage.removeItem('sb_user');
             }
-            
-            // Clear local storage
-            localStorage.removeItem('sb_token');
-            localStorage.removeItem('sb_user');
             
             // Update UI
             updateAuthUI();
@@ -159,23 +236,61 @@
     }
 
     /**
-     * Make authenticated API request
+     * Make authenticated API request with CSRF protection
      */
     async function authenticatedFetch(url, options = {}) {
-        const token = getAuthToken();
-        
-        if (!token) {
-            throw new Error('No authentication token available');
-        }
+        if (USE_SECURE_COOKIES) {
+            // Cookie-based authentication with CSRF
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
 
-        // Set up headers
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            ...options.headers
-        };
+            // Add CSRF token for state-changing operations
+            const method = options.method || 'GET';
+            if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase())) {
+                const csrfToken = getCSRFToken();
+                if (csrfToken) {
+                    headers['X-CSRF-Token'] = csrfToken;
+                }
+            }
 
-        try {
+            const response = await fetch(url, {
+                ...options,
+                headers,
+                credentials: 'include' // Include cookies
+            });
+
+            // Handle authentication errors
+            if (response.status === 401) {
+                updateAuthUI();
+                redirectToLogin();
+                throw new Error('Authentication expired. Please login again.');
+            }
+
+            // Handle CSRF errors
+            if (response.status === 403) {
+                const errorData = await response.json();
+                if (errorData.detail && errorData.detail.includes('CSRF')) {
+                    throw new Error('Security token expired. Please refresh the page.');
+                }
+            }
+
+            return response;
+        } else {
+            // localStorage-based authentication (development)
+            const token = getAuthToken();
+            
+            if (!token) {
+                throw new Error('No authentication token available');
+            }
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
+
             const response = await fetch(url, {
                 ...options,
                 headers
@@ -183,7 +298,6 @@
 
             // Handle authentication errors
             if (response.status === 401) {
-                // Token expired or invalid
                 localStorage.removeItem('sb_token');
                 localStorage.removeItem('sb_user');
                 updateAuthUI();
@@ -192,9 +306,6 @@
             }
 
             return response;
-        } catch (error) {
-            console.error('Authenticated fetch error:', error);
-            throw error;
         }
     }
 
@@ -253,11 +364,11 @@
     }
 
     /**
-     * Refresh authentication token (if using auto-refresh)
+     * Refresh authentication token (Supabase handles this automatically)
      */
     async function refreshAuthToken() {
-        try {
-            if (window.supabase) {
+        if (!USE_SECURE_COOKIES && window.supabase) {
+            try {
                 const { data: { session }, error } = await window.supabase.auth.getSession();
                 
                 if (session && !error) {
@@ -274,9 +385,9 @@
                     updateAuthUI();
                     return session.access_token;
                 }
+            } catch (error) {
+                console.error('Error refreshing token:', error);
             }
-        } catch (error) {
-            console.error('Error refreshing token:', error);
         }
         
         return null;
@@ -287,6 +398,7 @@
         isAuthenticated,
         getCurrentUser,
         getAuthToken,
+        getCSRFToken,
         authenticatedFetch,
         logout,
         refreshAuthToken,

@@ -13,7 +13,7 @@ pytz==2023.3
 # Database & Supabase Integration
 asyncpg==0.29.0
 sqlalchemy[asyncio]==2.0.23
-supabase==2.1.0
+supabase==2.3.4
 
 # Authentication & JWT
 python-jose[cryptography]==3.3.0
@@ -31,3 +31,6 @@ python-dotenv==1.0.0
 
 # Optional: Performance monitoring
 psutil==5.9.6
+
+# New additions
+slowapi==0.1.9
