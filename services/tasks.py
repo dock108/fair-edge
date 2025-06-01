@@ -4,13 +4,12 @@ Handles odds data fetching, processing, and caching with fault tolerance
 """
 import logging
 import time
+import json
 from datetime import datetime
 from typing import List, Dict, Any
 
 from celery import shared_task
-from celery.exceptions import Retry
 
-from services.celery_app import celery_app
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 from services.redis_cache import store_ev_data, store_analytics_data, health_check as redis_health_check
 from core.constants import CACHE_KEYS
@@ -134,6 +133,9 @@ def refresh_odds_data(self):
         # Store role-specific cached data for performance
         store_role_based_cache(all_opportunities, analytics)
         
+        # Publish real-time update
+        publish_realtime_update(all_opportunities)
+        
         # Final update
         processing_time = time.perf_counter() - start_time
         
@@ -221,7 +223,6 @@ def store_role_based_cache(opportunities: List[Dict[str, Any]], analytics: Dict[
         
         # Store in Redis with role-specific keys
         import redis
-        import json
         import os
         
         redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
@@ -245,6 +246,37 @@ def store_role_based_cache(opportunities: List[Dict[str, Any]], analytics: Dict[
     except Exception as e:
         logger.warning(f"Failed to update role-based cache: {e}")
         # Don't fail the main task for cache issues
+
+def publish_realtime_update(opportunities: List[Dict[str, Any]]):
+    """
+    Publish real-time update to Redis channel for WebSocket/SSE clients
+    """
+    try:
+        import redis
+        import os
+        
+        redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+        
+        # Create update payload for real-time clients
+        update_payload = {
+            'type': 'ev_update',
+            'timestamp': datetime.utcnow().isoformat(),
+            'count': len(opportunities),
+            'opportunities': opportunities[:50],  # Limit payload size for performance
+            'summary': {
+                'total_count': len(opportunities),
+                'positive_ev_count': len([o for o in opportunities if o.get('EV_Raw', 0) > 0]),
+                'high_ev_count': len([o for o in opportunities if o.get('EV_Raw', 0) >= 0.045])
+            }
+        }
+        
+        # Publish to the real-time updates channel
+        redis_client.publish("ev_updates", json.dumps(update_payload))
+        logger.info(f"📡 Published real-time update with {len(opportunities)} opportunities")
+        
+    except Exception as e:
+        logger.warning(f"Failed to publish real-time update: {e}")
+        # Don't fail the main task for publishing issues
 
 @shared_task(
     bind=True,

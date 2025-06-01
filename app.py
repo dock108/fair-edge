@@ -51,6 +51,7 @@ from core.constants import MASK_FIELDS_FOR_FREE, ROLE_FEATURES
 
 # Import routes
 from routes.billing import router as billing_router
+from routes.realtime import router as realtime_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -146,6 +147,9 @@ app.include_router(auth_router)
 
 # Include billing router
 app.include_router(billing_router)
+
+# Include realtime router
+app.include_router(realtime_router)
 
 # Admin mode configuration
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"

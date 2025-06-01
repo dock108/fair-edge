@@ -297,6 +297,16 @@
     <div class="main-container">
         <h2 id="opportunities-heading" class="sr-only">Betting Opportunities</h2>
         
+        <!-- Real-time Update Loading Spinner -->
+        <div id="loading-spinner" class="d-none text-center mb-3" role="status" aria-live="polite">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading new opportunities...</span>
+            </div>
+            <div class="mt-2 text-muted">
+                <small><i class="fas fa-broadcast-tower me-1"></i>Receiving real-time updates...</small>
+            </div>
+        </div>
+        
         {% if error %}
         <!-- Error State -->
         <div class="empty-state" role="alert" aria-live="assertive">
@@ -568,6 +578,185 @@ document.addEventListener('DOMContentLoaded', function() {
     if (clearButtonEmpty) {
         clearButtonEmpty.addEventListener('click', clearFilters);
     }
+});
+
+// Real-time updates functionality
+let wsConnection = null;
+let sseConnection = null;
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+
+function showUpdateNotification(message, type = 'info') {
+    // Create or update notification element
+    let notification = document.getElementById('realtime-notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'realtime-notification';
+        notification.className = 'alert alert-dismissible fade show';
+        notification.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1050; min-width: 300px;';
+        document.body.appendChild(notification);
+    }
+    
+    notification.className = `alert alert-${type} alert-dismissible fade show`;
+    notification.innerHTML = `
+        <i class="fas fa-broadcast-tower me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Auto-hide after 5 seconds for info messages
+    if (type === 'info') {
+        setTimeout(() => {
+            if (notification) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+}
+
+function showLoadingSpinner() {
+    const spinner = document.getElementById('loading-spinner');
+    if (spinner) {
+        spinner.classList.remove('d-none');
+    }
+}
+
+function hideLoadingSpinner() {
+    const spinner = document.getElementById('loading-spinner');
+    if (spinner) {
+        spinner.classList.add('d-none');
+    }
+}
+
+function updateTableWithNewData(data) {
+    try {
+        // Hide loading spinner since we got data
+        hideLoadingSpinner();
+        
+        if (data.type === 'ev_update' && data.opportunities) {
+            // Show update notification
+            showUpdateNotification(
+                `Updated with ${data.summary.total_count} opportunities (${data.summary.positive_ev_count} positive EV)`,
+                'success'
+            );
+            
+            // For now, we'll just show a notification
+            // Full table replacement would require more complex implementation
+            // that maintains user state (filters, etc.)
+            
+            // Optional: Auto-refresh the page to show new data
+            // setTimeout(() => window.location.reload(), 2000);
+        }
+    } catch (error) {
+        console.error('Error updating table:', error);
+        showUpdateNotification('Error processing update', 'warning');
+    }
+}
+
+function connectWebSocket() {
+    try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/ev`;
+        
+        wsConnection = new WebSocket(wsUrl);
+        
+        wsConnection.onopen = function() {
+            console.log('WebSocket connected');
+            reconnectAttempts = 0;
+            showUpdateNotification('Real-time updates connected', 'success');
+        };
+        
+        wsConnection.onmessage = function(event) {
+            console.log('WebSocket message received');
+            const data = JSON.parse(event.data);
+            updateTableWithNewData(data);
+        };
+        
+        wsConnection.onclose = function() {
+            console.log('WebSocket disconnected');
+            wsConnection = null;
+            showUpdateNotification('Real-time connection lost, switching to fallback...', 'warning');
+            
+            // Fallback to SSE
+            setTimeout(connectSSE, 1000);
+        };
+        
+        wsConnection.onerror = function(error) {
+            console.error('WebSocket error:', error);
+            showUpdateNotification('WebSocket connection failed', 'warning');
+        };
+        
+    } catch (error) {
+        console.error('Failed to create WebSocket connection:', error);
+        connectSSE();
+    }
+}
+
+function connectSSE() {
+    try {
+        if (sseConnection) {
+            sseConnection.close();
+        }
+        
+        sseConnection = new EventSource('/sse/ev');
+        
+        sseConnection.onopen = function() {
+            console.log('SSE connected');
+            showUpdateNotification('Real-time updates connected (SSE)', 'info');
+        };
+        
+        sseConnection.onmessage = function(event) {
+            console.log('SSE message received');
+            const data = JSON.parse(event.data);
+            
+            // Skip connection confirmation messages
+            if (data.type === 'connection') {
+                return;
+            }
+            
+            updateTableWithNewData(data);
+        };
+        
+        sseConnection.onerror = function(error) {
+            console.error('SSE error:', error);
+            sseConnection.close();
+            sseConnection = null;
+            
+            // Retry with exponential backoff
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                const delay = Math.pow(2, reconnectAttempts) * 1000;
+                console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
+                setTimeout(connectWebSocket, delay);
+            } else {
+                showUpdateNotification('Real-time updates unavailable', 'warning');
+            }
+        };
+        
+    } catch (error) {
+        console.error('Failed to create SSE connection:', error);
+        showUpdateNotification('Real-time updates unavailable', 'warning');
+    }
+}
+
+// Initialize real-time connection when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Only connect if we're on a page with opportunities
+    const opportunitiesContainer = document.querySelector('.cards-grid');
+    if (opportunitiesContainer) {
+        console.log('Initializing real-time updates...');
+        connectWebSocket();
+    }
+    
+    // Cleanup connections when page unloads
+    window.addEventListener('beforeunload', function() {
+        if (wsConnection) {
+            wsConnection.close();
+        }
+        if (sseConnection) {
+            sseConnection.close();
+        }
+    });
 });
 </script>
 {% endblock %} 
