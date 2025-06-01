@@ -198,6 +198,53 @@
     </div>
 </section>
 
+<!-- Free Tier Upgrade Banner -->
+{% if user_role == 'free' and role_metadata.truncated %}
+<div class="container-fluid mt-4">
+    <div id="upgrade-banner" class="alert alert-warning alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+                <h4 class="alert-heading mb-2">
+                    <i class="fas fa-star me-2" aria-hidden="true"></i>
+                    Upgrade to Premium!
+                </h4>
+                <p class="mb-2">
+                    <strong>You're seeing only {{ role_metadata.shown }} of {{ role_metadata.total_available }} available opportunities.</strong>
+                    Upgrade to unlock full access to all betting opportunities with advanced analytics.
+                </p>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold">Free Tier Includes:</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><i class="fas fa-check text-success me-1"></i> {{ role_metadata.limit }} opportunities</li>
+                            <li><i class="fas fa-check text-success me-1"></i> Basic EV analysis</li>
+                            <li><i class="fas fa-check text-success me-1"></i> {{ role_metadata.features.refresh_rate_minutes }}-minute updates</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold">Premium Features:</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><i class="fas fa-star text-warning me-1"></i> Full {{ role_metadata.total_available }}+ opportunities</li>
+                            <li><i class="fas fa-star text-warning me-1"></i> Advanced analytics & confidence scoring</li>
+                            <li><i class="fas fa-star text-warning me-1"></i> 5-minute refresh rate</li>
+                            <li><i class="fas fa-star text-warning me-1"></i> Export capabilities</li>
+                            <li><i class="fas fa-star text-warning me-1"></i> Custom filters & alerts</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="ms-3">
+                <a href="/pricing" class="btn btn-primary btn-lg">
+                    <i class="fas fa-arrow-up me-2"></i>
+                    Go Premium
+                </a>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close upgrade banner"></button>
+    </div>
+</div>
+{% endif %}
+
 <!-- Filter Controls Section -->
 <section class="filters-section" role="region" aria-labelledby="filters-heading">
     <div class="filters-container">
