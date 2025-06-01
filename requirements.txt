@@ -2,7 +2,7 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 jinja2==3.1.6
-python-multipart==0.0.6
+python-multipart==0.0.18
 
 # Core Dependencies
 requests==2.31.0
