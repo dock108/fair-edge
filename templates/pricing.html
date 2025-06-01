@@ -113,8 +113,9 @@
                     </ul>
                 </div>
                 <div class="card-footer text-center">
-                    <button class="btn btn-warning btn-lg w-100 text-dark fw-bold" onclick="upgradeToPremium()">
-                        Upgrade to Premium
+                    <button id="buy-premium" class="btn btn-warning btn-lg w-100 text-dark fw-bold" onclick="upgradeToPremium()">
+                        <span class="button-text">Upgrade to Premium</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                     </button>
                     <small class="text-muted d-block mt-2">Cancel anytime</small>
                 </div>
@@ -288,10 +289,75 @@
     </div>
 </div>
 
+<script src="/static/js/auth.js"></script>
 <script>
-function upgradeToPremium() {
-    // This will be implemented with Stripe integration
-    alert('Premium upgrade coming soon! Stripe integration will be implemented in the next phase.');
+async function upgradeToPremium() {
+    const button = document.getElementById('buy-premium');
+    const buttonText = button.querySelector('.button-text');
+    const spinner = button.querySelector('.spinner-border');
+    
+    try {
+        // Show loading state
+        button.disabled = true;
+        buttonText.textContent = 'Processing...';
+        spinner.classList.remove('d-none');
+        
+        // Check if user is authenticated
+        const user = await getCurrentUser();
+        if (!user) {
+            // Redirect to login if not authenticated
+            window.location.href = '/login?redirect=' + encodeURIComponent('/pricing');
+            return;
+        }
+        
+        // Check if user is already a subscriber
+        if (user.role === 'subscriber' && user.subscription_status === 'active') {
+            alert('You are already a Premium subscriber!');
+            return;
+        }
+        
+        // Create Stripe checkout session
+        const response = await authenticatedFetch('/api/billing/create-checkout-session', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to create checkout session');
+        }
+        
+        const data = await response.json();
+        
+        // Redirect to Stripe Checkout
+        window.location.href = data.checkout_url;
+        
+    } catch (error) {
+        console.error('Error upgrading to premium:', error);
+        alert('Error: ' + error.message);
+    } finally {
+        // Reset button state
+        button.disabled = false;
+        buttonText.textContent = 'Upgrade to Premium';
+        spinner.classList.add('d-none');
+    }
+}
+
+// Helper function to get current user
+async function getCurrentUser() {
+    try {
+        const response = await authenticatedFetch('/me', {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting current user:', error);
+        return null;
+    }
 }
 </script>
 {% endblock %} 

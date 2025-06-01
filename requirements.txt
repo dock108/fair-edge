@@ -25,6 +25,9 @@ pydantic-settings==2.7.1
 celery[redis]==5.3.4
 redis==5.0.1
 
+# Payment Processing
+stripe==9.7.0
+
 # Development & Testing
 pytest==7.4.3
 python-dotenv==1.0.0
