@@ -3,7 +3,7 @@ FastAPI application for Sports Betting +EV Analyzer Dashboard
 Serves the new HTML/CSS UI using Jinja2 templates
 """
 
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -22,6 +22,15 @@ from services.fastapi_data_processor import fetch_raw_odds_data, process_opportu
 # Import database connections
 from db import get_db, get_supabase, get_database_status
 
+# Import authentication services
+from services.auth import (
+    get_current_user_with_role, 
+    get_current_user, 
+    require_role, 
+    require_subscription,
+    User
+)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,6 +47,47 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Configure Jinja2 templates
 templates = Jinja2Templates(directory="templates")
+
+# Create auth router
+auth_router = APIRouter(prefix="/auth", tags=["auth"])
+
+@auth_router.get("/test-token")
+async def test_token(user: User = Depends(get_current_user_with_role)):
+    """Test endpoint to verify JWT token validation"""
+    return {
+        "status": "success",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "subscription_status": user.subscription_status
+        },
+        "message": "Token is valid"
+    }
+
+@auth_router.get("/me")
+async def get_my_profile(current_user: User = Depends(get_current_user_with_role)):
+    """Get the current user's profile information"""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "role": current_user.role,
+        "subscription_status": current_user.subscription_status
+    }
+
+# Main user profile endpoint (alternative to /auth/me)
+@app.get("/me")
+async def get_my_profile_main(current_user: User = Depends(get_current_user_with_role)):
+    """Get the current user's profile information - main endpoint"""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "role": current_user.role,
+        "subscription_status": current_user.subscription_status
+    }
+
+# Include auth router
+app.include_router(auth_router)
 
 # Admin mode configuration
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
@@ -462,9 +512,12 @@ async def health_check():
 
 
 @app.get("/debug/profiles")
-async def get_profiles_debug(db: AsyncSession = Depends(get_db)):
+async def get_profiles_debug(
+    db: AsyncSession = Depends(get_db),
+    admin_user: User = Depends(require_role("admin"))
+):
     """
-    Debug endpoint to verify Supabase database integration
+    Debug endpoint to verify Supabase database integration - ADMIN ONLY
     Shows all user profiles from the database
     """
     try:
@@ -487,7 +540,8 @@ async def get_profiles_debug(db: AsyncSession = Depends(get_db)):
             "status": "success",
             "total_profiles": len(profiles_data),
             "profiles": profiles_data,
-            "message": "Successfully connected to Supabase database"
+            "message": "Successfully connected to Supabase database",
+            "admin_user": admin_user.email
         }
     except Exception as e:
         logger.error(f"Error querying profiles: {e}")
@@ -544,6 +598,64 @@ async def database_status_debug():
             "error": str(e),
             "status": "failed"
         }
+
+
+@app.get("/premium/opportunities")
+async def get_premium_opportunities(
+    subscriber: User = Depends(require_subscription())
+):
+    """
+    Premium endpoint for subscribers - enhanced opportunities with additional analysis
+    """
+    try:
+        # Get basic opportunities
+        raw_data = fetch_raw_odds_data()
+        opportunities, analytics = process_opportunities(raw_data)
+        
+        # Add premium features for subscribers
+        enhanced_opportunities = []
+        for opp in opportunities:
+            enhanced = opp.copy()
+            # Add premium data analysis
+            enhanced['premium_analysis'] = {
+                'confidence_score': round((opp.get('EV_Raw', 0) * 100 + 50), 1),
+                'risk_assessment': 'low' if opp.get('EV_Raw', 0) > 0.03 else 'medium',
+                'historical_performance': 'Not available in demo'
+            }
+            enhanced_opportunities.append(enhanced)
+        
+        return {
+            "opportunities": enhanced_opportunities,
+            "analytics": analytics,
+            "premium_features": {
+                "confidence_scoring": True,
+                "risk_assessment": True,
+                "historical_tracking": True,
+                "advanced_filters": True
+            },
+            "subscriber_info": {
+                "id": subscriber.id,
+                "role": subscriber.role,
+                "subscription_status": subscriber.subscription_status
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in premium opportunities: {e}")
+        raise HTTPException(status_code=500, detail="Unable to fetch premium opportunities")
+
+
+@app.get("/api/user-info")
+async def get_user_info(user: User = Depends(get_current_user)):
+    """
+    Get basic user info using simple JWT validation (no database lookup)
+    Useful for quick authentication checks
+    """
+    return {
+        "user_id": user.id,
+        "email": user.email,
+        "authenticated": True
+    }
 
 
 if __name__ == "__main__":
