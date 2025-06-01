@@ -3,10 +3,12 @@ FastAPI application for Sports Betting +EV Analyzer Dashboard
 Serves the new HTML/CSS UI using Jinja2 templates
 """
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 import uvicorn
 import logging
 from datetime import datetime
@@ -16,6 +18,9 @@ import time
 
 # Import the data processing services
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
+
+# Import database connections
+from db import get_db, get_supabase, get_database_status
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -437,18 +442,107 @@ async def health_check():
         raw_data = fetch_raw_odds_data()
         status = "healthy" if raw_data['status'] == 'success' else "degraded"
         
+        # Include database status
+        db_status = await get_database_status()
+        
         return {
             "status": status,
             "version": "2.1.0",
             "data_status": raw_data['status'],
             "total_events": raw_data.get('total_events', 0),
-            "last_fetch": raw_data.get('fetch_time', '').isoformat() if raw_data.get('fetch_time') else None
+            "last_fetch": raw_data.get('fetch_time', '').isoformat() if raw_data.get('fetch_time') else None,
+            "database": db_status
         }
     except Exception as e:
         return {
             "status": "unhealthy", 
             "version": "2.1.0",
             "error": str(e)
+        }
+
+
+@app.get("/debug/profiles")
+async def get_profiles_debug(db: AsyncSession = Depends(get_db)):
+    """
+    Debug endpoint to verify Supabase database integration
+    Shows all user profiles from the database
+    """
+    try:
+        # Query profiles using raw SQL (since we don't have SQLAlchemy models yet)
+        result = await db.execute(text("SELECT id, email, role, subscription_status, created_at FROM profiles ORDER BY created_at DESC LIMIT 10"))
+        profiles = result.fetchall()
+        
+        # Convert to list of dicts for JSON response
+        profiles_data = []
+        for profile in profiles:
+            profiles_data.append({
+                "id": str(profile[0]),
+                "email": profile[1],
+                "role": profile[2],
+                "subscription_status": profile[3],
+                "created_at": profile[4].isoformat() if profile[4] else None
+            })
+        
+        return {
+            "status": "success",
+            "total_profiles": len(profiles_data),
+            "profiles": profiles_data,
+            "message": "Successfully connected to Supabase database"
+        }
+    except Exception as e:
+        logger.error(f"Error querying profiles: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to connect to Supabase database"
+        }
+
+
+@app.get("/debug/supabase")
+async def test_supabase_client():
+    """
+    Debug endpoint to test Supabase client functionality
+    """
+    try:
+        supabase = get_supabase()
+        
+        # Test connection by querying profiles table
+        response = supabase.table('profiles').select('id, email, role').limit(5).execute()
+        
+        return {
+            "status": "success",
+            "supabase_connected": True,
+            "profiles_count": len(response.data),
+            "sample_profiles": response.data,
+            "message": "Supabase client working correctly"
+        }
+    except Exception as e:
+        logger.error(f"Supabase client error: {e}")
+        return {
+            "status": "error",
+            "supabase_connected": False,
+            "error": str(e),
+            "message": "Failed to connect using Supabase client"
+        }
+
+
+@app.get("/debug/database-status")
+async def database_status_debug():
+    """
+    Comprehensive database status check
+    """
+    try:
+        status = await get_database_status()
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "database_status": status
+        }
+    except Exception as e:
+        logger.error(f"Database status check error: {e}")
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "status": "failed"
         }
 
 

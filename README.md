@@ -28,10 +28,17 @@ A comprehensive FastAPI application for identifying positive expected value (EV)
 - **Complete market analysis** (H2H, Spreads, Totals)
 - **Action links** for immediate betting/posting
 
+### SaaS Infrastructure (New!)
+- **Supabase Integration** for user management and data persistence
+- **PostgreSQL database** for scalable data storage
+- **User authentication** ready for implementation
+- **Database monitoring** and health checks
+
 ## 📋 Requirements
 
 - Python 3.8+
 - The Odds API key (free tier available)
+- Supabase project (for database and auth)
 - Internet connection for real-time data
 
 ## 🛠️ Installation
@@ -47,19 +54,99 @@ cd bet-intel
 pip install -r requirements.txt
 ```
 
-3. **Configure API access**
+3. **Set up Supabase** (New!)
+   - Create a project at [supabase.com](https://supabase.com)
+   - Note your project URL and API keys
+   - Create the profiles table and trigger (see Database Setup section)
+
+4. **Configure environment variables**
 ```bash
 # Copy the example environment file
 cp .env.example .env
 
-# Edit .env and add your Odds API key
+# Edit .env and add your credentials
 ODDS_API_KEY=your_api_key_here
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+DB_CONNECTION_STRING=postgresql+asyncpg://postgres.your-project:password@aws-region.pooler.supabase.com:5432/postgres
 ```
 
-4. **Get your API key**
+5. **Initialize the database**
+```bash
+python setup_database.py
+```
+
+6. **Get your API key**
    - Visit [The Odds API](https://the-odds-api.com/)
    - Sign up for a free account (500 requests/month)
    - Copy your API key to the `.env` file
+
+## 🗄️ Database Setup
+
+### Supabase Configuration
+
+1. **Create profiles table**:
+```sql
+create table profiles (
+  id uuid primary key references auth.users(id),
+  email text,
+  role text default 'free',
+  subscription_status text default 'none',
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  created_at timestamp default timezone('utc'::text, now()),
+  updated_at timestamp default timezone('utc'::text, now())
+);
+```
+
+2. **Set up user creation trigger**:
+```sql
+create function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email)
+  values (new.id, new.email);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+```
+
+3. **Run the setup script**:
+```bash
+python setup_database.py
+```
+
+### Database Verification
+
+After setup, test your database connection:
+
+```bash
+# Start the application
+python app.py
+
+# Test endpoints:
+curl http://localhost:8000/health
+curl http://localhost:8000/debug/database-status
+curl http://localhost:8000/debug/profiles
+curl http://localhost:8000/debug/supabase
+```
+
+### Common Issues
+
+**❌ "asyncio extension requires an async driver" Error:**
+- Your `DB_CONNECTION_STRING` must use `postgresql+asyncpg://` not `postgresql://`
+- Correct format: `postgresql+asyncpg://postgres.your-project:password@aws-region.pooler.supabase.com:5432/postgres`
+- Run `python test_env.py` to validate your connection string format
+
+**❌ "Database not properly configured" Error:**
+- Check that all Supabase environment variables are set in your `.env` file
+- Ensure your `.env` file is in the project root directory
+- Verify your Supabase credentials are correct
 
 ## 🎮 Usage
 
