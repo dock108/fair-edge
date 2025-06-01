@@ -22,7 +22,7 @@ python-jose[cryptography]==3.3.0
 pydantic-settings==2.7.1
 
 # Background Tasks & Caching
-celery==5.3.4
+celery[redis]==5.3.4
 redis==5.0.1
 
 # Development & Testing
@@ -34,3 +34,6 @@ psutil==5.9.6
 
 # New additions
 slowapi==0.1.9
+
+# Enhanced Logging
+colorlog==6.8.2
