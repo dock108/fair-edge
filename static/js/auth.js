@@ -135,22 +135,103 @@
                 <div class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user me-1"></i>${userEmail}
-                        <span class="badge bg-secondary ms-1">${userRole}</span>
+                        <span class="badge bg-${getRoleBadgeColor(userRole)} ms-1">${userRole.toUpperCase()}</span>
                     </a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i>Profile</a></li>
                         <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        ${userRole === 'free' ? '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-warning" href="/pricing"><i class="fas fa-star me-2"></i>Upgrade to Premium</a></li>' : ''}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#" id="logout-btn"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                     </ul>
                 </div>
             `;
+            
+            // Handle role-based UI elements
+            handleRoleBasedUI(userRole);
         } else {
             authStatus.innerHTML = `
                 <a class="nav-link" href="/login">
                     <i class="fas fa-sign-in-alt me-1"></i> Login
                 </a>
             `;
+        }
+    }
+
+    /**
+     * Get badge color based on user role
+     */
+    function getRoleBadgeColor(role) {
+        switch (role) {
+            case 'admin': return 'danger';
+            case 'subscriber': return 'success';
+            case 'free': return 'secondary';
+            default: return 'secondary';
+        }
+    }
+
+    /**
+     * Handle role-based UI elements and upgrade banner
+     */
+    function handleRoleBasedUI(userRole) {
+        // Show/hide role-specific elements
+        toggleElementsByRole('free-only', userRole === 'free');
+        toggleElementsByRole('subscriber-only', userRole === 'subscriber' || userRole === 'admin');
+        toggleElementsByRole('admin-only', userRole === 'admin');
+        
+        // Handle upgrade banner persistence
+        handleUpgradeBanner();
+    }
+
+    /**
+     * Toggle visibility of elements by role
+     */
+    function toggleElementsByRole(className, show) {
+        const elements = document.querySelectorAll(`.${className}`);
+        elements.forEach(element => {
+            element.style.display = show ? 'block' : 'none';
+        });
+    }
+
+    /**
+     * Handle upgrade banner display and persistence
+     */
+    function handleUpgradeBanner() {
+        const banner = document.getElementById('upgrade-banner');
+        if (!banner) return;
+
+        // Check if user has dismissed banner this session
+        const userId = getCurrentUserId();
+        const sessionKey = `upgrade_banner_dismissed_${userId || 'anonymous'}`;
+        const isDismissed = sessionStorage.getItem(sessionKey) === 'true';
+
+        if (isDismissed) {
+            banner.style.display = 'none';
+        }
+
+        // Listen for banner close
+        const closeBtn = banner.querySelector('.btn-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                sessionStorage.setItem(sessionKey, 'true');
+            });
+        }
+    }
+
+    /**
+     * Get current user ID for session management
+     */
+    function getCurrentUserId() {
+        if (USE_SECURE_COOKIES) {
+            // We'll need to extract from a cookie or make an API call
+            return 'session_user'; // Placeholder for cookie-based sessions
+        } else {
+            try {
+                const user = JSON.parse(localStorage.getItem('sb_user') || '{}');
+                return user.id;
+            } catch (error) {
+                return null;
+            }
         }
     }
 
@@ -236,7 +317,7 @@
     }
 
     /**
-     * Make authenticated API request with CSRF protection
+     * Make authenticated API request with CSRF protection and role handling
      */
     async function authenticatedFetch(url, options = {}) {
         if (USE_SECURE_COOKIES) {
@@ -276,6 +357,18 @@
                 }
             }
 
+            // Handle successful responses with role data
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Handle truncated responses for free users
+                if (data.truncated && data.role === 'free') {
+                    showUpgradeBannerWithData(data);
+                }
+                
+                return data;
+            }
+
             return response;
         } else {
             // localStorage-based authentication (development)
@@ -305,7 +398,44 @@
                 throw new Error('Authentication expired. Please login again.');
             }
 
+            // Handle successful responses with role data
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Handle truncated responses for free users
+                if (data.truncated && data.role === 'free') {
+                    showUpgradeBannerWithData(data);
+                }
+                
+                return data;
+            }
+
             return response;
+        }
+    }
+
+    /**
+     * Show upgrade banner with current data
+     */
+    function showUpgradeBannerWithData(data) {
+        const banner = document.getElementById('upgrade-banner');
+        if (banner && data.total_available && data.shown) {
+            // Update banner with current data
+            const shownElements = banner.querySelectorAll('[data-shown]');
+            const totalElements = banner.querySelectorAll('[data-total]');
+            
+            shownElements.forEach(el => el.textContent = data.shown);
+            totalElements.forEach(el => el.textContent = data.total_available);
+            
+            // Show banner if hidden and not dismissed
+            const userId = getCurrentUserId();
+            const sessionKey = `upgrade_banner_dismissed_${userId || 'anonymous'}`;
+            const isDismissed = sessionStorage.getItem(sessionKey) === 'true';
+            
+            if (!isDismissed) {
+                banner.classList.add('show');
+                banner.style.display = 'block';
+            }
         }
     }
 

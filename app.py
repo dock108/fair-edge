@@ -47,6 +47,7 @@ from core.session import (
 
 # Import core settings
 from core.config import settings
+from core.constants import FREE_BET_LIMIT, MASK_FIELDS_FOR_FREE, ROLE_FEATURES
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -380,9 +381,10 @@ def _extract_action_link(links_str: str) -> str:
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, admin: Optional[str] = None):
+async def dashboard(request: Request, admin: Optional[str] = None, user: UserCtx = Depends(get_current_user)):
     """
     Main dashboard endpoint - Display betting opportunities with admin mode support
+    Now requires authentication and passes user role to template
     """
     try:
         # Get debug metrics if needed
@@ -411,35 +413,55 @@ async def dashboard(request: Request, admin: Optional[str] = None):
         # Process opportunities for UI
         ui_opportunities = process_opportunities_for_ui(opportunities)
         
+        # Apply role-based filtering
+        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+        
         # Apply filters from query parameters
         sport_filter = request.query_params.get('sport', '').strip()
         market_filter = request.query_params.get('market', '').strip()
         
         if sport_filter:
-            ui_opportunities = [op for op in ui_opportunities if sport_filter.lower() in op.get('sport', '').lower()]
+            filtered_response['opportunities'] = [
+                op for op in filtered_response['opportunities'] 
+                if sport_filter.lower() in op.get('sport', '').lower()
+            ]
         
         if market_filter:
-            ui_opportunities = [op for op in ui_opportunities if market_filter.lower() in op.get('market', '').lower()]
+            filtered_response['opportunities'] = [
+                op for op in filtered_response['opportunities'] 
+                if market_filter.lower() in op.get('market', '').lower()
+            ]
         
-        # Generate analytics
-        analytics = {
-            'total_opportunities': len(ui_opportunities),
-            'positive_ev_count': len([op for op in ui_opportunities if op.get('ev_percentage', 0) > 0]),
-            'high_ev_count': len([op for op in ui_opportunities if op.get('ev_percentage', 0) >= 4.5]),
-            'max_ev_percentage': round(max([op.get('ev_percentage', 0) for op in ui_opportunities], default=0), 2)
+        # Update analytics based on filtered data
+        filtered_opportunities = filtered_response['opportunities']
+        ui_analytics = {
+            'total_opportunities': len(filtered_opportunities),
+            'positive_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) > 0]),
+            'high_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) >= 4.5]),
+            'max_ev_percentage': round(max([op.get('ev_percentage', 0) for op in filtered_opportunities], default=0), 2)
         }
         
         # Prepare template context
         context = {
             "request": request,
-            "settings": settings,  # Add settings for template
-            "opportunities": ui_opportunities,
-            "analytics": analytics,
+            "settings": settings,
+            "user": user,  # Pass user object to template
+            "user_role": user.role,  # Pass role explicitly for easy access
+            "opportunities": filtered_opportunities,
+            "analytics": ui_analytics,
             "admin_mode": is_admin_mode_enabled(request, admin),
             "filter_applied": bool(sport_filter or market_filter),
             "current_sport": sport_filter,
             "current_market": market_filter,
-            "page_title": "Live Betting Dashboard - Sports +EV Analysis"
+            "page_title": "Live Betting Dashboard - Sports +EV Analysis",
+            # Role-based metadata
+            "role_metadata": {
+                "truncated": filtered_response.get('truncated', False),
+                "limit": filtered_response.get('limit'),
+                "total_available": filtered_response.get('total_available', 0),
+                "shown": filtered_response.get('shown', 0),
+                "features": filtered_response.get('features', {})
+            }
         }
         
         if is_admin_mode_enabled(request, admin):
@@ -447,7 +469,7 @@ async def dashboard(request: Request, admin: Optional[str] = None):
             
             # Add detailed EV breakdown for first few opportunities
             debug_opportunities = []
-            for i, opp in enumerate(ui_opportunities[:5]):  # First 5 opportunities
+            for i, opp in enumerate(filtered_opportunities[:5]):  # First 5 opportunities
                 debug_opp = opp.copy()
                 debug_opp['_debug'] = calculate_ev_breakdown(opp)
                 debug_opportunities.append(debug_opp)
@@ -523,11 +545,112 @@ async def education(request: Request):
         logger.error(f"Education page error: {e}")
         raise HTTPException(status_code=500, detail="Unable to load education page")
 
+@app.get("/pricing", response_class=HTMLResponse)
+async def pricing_page(request: Request):
+    """
+    Pricing page route - serves the pricing and plan comparison
+    """
+    try:
+        context = {
+            "request": request,
+            "settings": settings,
+            "page_title": "Pricing - Sports Betting +EV Analyzer"
+        }
+        
+        return templates.TemplateResponse("pricing.html", context)
+        
+    except Exception as e:
+        logger.error(f"Pricing page error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to load pricing page")
+
+def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role: str) -> Dict[str, Any]:
+    """
+    Filter and mask opportunities based on user role
+    Returns role-aware response with metadata
+    """
+    total_available = len(opportunities)
+    role_config = ROLE_FEATURES.get(user_role, ROLE_FEATURES["free"])
+    max_opportunities = role_config["max_opportunities"]
+    
+    # Apply limits for non-admin users
+    if max_opportunities == -1:  # unlimited (admin)
+        filtered_opportunities = opportunities
+        truncated = False
+    else:
+        filtered_opportunities = opportunities[:max_opportunities]
+        truncated = total_available > max_opportunities
+    
+    # Mask advanced fields for free users
+    if user_role == "free":
+        for opportunity in filtered_opportunities:
+            # Remove advanced fields from the opportunity data
+            for field in MASK_FIELDS_FOR_FREE:
+                opportunity.pop(field, None)
+                # Also remove from _original if it exists
+                if '_original' in opportunity:
+                    opportunity['_original'].pop(field, None)
+    
+    return {
+        "role": user_role,
+        "truncated": truncated,
+        "limit": max_opportunities if max_opportunities != -1 else None,
+        "total_available": total_available,
+        "shown": len(filtered_opportunities),
+        "features": role_config,
+        "opportunities": filtered_opportunities
+    }
+
+@app.get("/api/bets", tags=["opportunities"])
+@limiter.limit("60/minute")
+async def get_betting_opportunities(request: Request, user: UserCtx = Depends(get_current_user)):
+    """
+    Get betting opportunities with role-based filtering
+    Free users: Limited to first 10 opportunities with masked advanced fields
+    Subscribers: Up to 100 opportunities with full data
+    Admins: Unlimited access
+    """
+    try:
+        # Get cached data from Redis
+        opportunities = get_ev_data()
+        analytics = get_analytics_data()
+        last_update = get_last_update()
+        
+        # Process opportunities for UI display
+        if opportunities:
+            ui_opportunities = process_opportunities_for_ui(opportunities)
+            ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
+        else:
+            ui_opportunities = []
+        
+        # Apply role-based filtering
+        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+        
+        # Add metadata
+        filtered_response.update({
+            "analytics": analytics,
+            "last_update": last_update,
+            "data_source": "redis_cache"
+        })
+        
+        return filtered_response
+        
+    except Exception as e:
+        logger.error(f"Failed to retrieve opportunities for user {user.email}: {e}")
+        return {
+            "role": user.role,
+            "truncated": False,
+            "total_available": 0,
+            "shown": 0,
+            "opportunities": [],
+            "error": "Unable to retrieve opportunities data",
+            "data_source": "error"
+        }
+
 @app.get("/api/opportunities")
 @limiter.limit("60/minute")
-async def api_opportunities(request: Request):
+async def api_opportunities(request: Request, user: UserCtx = Depends(get_current_user)):
     """
-    API endpoint for getting opportunities data - uses cached data for performance
+    API endpoint for getting opportunities data with role-based access control
     Falls back to live data if cache is empty
     Rate limited to prevent abuse
     """
@@ -556,26 +679,21 @@ async def api_opportunities(request: Request):
         # Sort by EV percentage (highest first) for better user experience
         ui_opportunities.sort(key=lambda x: x['ev_percentage'], reverse=True)
         
-        return {
-            "opportunities": ui_opportunities,
+        # Apply role-based filtering
+        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+        
+        # Add metadata
+        filtered_response.update({
             "analytics": analytics,
-            "total_opportunities": len(ui_opportunities),
             "last_update": last_update or datetime.now().isoformat(),
             "data_source": data_source
-        }
+        })
+        
+        return filtered_response
         
     except Exception as e:
-        logger.error(f"Error in API route: {e}")
+        logger.error(f"Error in API route for user {user.email}: {e}")
         return {"error": str(e), "opportunities": []}
-
-@app.get("/api/bets", tags=["opportunities"])
-@limiter.limit("60/minute")
-async def get_betting_opportunities(request: Request):
-    """
-    Get betting opportunities (alias for /api/opportunities)
-    Rate limited to prevent credential stuffing and abuse
-    """
-    return await api_opportunities(request)
 
 @app.get("/health")
 async def health_check():
@@ -1064,6 +1182,82 @@ async def get_session_user(request: Request):
         "subscription_status": user.subscription_status
     }
 
+@app.get("/api/bets/raw", tags=["opportunities"])
+@limiter.limit("30/minute")
+async def raw_betting_export(request: Request, subscriber: UserCtx = Depends(require_subscription())):
+    """
+    Raw betting data export - SUBSCRIBERS AND ADMINS ONLY
+    Returns unfiltered, unmasked data for analysis
+    """
+    try:
+        opportunities = get_ev_data()
+        analytics = get_analytics_data()
+        last_update = get_last_update()
+        
+        if opportunities:
+            ui_opportunities = process_opportunities_for_ui(opportunities)
+            ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
+        else:
+            ui_opportunities = []
+        
+        return {
+            "role": subscriber.role,
+            "export_type": "raw",
+            "total_opportunities": len(ui_opportunities),
+            "opportunities": ui_opportunities,
+            "analytics": analytics,
+            "last_update": last_update,
+            "exported_at": datetime.now().isoformat(),
+            "subscriber_email": subscriber.email
+        }
+        
+    except Exception as e:
+        logger.error(f"Raw export error for {subscriber.email}: {e}")
+        raise HTTPException(status_code=500, detail="Export failed")
+
+@app.get("/api/analytics/advanced", tags=["analytics"])
+@limiter.limit("30/minute") 
+async def advanced_analytics(request: Request, subscriber: UserCtx = Depends(require_subscription())):
+    """
+    Advanced analytics endpoint - SUBSCRIBERS AND ADMINS ONLY
+    Provides detailed market analysis and trends
+    """
+    try:
+        analytics = get_analytics_data()
+        opportunities = get_ev_data()
+        
+        # Calculate advanced metrics for subscribers
+        if opportunities:
+            ev_values = [opp.get('EV_Raw', 0) for opp in opportunities if opp.get('EV_Raw')]
+            
+            advanced_metrics = {
+                "market_efficiency": {
+                    "avg_ev": sum(ev_values) / len(ev_values) if ev_values else 0,
+                    "ev_variance": sum([(x - sum(ev_values) / len(ev_values)) ** 2 for x in ev_values]) / len(ev_values) if len(ev_values) > 1 else 0,
+                    "total_opportunities": len(opportunities)
+                },
+                "value_distribution": {
+                    "excellent_4_5_plus": len([x for x in ev_values if x >= 0.045]),
+                    "high_2_5_to_4_5": len([x for x in ev_values if 0.025 <= x < 0.045]),
+                    "positive_0_to_2_5": len([x for x in ev_values if 0 < x < 0.025]),
+                    "neutral_negative": len([x for x in ev_values if x <= 0])
+                }
+            }
+        else:
+            advanced_metrics = {"error": "No data available"}
+        
+        return {
+            "role": subscriber.role,
+            "analytics_type": "advanced",
+            "basic_analytics": analytics,
+            "advanced_metrics": advanced_metrics,
+            "generated_at": datetime.now().isoformat(),
+            "subscription_status": subscriber.subscription_status
+        }
+        
+    except Exception as e:
+        logger.error(f"Advanced analytics error for {subscriber.email}: {e}")
+        raise HTTPException(status_code=500, detail="Analytics generation failed")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 
