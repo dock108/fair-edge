@@ -260,9 +260,8 @@ def publish_realtime_update(opportunities: List[Dict[str, Any]]):
         # Create update payload for real-time clients
         update_payload = {
             'type': 'ev_update',
-            'timestamp': datetime.utcnow().isoformat(),
-            'count': len(opportunities),
-            'opportunities': opportunities[:50],  # Limit payload size for performance
+            'updated_at': datetime.utcnow().isoformat() + 'Z',  # ISO format with Z suffix
+            'data': opportunities[:50],  # Limit payload size for performance
             'summary': {
                 'total_count': len(opportunities),
                 'positive_ev_count': len([o for o in opportunities if o.get('EV_Raw', 0) > 0]),
@@ -272,7 +271,7 @@ def publish_realtime_update(opportunities: List[Dict[str, Any]]):
         
         # Publish to the real-time updates channel
         redis_client.publish("ev_updates", json.dumps(update_payload))
-        logger.info(f"📡 Published real-time update with {len(opportunities)} opportunities")
+        logger.info(f"📡 Published real-time update with {len(opportunities)} opportunities at {update_payload['updated_at']}")
         
     except Exception as e:
         logger.warning(f"Failed to publish real-time update: {e}")

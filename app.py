@@ -24,7 +24,7 @@ from slowapi.errors import RateLimitExceeded
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 
 # Import background task services
-from services.tasks import refresh_odds_data, health_check as celery_health_check
+from services.tasks import refresh_odds_data, health_check as celery_health_check, SPORTS_SUPPORTED
 from services.redis_cache import get_ev_data, get_analytics_data, get_last_update, clear_cache, health_check as redis_health_check
 
 # Import database connections
@@ -491,7 +491,8 @@ async def home(request: Request, admin: Optional[str] = None):
                 "total_available": filtered_response.get('total_available', 0),
                 "shown": filtered_response.get('shown', 0),
                 "features": filtered_response.get('features', {})
-            }
+            },
+            "sports_supported": SPORTS_SUPPORTED
         }
         
         if is_admin_mode_enabled(request, admin):
@@ -758,12 +759,20 @@ async def get_betting_opportunities(request: Request):
 
 @app.get("/api/opportunities")
 @limiter.limit("60/minute")
-async def api_opportunities(request: Request):
+async def api_opportunities(
+    request: Request, 
+    search: Optional[str] = None,
+    sport: Optional[str] = None
+):
     """
     API endpoint for getting opportunities data with role-based access control
-    Now supports guest access with free tier limits
+    Now supports guest access with free tier limits and server-side filtering
     Falls back to live data if cache is empty
     Rate limited to prevent abuse
+    
+    Query parameters:
+    - search: Search term for teams, events, players, bet descriptions
+    - sport: Filter by specific sport (americanfootball_nfl, basketball_nba, etc.)
     """
     try:
         # Try to get current user, but allow guest access
@@ -806,19 +815,70 @@ async def api_opportunities(request: Request):
         
         ui_opportunities = process_opportunities_for_ui(opportunities)
         
+        # Apply server-side filtering before role filtering
+        if search or sport:
+            filtered_opps = []
+            search_term = search.lower() if search else None
+            
+            for opp in ui_opportunities:
+                # Search filter
+                if search_term:
+                    searchable_text = " ".join([
+                        opp.get('event', ''),
+                        opp.get('bet_description', ''),
+                        opp.get('bet_type', ''),
+                        opp.get('best_odds_source', '')
+                    ]).lower()
+                    
+                    if search_term not in searchable_text:
+                        continue
+                
+                # Sport filter  
+                if sport:
+                    # Map sport codes to identifiers that might appear in event names
+                    sport_keywords = {
+                        'americanfootball_nfl': ['nfl', 'football', 'patriots', 'cowboys', 'packers', 'steelers'],
+                        'basketball_nba': ['nba', 'basketball', 'lakers', 'warriors', 'celtics', 'nets'],
+                        'baseball_mlb': ['mlb', 'baseball', 'yankees', 'dodgers', 'red sox', 'giants'],
+                        'icehockey_nhl': ['nhl', 'hockey', 'rangers', 'bruins', 'kings', 'devils']
+                    }
+                    
+                    keywords = sport_keywords.get(sport, [sport])
+                    event_text = opp.get('event', '').lower()
+                    
+                    # Check if any sport keyword appears in the event
+                    if not any(keyword in event_text for keyword in keywords):
+                        continue
+                
+                filtered_opps.append(opp)
+            
+            ui_opportunities = filtered_opps
+        
         # Sort by EV percentage (highest first) for better user experience
         ui_opportunities.sort(key=lambda x: x['ev_percentage'], reverse=True)
         
         # Apply role-based filtering
         filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
         
-        # Add metadata
+        # Add metadata including filter info
         filtered_response.update({
             "analytics": analytics,
             "last_update": last_update or datetime.now().isoformat(),
             "data_source": data_source,
-            "is_guest": user.id == "guest"
+            "is_guest": user.id == "guest",
+            "filters_applied": {
+                "search": search,
+                "sport": sport,
+                "has_filters": bool(search or sport)
+            }
         })
+        
+        # Add Cache-Control header for no-store to prevent caching of filtered results
+        if search or sport:
+            from fastapi import Response as FastAPIResponse
+            response = FastAPIResponse(content=filtered_response)
+            response.headers["Cache-Control"] = "no-store"
+            return response
         
         return filtered_response
         
