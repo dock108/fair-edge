@@ -320,6 +320,65 @@ For issues or questions:
 3. Ensure all dependencies are installed
 4. Check API quota status
 
+## Authentication & Authorization
+
+The application now supports JWT-based authentication using Supabase tokens.
+
+### Environment Setup
+
+Add your Supabase JWT secret to `.env`:
+
+```env
+SUPABASE_JWT_SECRET=your_anon_key_or_jwt_secret_here
+```
+
+### Protected Endpoints
+
+- **`/me`** - Get current user profile information (requires valid JWT)
+- **`/auth/test-token`** - Test JWT token validation
+- **`/auth/me`** - Alternative user profile endpoint
+- **`/premium/opportunities`** - Enhanced opportunities (requires subscription)
+- **`/debug/profiles`** - Admin-only database debug endpoint
+- **`/api/user-info`** - Basic user info from JWT
+
+### Authentication Headers
+
+Include JWT token in requests:
+
+```bash
+curl -H "Authorization: Bearer <your_jwt_token>" http://localhost:8000/me
+```
+
+### User Roles
+
+- **`free`** - Default role for new users
+- **`subscriber`** - Paid subscription users
+- **`admin`** - Administrative access
+
+### Testing Authentication
+
+1. Create a user in Supabase Auth
+2. Get JWT token via Supabase client or API
+3. Test with protected endpoints:
+
+```bash
+# Test basic authentication
+curl -H "Authorization: Bearer <jwt>" http://localhost:8000/me
+
+# Test admin endpoint (requires admin role)
+curl -H "Authorization: Bearer <admin_jwt>" http://localhost:8000/debug/profiles
+
+# Test premium features (requires subscription)
+curl -H "Authorization: Bearer <subscriber_jwt>" http://localhost:8000/premium/opportunities
+```
+
+## Database Integration
+
+### Prerequisites
+
+1. **Supabase Account & Project**: Sign up at [supabase.com](https://supabase.com)
+2. **Python Environment**: Python 3.9+ with required dependencies
+
 ---
 
 **🎯 Ready to identify +EV opportunities? Run `uvicorn app:app --host 0.0.0.0 --port 8000 --reload` to get started!** 
