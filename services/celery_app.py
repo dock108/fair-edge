@@ -50,25 +50,30 @@ celery_app.conf.update(
     
     # Beat Schedule Configuration
     beat_schedule={
-        "refresh-ev-data": {
-            "task": "services.tasks.refresh_odds_data",
-            "schedule": crontab(minute=f"*/{REFRESH_INTERVAL_MINUTES}"),
-            "options": {
-                "expires": 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up
-                "retry": True,
-                "retry_policy": {
-                    "max_retries": 3,
-                    "interval_start": 0,
-                    "interval_step": 30,
-                    "interval_max": 300,
-                }
+        'refresh-ev-data': {
+            'task': 'refresh_odds_data',
+            'schedule': crontab(minute=f"*/{REFRESH_INTERVAL_MINUTES}"),
+            'options': {
+                'expires': 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up
+                'retry': True,
+                'retry_policy': {
+                    'max_retries': 3,
+                    'interval_start': 0,
+                    'interval_step': 30,
+                    'interval_max': 300,
+                },
+                'queue': 'celery',
+                'routing_key': 'celery'
             }
         },
-        # Health check task every 5 minutes
-        "health-check": {
-            "task": "services.tasks.health_check",
-            "schedule": crontab(minute="*/5"),
-            "options": {"expires": 300}
+        'health-check': {
+            'task': 'health_check',
+            'schedule': crontab(minute='*/5'),
+            'options': {
+                'expires': 300,
+                'queue': 'celery',
+                'routing_key': 'celery'
+            }
         }
     },
     

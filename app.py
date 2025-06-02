@@ -21,6 +21,7 @@ import time
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from contextlib import asynccontextmanager
 
 # Import the data processing services
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
@@ -60,37 +61,49 @@ from routes.admin import router as admin_router
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global cleanup registry for graceful shutdown
-cleanup_tasks = []
+# Global cleanup registry
+cleanup_functions = []
 
-def register_cleanup(cleanup_func):
+def register_cleanup(func):
     """Register a cleanup function to be called on shutdown"""
-    cleanup_tasks.append(cleanup_func)
+    cleanup_functions.append(func)
+    logger.info(f"✅ Registered {func.__name__} cleanup")
 
 async def cleanup_background_tasks():
-    """Cleanup all registered background tasks"""
-    logger.info("🧹 Starting graceful shutdown cleanup...")
+    """Clean up all background tasks and connections"""
+    logger.info("🧹 Starting cleanup of background tasks...")
     
-    for i, cleanup_func in enumerate(cleanup_tasks):
+    for cleanup_func in cleanup_functions:
         try:
-            logger.info(f"   Cleaning up task {i+1}/{len(cleanup_tasks)}")
             if asyncio.iscoroutinefunction(cleanup_func):
                 await cleanup_func()
             else:
                 cleanup_func()
+            logger.info(f"✅ Cleaned up {cleanup_func.__name__}")
         except Exception as e:
-            logger.warning(f"   Warning: Cleanup task {i+1} failed: {e}")
+            logger.warning(f"⚠️ Error in cleanup {cleanup_func.__name__}: {e}")
     
-    logger.info("✅ Cleanup completed")
+    logger.info("✅ Background tasks cleanup completed")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application lifespan events"""
+    # Startup
+    logger.info("🚀 Application starting up...")
+    yield
+    # Shutdown
+    logger.info("🛑 Application shutting down...")
+    await cleanup_background_tasks()
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
-# Initialize FastAPI app
+# Create FastAPI app with lifespan context manager
 app = FastAPI(
-    title="Sports Betting +EV Analyzer",
-    description="Real-time identification of positive expected value betting opportunities",
-    version="2.1.0"
+    title="Bet Intel - Sports +EV Analysis", 
+    description="Educational sports betting analysis and odds comparison tool",
+    version="2.1.0",
+    lifespan=lifespan
 )
 
 # Add rate limiting error handler
@@ -1411,6 +1424,32 @@ async def get_celery_health(request: Request, admin_user: UserCtx = Depends(requ
             "error": str(e),
             "message": "Celery worker is not responding"
         }
+
+
+# Debug endpoint to manually trigger data refresh in development
+@app.post("/debug/trigger-refresh", tags=["debug"], include_in_schema=settings.debug_mode)
+@limiter.limit("5/minute")  # Rate limit to prevent accidental spamming
+async def trigger_manual_refresh_debug(request: Request):
+    """
+    Manually trigger the EV data refresh Celery task.
+    INTENDED FOR LOCAL DEVELOPMENT/DEBUGGING ONLY.
+    Visible in schema only if settings.debug_mode is True.
+    """
+    if not settings.debug_mode:
+        raise HTTPException(status_code=403, detail="This endpoint is only available in debug mode.")
+
+    try:
+        logger.info("Manually triggering refresh_odds_data task via debug endpoint...")
+        task = refresh_odds_data.delay()
+        return {
+            "status": "scheduled",
+            "task_id": task.id,
+            "message": "EV data refresh task has been scheduled via debug endpoint.",
+            "note": "Monitor Celery worker logs for progress."
+        }
+    except Exception as e:
+        logger.error(f"Failed to schedule debug refresh task: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to schedule debug task: {str(e)}")
 
 
 # Session Management Endpoints (Production Cookie-based Auth)

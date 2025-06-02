@@ -70,6 +70,15 @@
                 {% endif %}
             </div>
             <div class="navbar-nav">
+                <!-- DEBUG: Manual Refresh Button -->
+                {% if settings.debug_mode %}
+                <div class="nav-item me-3">
+                    <button id="manual-refresh-dev-btn" onclick="triggerManualRefreshDev()" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-sync-alt me-1"></i> Manual Refresh (Dev)
+                    </button>
+                </div>
+                {% endif %}
+
                 <!-- Role Badge -->
                 {% if user and user.role != 'guest' %}
                 <div class="d-flex align-items-center me-3">

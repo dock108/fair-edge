@@ -6,6 +6,7 @@
 
 (function() {
     'use strict';
+    console.log('auth.js: IIFE started'); // DEBUG
 
     // Configuration - should match login.js
     const USE_SECURE_COOKIES = true;
@@ -535,5 +536,49 @@
         updateAuthUI,
         showAuthMessage
     };
+
+    /**
+     * DEBUG: Trigger manual data refresh for development
+     */
+    async function triggerManualRefreshDev() {
+        console.log('auth.js: triggerManualRefreshDev() called'); // DEBUG
+        const btn = document.getElementById('manual-refresh-dev-btn');
+        if (!btn) return;
+
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Refreshing...';
+
+        try {
+            // No CSRF needed if the debug endpoint doesn't require it,
+            // or handle CSRF if your debug endpoint is protected similarly to other POSTs.
+            const response = await fetch('/debug/trigger-refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                    // Add CSRF header here if your debug endpoint implements CSRF protection
+                    // 'X-CSRF-Token': getCSRFToken() 
+                },
+                // credentials: 'include', // Only if sending cookies to a CSRF protected endpoint
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.status === 'scheduled') {
+                showAuthMessage(`Manual refresh task (ID: ${result.task_id}) scheduled. Check worker logs.`, 'success');
+            } else {
+                throw new Error(result.detail || 'Failed to start refresh task.');
+            }
+        } catch (error) {
+            console.error('Manual refresh error:', error);
+            showAuthMessage(`Error: ${error.message}`, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+    console.log('auth.js: About to expose triggerManualRefreshDev to window'); // DEBUG
+    window.triggerManualRefreshDev = triggerManualRefreshDev; // Expose for the button
+    console.log('auth.js: triggerManualRefreshDev EXPOSED to window', window.triggerManualRefreshDev); // DEBUG
 
 })(); 

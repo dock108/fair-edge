@@ -9,9 +9,10 @@ import json
 import logging
 from datetime import datetime
 from typing import Dict, List, Any
-from celery import shared_task, Celery
+from celery import shared_task
 from celery.signals import worker_shutdown
 
+from services.celery_app import celery_app
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 from services.redis_cache import store_ev_data, store_analytics_data, health_check as redis_health_check
 from core.constants import CACHE_KEYS
@@ -30,31 +31,6 @@ SPORTS_SUPPORTED = [
 
 # Redis configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-
-# Initialize Celery with timeout configurations
-celery_app = Celery(
-    'bet_intel_tasks',
-    broker=REDIS_URL,
-    backend=REDIS_URL,
-    include=['services.tasks']
-)
-
-# Configure Celery for graceful shutdown
-celery_app.conf.update(
-    # Task execution settings
-    task_soft_time_limit=300,  # 5 minutes soft limit
-    task_time_limit=600,       # 10 minutes hard limit
-    worker_disable_rate_limits=True,
-    
-    # Shutdown settings
-    worker_hijack_root_logger=False,
-    worker_log_format='[%(asctime)s: %(levelname)s/%(processName)s] %(message)s',
-    worker_task_log_format='[%(asctime)s: %(levelname)s/%(processName)s][%(task_name)s(%(task_id)s)] %(message)s',
-    
-    # Graceful shutdown
-    worker_cancel_long_running_tasks_on_connection_loss=True,
-    task_reject_on_worker_lost=True,
-)
 
 # Global cleanup flags
 is_shutting_down = False
@@ -177,17 +153,27 @@ def refresh_odds_data(self):
                     failed_sports.append({'sport': sport, 'error': raw_data.get('error')})
                     continue
                 
-                # Process opportunities for this sport
+                # Process raw data into opportunities for this sport 
+                logger.info(f"🔄 Processing {sport} data...")
                 sport_opportunities, sport_analytics = process_opportunities(raw_data)
-                all_opportunities.extend(sport_opportunities)
-                successful_sports.append({
-                    'sport': sport, 
-                    'opportunities': len(sport_opportunities),
-                    'events': raw_data.get('total_events', 0)
-                })
                 
-                logger.info(f"✅ {sport}: {len(sport_opportunities)} opportunities processed")
-                
+                if sport_opportunities:
+                    all_opportunities.extend(sport_opportunities)
+                    
+                    successful_sports.append({
+                        'sport': sport, 
+                        'opportunities': len(sport_opportunities),
+                        'events': raw_data.get('total_events', 0)
+                    })
+                    
+                    logger.info(f"✅ {sport}: {len(sport_opportunities)} opportunities processed")
+                    
+                else:
+                    logger.warning(f"⚠️  No opportunities found for {sport}")
+                    failed_sports.append({'sport': sport, 'error': 'No opportunities generated'})
+                    # Continue with other sports instead of failing completely
+                    continue
+            
             except Exception as sport_exc:
                 logger.error(f"❌ Failed to process {sport}: {str(sport_exc)}")
                 failed_sports.append({'sport': sport, 'error': str(sport_exc)})
