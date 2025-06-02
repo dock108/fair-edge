@@ -3,8 +3,8 @@
 {% block title %}Pricing - Sports Betting +EV Analyzer{% endblock %}
 
 {% block head %}
-<meta name="description" content="Choose your plan for Sports Betting +EV Analyzer. Free tier with 10 opportunities or Premium with unlimited access and advanced analytics.">
-<meta name="keywords" content="sports betting, pricing, premium, subscription, EV calculator">
+<meta name="description" content="Choose your plan for Sports Betting +EV Analyzer. Free access to main lines or upgrade to Props and Alt Lines for comprehensive market coverage.">
+<meta name="keywords" content="sports betting, pricing, premium, subscription, EV calculator, props, alt lines">
 {% endblock %}
 
 {% block content %}
@@ -18,10 +18,11 @@
     <!-- Pricing Cards -->
     <div class="row justify-content-center">
         <!-- Free Tier -->
-        <div class="col-lg-4 col-md-6 mb-4">
+        <div class="col-lg-5 col-md-6 mb-4">
             <div class="card h-100 border-secondary">
                 <div class="card-header bg-light text-center">
-                    <h3 class="card-title mb-0">Free Tier</h3>
+                    <h3 class="card-title mb-0">Free</h3>
+                    <p class="text-muted mb-0">Main Lines Only</p>
                     <div class="mt-3">
                         <span class="display-4 fw-bold">$0</span>
                         <span class="text-muted">/month</span>
@@ -31,7 +32,7 @@
                     <ul class="list-unstyled">
                         <li class="mb-3">
                             <i class="fas fa-check text-success me-2"></i>
-                            <strong>10 opportunities</strong> per session
+                            <strong>Main lines:</strong> Moneyline, Spreads, Totals
                         </li>
                         <li class="mb-3">
                             <i class="fas fa-check text-success me-2"></i>
@@ -39,23 +40,27 @@
                         </li>
                         <li class="mb-3">
                             <i class="fas fa-check text-success me-2"></i>
-                            30-minute data refresh
+                            5-minute data refresh
                         </li>
                         <li class="mb-3">
                             <i class="fas fa-check text-success me-2"></i>
                             Educational resources
                         </li>
                         <li class="mb-3">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Search and filter tools
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-times text-muted me-2"></i>
+                            <span class="text-muted">No player props</span>
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-times text-muted me-2"></i>
+                            <span class="text-muted">No alternate lines</span>
+                        </li>
+                        <li class="mb-3">
                             <i class="fas fa-times text-muted me-2"></i>
                             <span class="text-muted">No advanced analytics</span>
-                        </li>
-                        <li class="mb-3">
-                            <i class="fas fa-times text-muted me-2"></i>
-                            <span class="text-muted">No export capabilities</span>
-                        </li>
-                        <li class="mb-3">
-                            <i class="fas fa-times text-muted me-2"></i>
-                            <span class="text-muted">No custom alerts</span>
                         </li>
                     </ul>
                 </div>
@@ -67,16 +72,17 @@
             </div>
         </div>
 
-        <!-- Premium Tier -->
-        <div class="col-lg-4 col-md-6 mb-4">
+        <!-- Props and Alt Lines Tier -->
+        <div class="col-lg-5 col-md-6 mb-4">
             <div class="card h-100 border-warning shadow position-relative">
                 <div class="badge bg-warning text-dark position-absolute top-0 start-50 translate-middle px-3 py-2 rounded-pill">
                     Most Popular
                 </div>
                 <div class="card-header bg-warning text-dark text-center">
-                    <h3 class="card-title mb-0">Premium</h3>
+                    <h3 class="card-title mb-0">Props and Alt Lines</h3>
+                    <p class="text-dark mb-0">Complete Market Access</p>
                     <div class="mt-3">
-                        <span class="display-4 fw-bold">$29</span>
+                        <span class="display-4 fw-bold">$4.99</span>
                         <span class="text-muted">/month</span>
                     </div>
                 </div>
@@ -84,11 +90,15 @@
                     <ul class="list-unstyled">
                         <li class="mb-3">
                             <i class="fas fa-star text-warning me-2"></i>
-                            <strong>Unlimited opportunities</strong>
+                            <strong>All markets:</strong> Props, Alt Lines, Live Markets
                         </li>
                         <li class="mb-3">
                             <i class="fas fa-star text-warning me-2"></i>
-                            Advanced analytics & confidence scoring
+                            <strong>Player props:</strong> Points, Assists, Rebounds, etc.
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-star text-warning me-2"></i>
+                            <strong>Alternate lines:</strong> Spreads, Totals variations
                         </li>
                         <li class="mb-3">
                             <i class="fas fa-star text-warning me-2"></i>
@@ -96,73 +106,28 @@
                         </li>
                         <li class="mb-3">
                             <i class="fas fa-star text-warning me-2"></i>
-                            Export to CSV/Excel
+                            Advanced EV analysis
                         </li>
                         <li class="mb-3">
                             <i class="fas fa-star text-warning me-2"></i>
-                            Custom filters & alerts
-                        </li>
-                        <li class="mb-3">
-                            <i class="fas fa-star text-warning me-2"></i>
-                            Historical performance tracking
+                            Export capabilities
                         </li>
                         <li class="mb-3">
                             <i class="fas fa-star text-warning me-2"></i>
                             Priority customer support
                         </li>
+                        <li class="mb-3">
+                            <i class="fas fa-star text-warning me-2"></i>
+                            7-day free trial
+                        </li>
                     </ul>
                 </div>
                 <div class="card-footer text-center">
                     <button id="buy-premium" class="btn btn-warning btn-lg w-100 text-dark fw-bold" onclick="upgradeToPremium()">
-                        <span class="button-text">Upgrade to Premium</span>
+                        <span class="button-text">Start Free Trial</span>
                         <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                     </button>
-                    <small class="text-muted d-block mt-2">Cancel anytime</small>
-                </div>
-            </div>
-        </div>
-
-        <!-- Enterprise Tier (Future) -->
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card h-100 border-primary">
-                <div class="card-header bg-primary text-white text-center">
-                    <h3 class="card-title mb-0">Enterprise</h3>
-                    <div class="mt-3">
-                        <span class="display-6 fw-bold">Custom</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled">
-                        <li class="mb-3">
-                            <i class="fas fa-check-circle text-primary me-2"></i>
-                            Everything in Premium
-                        </li>
-                        <li class="mb-3">
-                            <i class="fas fa-check-circle text-primary me-2"></i>
-                            API access
-                        </li>
-                        <li class="mb-3">
-                            <i class="fas fa-check-circle text-primary me-2"></i>
-                            Real-time notifications
-                        </li>
-                        <li class="mb-3">
-                            <i class="fas fa-check-circle text-primary me-2"></i>
-                            Custom integrations
-                        </li>
-                        <li class="mb-3">
-                            <i class="fas fa-check-circle text-primary me-2"></i>
-                            Dedicated account manager
-                        </li>
-                        <li class="mb-3">
-                            <i class="fas fa-check-circle text-primary me-2"></i>
-                            White-label options
-                        </li>
-                    </ul>
-                </div>
-                <div class="card-footer text-center">
-                    <a href="mailto:sales@betintel.com" class="btn btn-primary btn-lg w-100">
-                        Contact Sales
-                    </a>
+                    <small class="text-muted d-block mt-2">7-day free trial • Credit card required • Cancel anytime</small>
                 </div>
             </div>
         </div>
@@ -178,44 +143,42 @@
                         <tr>
                             <th>Feature</th>
                             <th class="text-center">Free</th>
-                            <th class="text-center">Premium</th>
-                            <th class="text-center">Enterprise</th>
+                            <th class="text-center">Props and Alt Lines</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Betting Opportunities</td>
-                            <td class="text-center">10 per session</td>
-                            <td class="text-center"><i class="fas fa-infinity text-warning"></i> Unlimited</td>
-                            <td class="text-center"><i class="fas fa-infinity text-primary"></i> Unlimited</td>
+                            <td>Main Lines (Moneyline, Spreads, Totals)</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Player Props</td>
+                            <td class="text-center"><i class="fas fa-times text-muted"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Alternate Lines</td>
+                            <td class="text-center"><i class="fas fa-times text-muted"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Live Markets</td>
+                            <td class="text-center"><i class="fas fa-times text-muted"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
                         </tr>
                         <tr>
                             <td>Data Refresh Rate</td>
-                            <td class="text-center">30 minutes</td>
                             <td class="text-center">5 minutes</td>
-                            <td class="text-center">Real-time</td>
+                            <td class="text-center">5 minutes</td>
                         </tr>
                         <tr>
                             <td>Advanced Analytics</td>
                             <td class="text-center"><i class="fas fa-times text-muted"></i></td>
                             <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
                         </tr>
                         <tr>
                             <td>Export Capabilities</td>
-                            <td class="text-center"><i class="fas fa-times text-muted"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td>Custom Alerts</td>
-                            <td class="text-center"><i class="fas fa-times text-muted"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td>API Access</td>
-                            <td class="text-center"><i class="fas fa-times text-muted"></i></td>
                             <td class="text-center"><i class="fas fa-times text-muted"></i></td>
                             <td class="text-center"><i class="fas fa-check text-success"></i></td>
                         </tr>
@@ -223,7 +186,6 @@
                             <td>Support Level</td>
                             <td class="text-center">Community</td>
                             <td class="text-center">Email Priority</td>
-                            <td class="text-center">Dedicated Manager</td>
                         </tr>
                     </tbody>
                 </table>
@@ -251,34 +213,46 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header" id="headingTwo">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
-                            Is there a free trial for Premium?
+                            Is there a free trial for Props and Alt Lines?
                         </button>
                     </h2>
                     <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
                         <div class="accordion-body">
-                            We offer a 7-day free trial for Premium features. No credit card required to start your trial.
+                            Yes! We offer a 7-day free trial for Props and Alt Lines. A credit card is required to start your trial, but you won't be charged until after the trial period ends.
                         </div>
                     </div>
                 </div>
                 <div class="accordion-item">
                     <h2 class="accordion-header" id="headingThree">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
-                            How accurate are the EV calculations?
+                            What's the difference between Free and Props and Alt Lines?
                         </button>
                     </h2>
                     <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
                         <div class="accordion-body">
-                            Our models are based on comprehensive market analysis and statistical modeling. While we strive for accuracy, all betting involves risk and no system guarantees profits.
+                            Free users get access to main betting lines (moneyline, spreads, totals). Props and Alt Lines subscribers get access to all markets including player props, alternate lines, and live markets, plus advanced analytics and export features.
                         </div>
                     </div>
                 </div>
                 <div class="accordion-item">
                     <h2 class="accordion-header" id="headingFour">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
-                            Is this for educational purposes only?
+                            How accurate are the EV calculations?
                         </button>
                     </h2>
                     <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            Our models are based on comprehensive market analysis and statistical modeling. While we strive for accuracy, all betting involves risk and no system guarantees profits.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingFive">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive">
+                            Is this for educational purposes only?
+                        </button>
+                    </h2>
+                    <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
                         <div class="accordion-body">
                             Yes, our platform is designed for educational and research purposes to help users understand betting markets and EV analysis. Always gamble responsibly.
                         </div>
@@ -312,7 +286,7 @@ async function upgradeToPremium() {
         
         // Check if user is already a subscriber
         if (user.role === 'subscriber' && user.subscription_status === 'active') {
-            alert('You are already a Premium subscriber!');
+            alert('You are already a Props and Alt Lines subscriber!');
             return;
         }
         
@@ -338,7 +312,7 @@ async function upgradeToPremium() {
     } finally {
         // Reset button state
         button.disabled = false;
-        buttonText.textContent = 'Upgrade to Premium';
+        buttonText.textContent = 'Start Free Trial';
         spinner.classList.add('d-none');
     }
 }
