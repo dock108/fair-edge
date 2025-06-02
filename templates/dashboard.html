@@ -198,50 +198,15 @@
     </div>
 </section>
 
-<!-- Free Tier Upgrade Banner -->
+<!-- Enhanced Free Tier Upgrade Banner -->
 {% if user_role == 'free' and role_metadata.truncated %}
-<div class="container-fluid mt-4">
-    <div id="upgrade-banner" class="alert alert-warning alert-dismissible fade show" role="alert">
-        <div class="d-flex align-items-center">
-            <div class="flex-grow-1">
-                <h4 class="alert-heading mb-2">
-                    <i class="fas fa-star me-2" aria-hidden="true"></i>
-                    Upgrade to Premium!
-                </h4>
-                <p class="mb-2">
-                    <strong>You're seeing only {{ role_metadata.shown }} of {{ role_metadata.total_available }} available opportunities.</strong>
-                    Upgrade to unlock full access to all betting opportunities with advanced analytics.
-                </p>
-                <div class="row g-3 mt-2">
-                    <div class="col-md-6">
-                        <h6 class="fw-bold">Free Tier Includes:</h6>
-                        <ul class="list-unstyled mb-0">
-                            <li><i class="fas fa-check text-success me-1"></i> {{ role_metadata.limit }} opportunities</li>
-                            <li><i class="fas fa-check text-success me-1"></i> Basic EV analysis</li>
-                            <li><i class="fas fa-check text-success me-1"></i> {{ role_metadata.features.refresh_rate_minutes }}-minute updates</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="fw-bold">Premium Features:</h6>
-                        <ul class="list-unstyled mb-0">
-                            <li><i class="fas fa-star text-warning me-1"></i> Full {{ role_metadata.total_available }}+ opportunities</li>
-                            <li><i class="fas fa-star text-warning me-1"></i> Advanced analytics & confidence scoring</li>
-                            <li><i class="fas fa-star text-warning me-1"></i> 5-minute refresh rate</li>
-                            <li><i class="fas fa-star text-warning me-1"></i> Export capabilities</li>
-                            <li><i class="fas fa-star text-warning me-1"></i> Custom filters & alerts</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="ms-3">
-                <a href="/pricing" class="btn btn-primary btn-lg">
-                    <i class="fas fa-arrow-up me-2"></i>
-                    Go Premium
-                </a>
-            </div>
-        </div>
+<div class="container-fluid mt-3">
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <strong><i class="fas fa-star me-1"></i>Upgrade to Premium →</strong> 
+        You're seeing only {{ role_metadata.shown }}/{{ role_metadata.total_available }} opportunities. 
+        <a href="/pricing" class="alert-link">See plans</a>.
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close upgrade banner"></button>
-    </div>
+                    </div>
 </div>
 {% endif %}
 
@@ -253,7 +218,7 @@
         <!-- Client-Side Filters -->
         <div class="client-filters mb-3">
             <div class="row g-3">
-                <div class="col-md-6">
+                    <div class="col-md-6">
                     <!-- Search Box with Icon -->
                     <div class="input-group">
                         <span class="input-group-text">
@@ -276,8 +241,8 @@
                             <i class="fas fa-lightbulb me-1"></i>
                             Try "Lakers", "Over", or player names
                         </small>
-                    </div>
                 </div>
+            </div>
                 
                 <div class="col-md-3">
                     <!-- Sport Filter -->
@@ -294,7 +259,7 @@
                         </option>
                         {% endfor %}
                     </select>
-                </div>
+            </div>
                 
                 <div class="col-md-3">
                     <!-- EV Filter -->
@@ -303,15 +268,15 @@
                         <option value="high">High EV (4.5%+)</option>
                         <option value="positive">Positive EV (0%+)</option>
                     </select>
-                </div>
-            </div>
+        </div>
+    </div>
             
             <!-- Filter Status & Clear -->
             <div class="filter-status mt-2 d-flex justify-content-between align-items-center">
                 <div class="filter-spinner d-none">
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
                         <span class="visually-hidden">Filtering...</span>
-                    </div>
+</div>
                     <small class="text-muted">Updating results...</small>
                 </div>
                 <div class="filter-results-count">
@@ -333,45 +298,45 @@
                 Advanced Server Filters (for bookmarking)
             </summary>
             <form class="filters-form mt-2" method="get" role="search" aria-label="Server-side filter betting opportunities">
-                <div class="filter-row">
-                    <div class="filter-group">
+            <div class="filter-row">
+                <div class="filter-group">
                         <label for="sport-filter-server" class="filter-label">Sport:</label>
                         <select name="sport" id="sport-filter-server" class="filter-select" aria-describedby="sport-help">
-                            <option value="">All Sports</option>
-                            <option value="basketball_nba" {% if current_sport == 'basketball_nba' %}selected{% endif %}>NBA Basketball</option>
-                            <option value="americanfootball_nfl" {% if current_sport == 'americanfootball_nfl' %}selected{% endif %}>NFL Football</option>
-                            <option value="baseball_mlb" {% if current_sport == 'baseball_mlb' %}selected{% endif %}>MLB Baseball</option>
-                            <option value="icehockey_nhl" {% if current_sport == 'icehockey_nhl' %}selected{% endif %}>NHL Hockey</option>
-                        </select>
-                        <div id="sport-help" class="sr-only">Filter opportunities by specific sport or league</div>
-                    </div>
-                    
-                    <div class="filter-group">
+                        <option value="">All Sports</option>
+                        <option value="basketball_nba" {% if current_sport == 'basketball_nba' %}selected{% endif %}>NBA Basketball</option>
+                        <option value="americanfootball_nfl" {% if current_sport == 'americanfootball_nfl' %}selected{% endif %}>NFL Football</option>
+                        <option value="baseball_mlb" {% if current_sport == 'baseball_mlb' %}selected{% endif %}>MLB Baseball</option>
+                        <option value="icehockey_nhl" {% if current_sport == 'icehockey_nhl' %}selected{% endif %}>NHL Hockey</option>
+                    </select>
+                    <div id="sport-help" class="sr-only">Filter opportunities by specific sport or league</div>
+                </div>
+                
+                <div class="filter-group">
                         <label for="market-filter-server" class="filter-label">Market:</label>
                         <select name="market" id="market-filter-server" class="filter-select" aria-describedby="market-help">
-                            <option value="">All Markets</option>
-                            <option value="h2h" {% if current_market == 'h2h' %}selected{% endif %}>Moneyline</option>
-                            <option value="spreads" {% if current_market == 'spreads' %}selected{% endif %}>Point Spread</option>
-                            <option value="totals" {% if current_market == 'totals' %}selected{% endif %}>Over/Under Totals</option>
-                            <option value="player_props" {% if current_market == 'player_props' %}selected{% endif %}>Player Props</option>
-                        </select>
-                        <div id="market-help" class="sr-only">Filter opportunities by betting market type</div>
-                    </div>
-                    
-                    <div class="filter-group filter-actions">
-                        <button type="submit" class="filter-btn filter-btn-apply btn-primary" aria-describedby="apply-help">
-                            <i class="fas fa-search me-1" aria-hidden="true"></i>
-                            Apply Filters
-                        </button>
-                        <a href="/" class="filter-btn filter-btn-clear btn-secondary" aria-describedby="clear-help">
-                            <i class="fas fa-times me-1" aria-hidden="true"></i>
-                            Clear Filters
-                        </a>
-                        <div id="apply-help" class="sr-only">Apply selected filters to update results</div>
-                        <div id="clear-help" class="sr-only">Remove all filters and show all opportunities</div>
-                    </div>
+                        <option value="">All Markets</option>
+                        <option value="h2h" {% if current_market == 'h2h' %}selected{% endif %}>Moneyline</option>
+                        <option value="spreads" {% if current_market == 'spreads' %}selected{% endif %}>Point Spread</option>
+                        <option value="totals" {% if current_market == 'totals' %}selected{% endif %}>Over/Under Totals</option>
+                        <option value="player_props" {% if current_market == 'player_props' %}selected{% endif %}>Player Props</option>
+                    </select>
+                    <div id="market-help" class="sr-only">Filter opportunities by betting market type</div>
                 </div>
-            </form>
+                
+                <div class="filter-group filter-actions">
+                    <button type="submit" class="filter-btn filter-btn-apply btn-primary" aria-describedby="apply-help">
+                        <i class="fas fa-search me-1" aria-hidden="true"></i>
+                        Apply Filters
+                    </button>
+                    <a href="/" class="filter-btn filter-btn-clear btn-secondary" aria-describedby="clear-help">
+                        <i class="fas fa-times me-1" aria-hidden="true"></i>
+                        Clear Filters
+                    </a>
+                    <div id="apply-help" class="sr-only">Apply selected filters to update results</div>
+                    <div id="clear-help" class="sr-only">Remove all filters and show all opportunities</div>
+                </div>
+            </div>
+        </form>
         </details>
     </div>
 </section>
@@ -381,14 +346,11 @@
     <div class="main-container">
         <h2 id="opportunities-heading" class="sr-only">Betting Opportunities</h2>
         
-        <!-- Real-time Update Loading Spinner -->
-        <div id="loading-spinner" class="d-none text-center mb-3" role="status" aria-live="polite">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading new opportunities...</span>
-            </div>
-            <div class="mt-2 text-muted">
-                <small><i class="fas fa-broadcast-tower me-1"></i>Receiving real-time updates...</small>
-            </div>
+        <!-- Enhanced Loading Spinner -->
+        <div id="table-spinner" class="d-flex justify-content-center my-3 d-none">
+            <div class="spinner-border text-primary me-2" role="status" aria-hidden="true"></div>
+            <span class="text-muted">Loading opportunities...</span>
+            <span class="visually-hidden">Loading...</span>
         </div>
         
         {% if error %}
@@ -628,41 +590,23 @@
 
 <script>
 // ===========================
-// DEBOUNCED CLIENT-SIDE FILTERING
+// ENHANCED BOOTSTRAP 5 HELPERS
 // ===========================
 
-// Debounce helper (MDN-recommended pattern)
-const debounce = (fn, delay = 300) => {
-    let timeout;
-    return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => fn(...args), delay);
-    };
-};
+// Compact debounce helper (MDN pattern)
+const debounce = (fn, d = 300) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d) } };
 
-// Filter state
-let currentFilters = {
-    search: '',
-    sport: '',
-    ev: ''
-};
+// Enhanced spinner control for Bootstrap 5
+function showSpinner(state = true) {
+    const spinner = document.getElementById("table-spinner");
+    if (spinner) {
+        spinner.classList.toggle("d-none", !state);
+    }
+}
 
-let originalOpportunities = []; // Store original data
-let isFiltering = false;
-
-// DOM elements
-const searchBox = document.getElementById('filter-search');
-const sportSelect = document.getElementById('sport-filter');
-const evSelect = document.getElementById('ev-filter');
-const clearSearchBtn = document.getElementById('clear-search');
-const clearAllBtn = document.getElementById('clear-all-filters');
-const resultsCount = document.getElementById('results-count');
-const filterSpinner = document.querySelector('.filter-spinner');
-
-// Create debounced filter function
-const debouncedFilter = debounce(() => {
-    applyClientSideFilters();
-}, 300);
+function hideSpinner() {
+    showSpinner(false);
+}
 
 // Show/hide filter spinner
 function showFilterSpinner() {
@@ -676,6 +620,34 @@ function hideFilterSpinner() {
         filterSpinner.classList.add('d-none');
     }
 }
+
+// ===========================
+// DEBOUNCED CLIENT-SIDE FILTERING
+// ===========================
+
+// Filter state
+let currentFilters = {
+    search: '',
+    sport: '',
+    ev: ''
+};
+
+let originalOpportunities = []; // Store original data
+let isFiltering = false;
+
+// DOM elements
+const searchBox = document.getElementById('filter-search');
+    const sportSelect = document.getElementById('sport-filter');
+const evSelect = document.getElementById('ev-filter');
+const clearSearchBtn = document.getElementById('clear-search');
+const clearAllBtn = document.getElementById('clear-all-filters');
+const resultsCount = document.getElementById('results-count');
+const filterSpinner = document.querySelector('.filter-spinner');
+
+// Create debounced filter function
+const debouncedFilter = debounce(() => {
+    applyClientSideFilters();
+}, 300);
 
 // Update results count
 function updateResultsCount(count, total) {
@@ -839,7 +811,7 @@ function clearAllFilters() {
     currentFilters = { search: '', sport: '', ev: '' };
     
     if (searchBox) searchBox.value = '';
-    if (sportSelect) sportSelect.value = '';
+        if (sportSelect) sportSelect.value = '';
     if (evSelect) evSelect.value = '';
     
     updateClearAllButton();
@@ -867,20 +839,20 @@ function initializeFiltering() {
     }
     
     // Event listeners
-    searchBox.addEventListener('input', (e) => {
+    searchBox.addEventListener('input', debounce((e) => {
         currentFilters.search = e.target.value;
-        debouncedFilter();
-    });
+        applyClientSideFilters();
+    }, 300));
     
-    sportSelect.addEventListener('change', (e) => {
+    sportSelect.addEventListener('change', debounce((e) => {
         currentFilters.sport = e.target.value;
-        debouncedFilter();
-    });
+        applyClientSideFilters();
+    }, 300));
     
-    evSelect.addEventListener('change', (e) => {
+    evSelect.addEventListener('change', debounce((e) => {
         currentFilters.ev = e.target.value;
-        debouncedFilter();
-    });
+        applyClientSideFilters();
+    }, 300));
     
     // Clear buttons
     if (clearSearchBtn) {
@@ -897,6 +869,22 @@ function initializeFiltering() {
             clearSearch();
         }
     });
+    
+    // Event listeners for server-side form (legacy support)
+    const serverSportSelect = document.getElementById('sport-filter-server');
+    const serverMarketSelect = document.getElementById('market-filter-server');
+    
+    if (serverSportSelect) {
+        serverSportSelect.addEventListener('change', debounce(() => {
+            serverSportSelect.closest('form').submit();
+        }, 300));
+    }
+    
+    if (serverMarketSelect) {
+        serverMarketSelect.addEventListener('change', debounce(() => {
+            serverMarketSelect.closest('form').submit();
+        }, 300));
+    }
     
     console.log('✅ Client-side filtering initialized');
 }
@@ -942,17 +930,11 @@ function showUpdateNotification(message, type = 'info') {
 }
 
 function showLoadingSpinner() {
-    const spinner = document.getElementById('loading-spinner');
-    if (spinner) {
-        spinner.classList.remove('d-none');
-    }
+    showSpinner(true);
 }
 
 function hideLoadingSpinner() {
-    const spinner = document.getElementById('loading-spinner');
-    if (spinner) {
-        spinner.classList.add('d-none');
-    }
+    showSpinner(false);
 }
 
 function formatTimeSince(isoTimestamp) {
@@ -996,8 +978,8 @@ function createTimestampDisplay() {
         timestampDisplay.className = 'text-muted small text-center mb-3';
         timestampDisplay.innerHTML = '<i class="fas fa-clock me-1"></i><span>Connecting...</span>';
         
-        // Insert after the loading spinner
-        const spinner = document.getElementById('loading-spinner');
+        // Insert after the enhanced spinner
+        const spinner = document.getElementById('table-spinner');
         if (spinner && spinner.parentNode) {
             spinner.parentNode.insertBefore(timestampDisplay, spinner.nextSibling);
         }

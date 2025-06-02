@@ -197,11 +197,15 @@
             const data = await response.json();
             
             // Redirect to Stripe Customer Portal
-            window.location.href = data.portal_url;
+            if (data.url) {
+                window.location.href = data.url;  // Updated to match API specification
+            } else {
+                throw new Error('Invalid portal session response');
+            }
             
         } catch (error) {
             console.error('Error opening subscription management:', error);
-            alert('Error: ' + error.message);
+            alert('Could not open billing portal—please try again.');
         } finally {
             // Reset button state
             btn.disabled = false;
