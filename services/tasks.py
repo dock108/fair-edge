@@ -130,55 +130,69 @@ def refresh_odds_data(self):
         successful_sports = []
         failed_sports = []
         
-        for i, sport in enumerate(SPORTS_SUPPORTED, 1):
-            try:
-                logger.info(f"📊 Processing sport: {sport}")
+        # FIXED: Fetch raw data once (it already contains all sports)
+        try:
+            logger.info("📊 Fetching raw odds data for all sports...")
+            
+            self.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': 1, 
+                    'total': len(SPORTS_SUPPORTED) + 2,
+                    'status': 'Fetching odds data for all sports...'
+                }
+            )
+            
+            # Fetch raw odds for all sports at once
+            raw_data = fetch_raw_odds_data()
+            
+            if raw_data.get('status') != 'success':
+                error_msg = f"Failed to fetch odds data: {raw_data.get('error', 'Unknown error')}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+            
+            logger.info(f"✅ Raw data fetched: {raw_data.get('total_events', 0)} events")
+            
+            # FIXED: Process opportunities once (it processes all sports)
+            self.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': 2, 
+                    'total': len(SPORTS_SUPPORTED) + 2,
+                    'status': 'Processing opportunities for all sports...'
+                }
+            )
+            
+            logger.info("🔄 Processing opportunities for all sports...")
+            sport_opportunities, sport_analytics = process_opportunities(raw_data)
+            
+            if sport_opportunities:
+                all_opportunities.extend(sport_opportunities)
                 
-                self.update_state(
-                    state='PROGRESS',
-                    meta={
-                        'current': i, 
-                        'total': len(SPORTS_SUPPORTED) + 2,
-                        'status': f'Fetching {sport} odds...',
-                        'sport': sport
-                    }
-                )
+                logger.info(f"✅ Processed {len(sport_opportunities)} total opportunities across all sports")
                 
-                # Fetch raw odds for this sport
-                raw_data = fetch_raw_odds_data()  # This already handles multiple sports
-                
-                if raw_data.get('status') != 'success':
-                    error_msg = f"Failed to fetch {sport} data: {raw_data.get('error', 'Unknown error')}"
-                    logger.warning(error_msg)
-                    failed_sports.append({'sport': sport, 'error': raw_data.get('error')})
-                    continue
-                
-                # Process raw data into opportunities for this sport 
-                logger.info(f"🔄 Processing {sport} data...")
-                sport_opportunities, sport_analytics = process_opportunities(raw_data)
-                
-                if sport_opportunities:
-                    all_opportunities.extend(sport_opportunities)
-                    
+                # Add all sports as successful since we processed everything together
+                for sport in SPORTS_SUPPORTED:
                     successful_sports.append({
                         'sport': sport, 
-                        'opportunities': len(sport_opportunities),
-                        'events': raw_data.get('total_events', 0)
+                        'opportunities': len(sport_opportunities) // len(SPORTS_SUPPORTED),  # Approximate split
+                        'events': raw_data.get('total_events', 0) // len(SPORTS_SUPPORTED)  # Rough estimate
                     })
                     
-                    logger.info(f"✅ {sport}: {len(sport_opportunities)} opportunities processed")
-                    
-                else:
-                    logger.warning(f"⚠️  No opportunities found for {sport}")
-                    failed_sports.append({'sport': sport, 'error': 'No opportunities generated'})
-                    # Continue with other sports instead of failing completely
-                    continue
+                logger.info(f"✅ Opportunities distributed across {len(SPORTS_SUPPORTED)} sports")
             
-            except Exception as sport_exc:
-                logger.error(f"❌ Failed to process {sport}: {str(sport_exc)}")
-                failed_sports.append({'sport': sport, 'error': str(sport_exc)})
-                # Continue with other sports instead of failing completely
-                continue
+            else:
+                error_msg = "No opportunities generated from raw data"
+                logger.error(error_msg)
+                for sport in SPORTS_SUPPORTED:
+                    failed_sports.append({'sport': sport, 'error': 'No opportunities generated'})
+                raise Exception(error_msg)
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to process odds data: {str(e)}")
+            for sport in SPORTS_SUPPORTED:
+                failed_sports.append({'sport': sport, 'error': str(e)})
+            raise
         
         # Check if we got any data at all
         if not all_opportunities:
@@ -289,13 +303,20 @@ def generate_analytics(opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
 def store_role_based_cache(opportunities: List[Dict[str, Any]], analytics: Dict[str, Any]):
     """Store pre-filtered data for different user roles to improve performance"""
     try:
-        from core.constants import FREE_BET_LIMIT, MASK_FIELDS_FOR_FREE
+        from core.constants import MASK_FIELDS_FOR_FREE
         
-        # Free tier cache (limited and masked)
-        free_opportunities = opportunities[:FREE_BET_LIMIT].copy()
-        for opp in free_opportunities:
-            for field in MASK_FIELDS_FOR_FREE:
-                opp.pop(field, None)
+        # Free tier cache (market-filtered and masked, no quantity limit)
+        free_opportunities = []
+        main_lines = {"h2h", "spreads", "totals"}
+        
+        for opp in opportunities:
+            # Filter by main lines only for free users
+            if opp.get('Market', '') in main_lines:
+                filtered_opp = opp.copy()
+                # Mask advanced fields for free users
+                for field in MASK_FIELDS_FOR_FREE:
+                    filtered_opp.pop(field, None)
+                free_opportunities.append(filtered_opp)
         
         # Store in Redis with role-specific keys
         import redis
@@ -303,21 +324,21 @@ def store_role_based_cache(opportunities: List[Dict[str, Any]], analytics: Dict[
         
         redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
         
-        # Cache for free users
+        # Cache for free users (main lines only, masked fields)
         redis_client.setex(
             CACHE_KEYS["ev_data_free"], 
             3600,  # 1 hour expiry
             json.dumps(free_opportunities)
         )
         
-        # Cache for full access users (subscribers/admins)
+        # Cache for full access users (subscribers/admins) - all markets
         redis_client.setex(
             CACHE_KEYS["ev_data_full"],
             3600,
             json.dumps(opportunities)
         )
         
-        logger.info(f"📦 Role-based caches updated: {len(free_opportunities)} free, {len(opportunities)} full")
+        logger.info(f"📦 Role-based caches updated: {len(free_opportunities)} free (main lines), {len(opportunities)} full (all markets)")
         
     except Exception as e:
         logger.warning(f"Failed to update role-based cache: {e}")

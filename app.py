@@ -1286,10 +1286,7 @@ async def get_cached_opportunities(request: Request):
         
         # Get cached data from Redis
         opportunities = get_ev_data()
-        analytics = get_analytics_data()
-        last_update = get_last_update()
         
-        # Process opportunities for UI display
         if opportunities:
             ui_opportunities = process_opportunities_for_ui(opportunities)
             ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
@@ -1303,8 +1300,8 @@ async def get_cached_opportunities(request: Request):
             "total": filtered_response.get('total_available', 0),
             "shown": filtered_response.get('shown', 0),
             "opportunities": filtered_response.get('opportunities', []),
-            "analytics": analytics,
-            "last_update": last_update,
+            "analytics": get_analytics_data(),
+            "last_update": get_last_update(),
             "data_source": "redis_cache",
             "role": user_role,
             "is_guest": is_guest,
@@ -1427,29 +1424,79 @@ async def get_celery_health(request: Request, admin_user: UserCtx = Depends(requ
 
 
 # Debug endpoint to manually trigger data refresh in development
-@app.post("/debug/trigger-refresh", tags=["debug"], include_in_schema=settings.debug_mode)
-@limiter.limit("5/minute")  # Rate limit to prevent accidental spamming
-async def trigger_manual_refresh_debug(request: Request):
+@app.post("/debug/trigger-refresh")
+async def trigger_manual_refresh(request: Request):
     """
-    Manually trigger the EV data refresh Celery task.
-    INTENDED FOR LOCAL DEVELOPMENT/DEBUGGING ONLY.
-    Visible in schema only if settings.debug_mode is True.
+    Manual refresh endpoint for development/debugging
+    Triggers immediate data refresh and returns the updated opportunities
+    Only active when DEBUG_MODE is enabled
     """
     if not settings.debug_mode:
-        raise HTTPException(status_code=403, detail="This endpoint is only available in debug mode.")
-
+        raise HTTPException(status_code=404, detail="Debug endpoint not available in production")
+    
     try:
-        logger.info("Manually triggering refresh_odds_data task via debug endpoint...")
+        # Get current user for role-based filtering
+        user = None
+        try:
+            from core.session import get_current_user_from_cookie
+            user = get_current_user_from_cookie(request)
+        except Exception:
+            # User not authenticated, that's fine
+            pass
+        
+        # If no user, create a guest user context for free tier
+        if not user:
+            from types import SimpleNamespace
+            user = SimpleNamespace(
+                id="guest",
+                email="guest@example.com",
+                role="free", 
+                subscription_status="none"
+            )
+        
+        logger.info(f"🔄 Manual refresh triggered for user role: {user.role}")
+        
+        # Trigger the background task for cache refresh
         task = refresh_odds_data.delay()
-        return {
-            "status": "scheduled",
-            "task_id": task.id,
-            "message": "EV data refresh task has been scheduled via debug endpoint.",
-            "note": "Monitor Celery worker logs for progress."
-        }
+        
+        # Wait a moment for the task to start
+        time.sleep(1)
+        
+        # Get the refreshed data from cache (should be updated by now or soon)
+        opportunities = get_ev_data()
+        
+        if opportunities:
+            # Process and filter opportunities server-side
+            ui_opportunities = process_opportunities_for_ui(opportunities)
+            ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
+            
+            # Apply role-based filtering server-side
+            filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+            
+            return {
+                "status": "success",
+                "message": f"Refresh triggered for {user.role} user",
+                "task_id": task.id,
+                "task_state": task.state,
+                "opportunities_count": len(filtered_response.get('opportunities', [])),
+                "total_available": filtered_response.get('total_available', 0),
+                "role": user.role,
+                "filtered_data": filtered_response,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "status": "pending",
+                "message": "Refresh triggered, data processing in progress",
+                "task_id": task.id,
+                "task_state": task.state,
+                "role": user.role,
+                "timestamp": datetime.now().isoformat()
+            }
+            
     except Exception as e:
-        logger.error(f"Failed to schedule debug refresh task: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to schedule debug task: {str(e)}")
+        logger.error(f"Manual refresh failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Refresh failed: {str(e)}")
 
 
 # Session Management Endpoints (Production Cookie-based Auth)

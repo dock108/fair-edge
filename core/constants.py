@@ -2,10 +2,6 @@
 Application constants for role-based access control and premium features
 """
 
-# Free tier limitations
-FREE_BET_LIMIT = 10
-FREE_ANALYTICS_LIMIT = 5
-
 # Fields to mask/remove for free users (advanced analytics)
 MASK_FIELDS_FOR_FREE = (
     "kelly_factor", 
@@ -22,16 +18,16 @@ MASK_FIELDS_FOR_FREE = (
 # Premium features by role
 ROLE_FEATURES = {
     "free": {
-        "max_opportunities": FREE_BET_LIMIT,
+        "markets": "main_lines_only",  # h2h, spreads, totals only
         "analytics_depth": "basic",
         "refresh_rate_minutes": 30,
         "export_enabled": False,
         "alert_notifications": False,
-        "custom_filters": False,
+        "custom_filters": True,  # Allow search/sport filtering
         "api_rate_limit": "30/minute"
     },
     "subscriber": {
-        "max_opportunities": 100,
+        "markets": "all",  # All markets available
         "analytics_depth": "advanced", 
         "refresh_rate_minutes": 5,
         "export_enabled": True,
@@ -40,7 +36,7 @@ ROLE_FEATURES = {
         "api_rate_limit": "120/minute"
     },
     "admin": {
-        "max_opportunities": -1,  # unlimited
+        "markets": "all",  # All markets available
         "analytics_depth": "full",
         "refresh_rate_minutes": 1,
         "export_enabled": True,

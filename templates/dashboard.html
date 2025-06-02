@@ -406,15 +406,6 @@
 
 <script>
 // ===========================
-// TEMPLATE CONTEXT VARIABLES
-// ===========================
-
-// Pass template variables to JavaScript
-window.userRole = '{{ user_role }}';
-window.isGuest = {{ 'true' if is_guest else 'false' }};
-window.userEmail = '{{ user.email if not is_guest else "" }}';
-
-// ===========================
 // ENHANCED BOOTSTRAP 5 HELPERS
 // ===========================
 
@@ -954,64 +945,6 @@ function parseAvailableOdds(allOddsStr) {
     });
 }
 
-// Role-based filtering functions (mirror server-side logic)
-function getUserRole() {
-    // Try to get user role from page context
-    // Check if there's a user_role variable from template
-    if (typeof window.userRole !== 'undefined') {
-        return window.userRole;
-    }
-    
-    // Check meta tag
-    const roleMeta = document.querySelector('meta[name="user-role"]');
-    if (roleMeta) {
-        return roleMeta.getAttribute('content');
-    }
-    
-    // Default to free for safety
-    return 'free';
-}
-
-const MAIN_LINES = new Set(['h2h', 'spreads', 'totals']); // Main line markets for free users
-
-function applyRoleBasedFiltering(opportunities, userRole) {
-    if (userRole === 'subscriber' || userRole === 'admin') {
-        // Full access for paid users
-        return opportunities;
-    }
-    
-    // Free users: filter by market type only (no quantity limit in real-time updates)
-    const filteredOpportunities = [];
-    for (const opp of opportunities) {
-        // Get the original market key from the backend data
-        const originalMarket = opp._original?.Market || '';
-        
-        // Check if this is a main line market
-        if (MAIN_LINES.has(originalMarket)) {
-            // Remove advanced fields for free users (same as server-side MASK_FIELDS_FOR_FREE)
-            const filteredOpp = { ...opp };
-            
-            // Remove advanced fields if they exist
-            const fieldsToMask = [
-                'kelly_factor', 'true_hold', 'confidence_score',
-                'historical_performance', 'risk_assessment', 'recommended_stake',
-                'expected_roi', 'market_efficiency', 'sharp_money_indicator'
-            ];
-            
-            for (const field of fieldsToMask) {
-                delete filteredOpp[field];
-                if (filteredOpp._original) {
-                    delete filteredOpp._original[field];
-                }
-            }
-            
-            filteredOpportunities.push(filteredOpp);
-        }
-    }
-    
-    return filteredOpportunities;
-}
-
 // Update analytics metrics in the UI
 function updateAnalyticsDisplay(opportunities) {
     if (!opportunities || opportunities.length === 0) return;
@@ -1128,48 +1061,19 @@ function updateTableWithNewData(data) {
                 updateTimestampDisplay();
             }
             
-            // Update original opportunities data for filtering
-            if (data.data && Array.isArray(data.data)) {
-                // Convert backend format to UI format for filtering
-                let uiOpportunities = data.data.map(opp => ({
-                    event: opp.Event || 'Unknown Event',
-                    bet_description: opp['Bet Description'] || 'Unknown Bet',
-                    bet_type: opp.Market || 'Unknown Market',
-                    ev_percentage: (opp.EV_Raw || 0) * 100,
-                    ev_classification: (opp.EV_Raw || 0) >= 0.045 ? 'high' : 
-                                     (opp.EV_Raw || 0) > 0 ? 'positive' : 'neutral',
-                    fair_odds: opp['Fair Odds'] || 'N/A',
-                    best_available_odds: opp['Best Available Odds'] || 'N/A',
-                    best_odds_source: opp['Best_Odds_Source'] || '',
-                    recommended_posting_odds: opp['Proposed Posting Odds'] || 'N/A',
-                    action_link: extractActionLink(opp['Links'] || ''),
-                    available_odds: parseAvailableOdds(opp['All Available Odds'] || ''),
-                    // Keep original data for market filtering
-                    _original: opp
-                }));
-                
-                // Apply role-based filtering (same logic as server-side)
-                const userRole = getUserRole();
-                originalOpportunities = applyRoleBasedFiltering(uiOpportunities, userRole);
-                
-                // Re-apply current filters to new data
-                applyClientSideFilters();
-                
-                // Update analytics metrics
-                updateAnalyticsDisplay(originalOpportunities);
-            }
+            // Real-time updates: reload fresh data from server to ensure consistency
+            // This avoids client-side role filtering duplication
+            console.log('🔄 Real-time update received, reloading server data...');
+            loadInitialData();
             
-            // Show update notification with improved formatting
+            // Show update notification
             showUpdateNotification(
                 `Updated with ${data.summary.total_count} opportunities (${data.summary.positive_ev_count} positive EV)`,
                 'success'
             );
-            
-            // Update analytics metrics
-            updateAnalyticsDisplay(originalOpportunities);
         }
     } catch (error) {
-        console.error('Error updating table:', error);
+        console.error('Error processing update:', error);
         showUpdateNotification('Error processing update', 'warning');
     }
 }
@@ -1263,7 +1167,7 @@ function connectSSE() {
                 setTimeout(connectWebSocket, delay);
             } else {
                 showUpdateNotification('Real-time updates unavailable', 'warning');
-            }
+    }
         };
         
     } catch (error) {
@@ -1306,8 +1210,73 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (sseConnection) {
             sseConnection.close();
-        }
+    }
     });
 });
+
+// Trigger manual refresh (dev mode only)
+async function triggerManualRefreshDev() {
+    const button = document.getElementById('manual-refresh-btn');
+    if (!button) return;
+    
+    // Show loading state
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...';
+    button.disabled = true;
+    
+    try {
+        console.log('🔄 Triggering manual refresh...');
+        
+        // Trigger server-side refresh
+        const response = await fetch('/debug/trigger-refresh', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Manual refresh result:', result);
+        
+        if (result.status === 'success' && result.filtered_data) {
+            // Update opportunities with server-filtered data
+            originalOpportunities = result.filtered_data.opportunities || [];
+            
+            // Re-render with the new data
+            renderOpportunities(originalOpportunities);
+            
+            // Update analytics
+            updateAnalyticsDisplay(originalOpportunities);
+            
+            // Update results count
+            updateResultsCount(originalOpportunities.length, originalOpportunities.length);
+            
+            // Show success notification
+            showUpdateNotification(
+                `✅ Refresh complete: ${result.opportunities_count} opportunities loaded`,
+                'success'
+            );
+            
+            console.log(`✅ Manual refresh successful: ${result.opportunities_count} opportunities for ${result.role} user`);
+        } else {
+            // Fallback: reload page if server response is pending
+            showUpdateNotification('🔄 Refresh in progress, reloading page...', 'info');
+            setTimeout(() => window.location.reload(), 2000);
+        }
+        
+    } catch (error) {
+        console.error('❌ Manual refresh failed:', error);
+        showUpdateNotification('❌ Manual refresh failed: ' + error.message, 'danger');
+    } finally {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
 </script>
 {% endblock %} 
