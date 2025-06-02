@@ -74,9 +74,12 @@
                 // Show success and redirect
                 showSuccess('Login successful! Redirecting...');
                 
-                // Brief delay for user feedback, then redirect
+                // Brief delay for user feedback, then redirect with page refresh
                 setTimeout(() => {
+                    // Force page refresh to sync auth state
                     window.location.href = '/dashboard';
+                    // Alternative: just reload current page
+                    // window.location.reload();
                 }, 1000);
 
             } catch (error) {
@@ -123,6 +126,11 @@
 
                 console.log('Secure session created successfully');
                 
+                // Trigger auth state refresh for immediate UI update
+                if (window.triggerAuthRefresh) {
+                    window.triggerAuthRefresh();
+                }
+
             } catch (error) {
                 console.error('Secure session creation failed:', error);
                 throw new Error('Failed to create secure session');
