@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 import uvicorn
 import logging
+import signal
+import asyncio
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 import os
@@ -56,6 +58,29 @@ from routes.realtime import router as realtime_router
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Global cleanup registry for graceful shutdown
+cleanup_tasks = []
+
+def register_cleanup(cleanup_func):
+    """Register a cleanup function to be called on shutdown"""
+    cleanup_tasks.append(cleanup_func)
+
+async def cleanup_background_tasks():
+    """Cleanup all registered background tasks"""
+    logger.info("🧹 Starting graceful shutdown cleanup...")
+    
+    for i, cleanup_func in enumerate(cleanup_tasks):
+        try:
+            logger.info(f"   Cleaning up task {i+1}/{len(cleanup_tasks)}")
+            if asyncio.iscoroutinefunction(cleanup_func):
+                await cleanup_func()
+            else:
+                cleanup_func()
+        except Exception as e:
+            logger.warning(f"   Warning: Cleanup task {i+1} failed: {e}")
+    
+    logger.info("✅ Cleanup completed")
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -150,6 +175,41 @@ app.include_router(billing_router)
 
 # Include realtime router
 app.include_router(realtime_router)
+
+# Register cleanup functions from other modules
+try:
+    from routes.realtime import cleanup_redis_connections
+    register_cleanup(cleanup_redis_connections)
+    logger.info("✅ Registered Redis cleanup")
+except ImportError as e:
+    logger.warning(f"Could not register Redis cleanup: {e}")
+
+try:
+    from services.tasks import cleanup_celery
+    register_cleanup(cleanup_celery)
+    logger.info("✅ Registered Celery cleanup")
+except ImportError as e:
+    logger.warning(f"Could not register Celery cleanup: {e}")
+
+# Add shutdown event handler
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Graceful shutdown handler"""
+    logger.info("🛑 Shutdown signal received")
+    await cleanup_background_tasks()
+
+# Register signal handlers for graceful shutdown
+def setup_signal_handlers():
+    """Setup signal handlers for graceful shutdown"""
+    def signal_handler(signum, frame):
+        logger.info(f"📡 Received signal {signum}")
+        # Let FastAPI handle the cleanup through the shutdown event
+        
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+# Setup signal handlers
+setup_signal_handlers()
 
 # Admin mode configuration
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"

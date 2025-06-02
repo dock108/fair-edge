@@ -13,6 +13,12 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Graceful degradation: Auto-refresh for browsers without JavaScript -->
+    <noscript>
+        <!-- Refresh the whole page every 60s when JavaScript is unavailable -->
+        <meta http-equiv="refresh" content="60">
+    </noscript>
+    
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -58,6 +64,35 @@
                 </a>
             </div>
             <div class="navbar-nav">
+                <!-- Role Badge -->
+                {% if user and user.role != 'guest' %}
+                <div class="d-flex align-items-center me-3">
+                    <span class="badge
+                        {% if user_role == 'admin' %} bg-danger
+                        {% elif user_role == 'subscriber' %} bg-success
+                        {% else %} bg-secondary
+                        {% endif %} rounded-pill">
+                        {% if user_role == 'admin' %}
+                            <i class="fas fa-shield-alt me-1"></i>Admin
+                        {% elif user_role == 'subscriber' %}
+                            <i class="fas fa-crown me-1"></i>Premium
+                        {% else %}
+                            <i class="fas fa-user me-1"></i>{{ user_role|title }}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+                
+                <!-- Manage Billing Button for Subscribers -->
+                {% if user_role == 'subscriber' %}
+                <div class="d-none me-3" id="manage-billing-nav">
+                    <button id="manage" onclick="manageBilling()" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-credit-card me-1"></i>
+                        Manage billing
+                    </button>
+                </div>
+                {% endif %}
+                
                 <!-- Upgrade CTA for free users -->
                 <div id="upgrade-cta" class="d-none me-3">
                     <button onclick="goPremium()" class="btn btn-warning btn-sm px-3 py-1 rounded-pill fw-bold" style="box-shadow: 0 2px 4px rgba(255,193,7,0.3);">
@@ -233,21 +268,61 @@
             const upgradeCTA = document.getElementById('upgrade-cta');
             const upgradeBanner = document.getElementById('upgrade-banner');
             const accountLink = document.getElementById('account-link');
+            const manageBillingNav = document.getElementById('manage-billing-nav');
             
             if (user && user.role === 'free') {
                 // Show upgrade CTA for free users
                 if (upgradeCTA) upgradeCTA.classList.remove('d-none');
                 // Show account link for authenticated users
                 if (accountLink) accountLink.classList.remove('d-none');
+                // Hide manage billing for free users
+                if (manageBillingNav) manageBillingNav.classList.add('d-none');
             } else if (user && user.role === 'subscriber') {
                 // Hide upgrade CTA for premium users
                 if (upgradeCTA) upgradeCTA.classList.add('d-none');
                 // Show account link for authenticated users
                 if (accountLink) accountLink.classList.remove('d-none');
+                // Show manage billing for subscribers
+                if (manageBillingNav) manageBillingNav.classList.remove('d-none');
             } else {
-                // Hide both for guests/unauthenticated users
+                // Hide all for guests/unauthenticated users
                 if (upgradeCTA) upgradeCTA.classList.add('d-none');
                 if (accountLink) accountLink.classList.add('d-none');
+                if (manageBillingNav) manageBillingNav.classList.add('d-none');
+            }
+        }
+        
+        // Manage billing via Customer Portal (specification pattern)
+        async function manageBilling() {
+            const btn = document.getElementById('manage');
+            if (!btn) return;
+            
+            const originalContent = btn.innerHTML;
+            
+            try {
+                // Show loading state
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Opening...';
+                
+                // Create portal session
+                const res = await authenticatedFetch(
+                    "/api/billing/create-portal-session",
+                    {method:"POST", credentials:"include"}
+                );
+                
+                if (res.ok) {
+                    const {url} = await res.json();
+                    location.href = url;  // redirect to Stripe portal
+                } else {
+                    alert("Could not open billing portal—please try again.");
+                }
+            } catch (error) {
+                console.error('Error opening billing portal:', error);
+                alert("Could not open billing portal—please try again.");
+            } finally {
+                // Reset button state
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
             }
         }
         

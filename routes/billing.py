@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 import logging
 import stripe
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from core.auth import get_current_user, UserCtx
 from core.stripe import create_checkout_session, construct_webhook_event
@@ -16,6 +18,17 @@ from db import get_db
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 logger = logging.getLogger(__name__)
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
+def require_subscriber(user: UserCtx = Depends(get_current_user)) -> UserCtx:
+    """Require user to be an active subscriber"""
+    if user.role != "subscriber" or user.subscription_status != "active":
+        raise HTTPException(
+            status_code=403, 
+            detail="This feature requires an active subscription"
+        )
+    return user
 
 @router.post("/create-checkout-session")
 async def create_stripe_checkout(
@@ -261,26 +274,33 @@ async def get_subscription_status(user: UserCtx = Depends(get_current_user)):
 
 
 @router.post("/create-portal-session")
+@limiter.limit("5/minute")  # Rate limit to prevent abuse
 async def create_customer_portal_session(
-    user: UserCtx = Depends(get_current_user),
+    request: Request,
+    user: UserCtx = Depends(require_subscriber),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Create a Stripe Customer Portal session for subscription management.
-    Allows users to update payment methods, cancel subscriptions, view invoices, etc.
+    
+    SUBSCRIBERS ONLY - Allows users to:
+    - Update payment methods
+    - Cancel subscriptions 
+    - View invoices and billing history
+    - Change subscription plans
     
     Returns:
-        dict: Contains portal_url for redirecting to Stripe Customer Portal
+        dict: Contains url for redirecting to Stripe Customer Portal
     """
     try:
         # Check if Stripe is configured
         if not settings.stripe_configured:
             raise HTTPException(
                 status_code=503,
-                detail="Subscription management is not configured. Please contact support."
+                detail="Payment processing is not configured. Please contact support."
             )
         
-        # Get user's Stripe customer ID
+        # Get user's Stripe customer ID from database
         result = await db.execute(
             text("SELECT stripe_customer_id FROM profiles WHERE id = :user_id"),
             {"user_id": user.id}
@@ -290,28 +310,26 @@ async def create_customer_portal_session(
         if not user_data or not user_data.stripe_customer_id:
             raise HTTPException(
                 status_code=404,
-                detail="No subscription found. Please contact support if you believe this is an error."
+                detail="No Stripe customer on file; contact support"
             )
         
-        # Create Customer Portal session
-        portal_session = stripe.billing_portal.Session.create(
-            customer=user_data.stripe_customer_id,
-            return_url=f"{settings.checkout_success_url.replace('/upgrade/success', '')}/"
+        # Create Customer Portal session - Stripe API call
+        session = stripe.billing_portal.Session.create(
+            customer=user_data.stripe_customer_id,                    # required param
+            return_url=f"{settings.checkout_success_url.replace('/upgrade/success', '')}/account",  # where to send them back
         )
         
-        logger.info(f"Created customer portal session for user {user.id}")
-        return {"portal_url": portal_session.url}
+        logger.info(f"Created customer portal session for subscriber {user.id}")
+        return {"url": session.url}  # Match the exact specification format
         
-    except ValueError as e:
-        # Stripe configuration error
-        logger.error(f"Stripe configuration error: {e}")
-        raise HTTPException(
-            status_code=503, 
-            detail="Subscription management is temporarily unavailable"
-        )
+    except HTTPException:
+        raise
     except stripe.error.StripeError as e:
         logger.error(f"Stripe error creating portal session: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create portal session")
+        raise HTTPException(
+            status_code=500, 
+            detail="Failed to create billing portal session"
+        )
     except Exception as e:
         logger.error(f"Unexpected error creating portal session: {e}")
         raise HTTPException(status_code=500, detail="Internal server error") 

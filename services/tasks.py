@@ -1,19 +1,23 @@
 """
-Celery background tasks for bet-intel
-Handles odds data fetching, processing, and caching with fault tolerance
+Celery task definitions for bet-intel
+Background tasks for data processing and real-time updates
 """
-import logging
+
+import os
 import time
 import json
+import logging
 from datetime import datetime
-from typing import List, Dict, Any
-
-from celery import shared_task
+from typing import Dict, List, Any
+from celery import shared_task, Celery
+from celery.signals import worker_shutdown
 
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 from services.redis_cache import store_ev_data, store_analytics_data, health_check as redis_health_check
 from core.constants import CACHE_KEYS
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # List of supported sports (can be expanded)
@@ -23,6 +27,86 @@ SPORTS_SUPPORTED = [
     'baseball_mlb',
     'icehockey_nhl'
 ]
+
+# Redis configuration
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# Initialize Celery with timeout configurations
+celery_app = Celery(
+    'bet_intel_tasks',
+    broker=REDIS_URL,
+    backend=REDIS_URL,
+    include=['services.tasks']
+)
+
+# Configure Celery for graceful shutdown
+celery_app.conf.update(
+    # Task execution settings
+    task_soft_time_limit=300,  # 5 minutes soft limit
+    task_time_limit=600,       # 10 minutes hard limit
+    worker_disable_rate_limits=True,
+    
+    # Shutdown settings
+    worker_hijack_root_logger=False,
+    worker_log_format='[%(asctime)s: %(levelname)s/%(processName)s] %(message)s',
+    worker_task_log_format='[%(asctime)s: %(levelname)s/%(processName)s][%(task_name)s(%(task_id)s)] %(message)s',
+    
+    # Graceful shutdown
+    worker_cancel_long_running_tasks_on_connection_loss=True,
+    task_reject_on_worker_lost=True,
+)
+
+# Global cleanup flags
+is_shutting_down = False
+active_tasks = set()
+
+@worker_shutdown.connect
+def worker_shutdown_handler(sender=None, **kwargs):
+    """Handle worker shutdown signal"""
+    global is_shutting_down
+    is_shutting_down = True
+    logger.info("🛑 Celery worker shutdown signal received")
+    
+    # Cancel active tasks
+    for task_id in list(active_tasks):
+        try:
+            celery_app.control.revoke(task_id, terminate=True, signal='SIGTERM')
+            logger.info(f"   Cancelled task: {task_id}")
+        except Exception as e:
+            logger.warning(f"   Error cancelling task {task_id}: {e}")
+    
+    active_tasks.clear()
+    logger.info("✅ Celery cleanup completed")
+
+def cleanup_celery():
+    """Cleanup function for Celery workers"""
+    global is_shutting_down
+    is_shutting_down = True
+    
+    logger.info("🔧 Cleaning up Celery workers...")
+    
+    # Stop accepting new tasks
+    try:
+        celery_app.control.cancel_consumer('celery')
+    except Exception as e:
+        logger.warning(f"Error stopping consumer: {e}")
+    
+    # Shutdown workers gracefully
+    try:
+        celery_app.control.shutdown()
+    except Exception as e:
+        logger.warning(f"Error shutting down workers: {e}")
+    
+    logger.info("✅ Celery workers cleaned up")
+
+# Register cleanup function
+try:
+    import sys
+    if 'app' in sys.modules:
+        from app import register_cleanup
+        register_cleanup(cleanup_celery)
+except ImportError:
+    pass
 
 @shared_task(
     bind=True,
@@ -368,4 +452,88 @@ def cleanup_old_data(self):
         
     except Exception as exc:
         logger.error(f"❌ Cleanup task failed: {str(exc)}")
-        raise exc 
+        raise exc
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_kwargs={'max_retries': 3, 'countdown': 60},
+    name='process_ev_opportunities'
+)
+def process_ev_opportunities_task(self):
+    """
+    Background task to fetch and process betting opportunities.
+    Runs periodically to update the dashboard with fresh data.
+    """
+    global is_shutting_down, active_tasks
+    
+    # Check if shutting down
+    if is_shutting_down:
+        logger.info("Task cancelled: system is shutting down")
+        return {"status": "cancelled", "reason": "shutdown"}
+    
+    # Track this task
+    task_id = self.request.id
+    active_tasks.add(task_id)
+    
+    try:
+        logger.info(f"🚀 Starting EV opportunities processing task {task_id}")
+        start_time = time.time()
+        
+        # Check for shutdown during processing
+        if is_shutting_down:
+            return {"status": "cancelled", "reason": "shutdown"}
+        
+        # 1. Fetch raw odds data
+        logger.info("📊 Fetching raw odds data...")
+        raw_data = fetch_raw_odds_data()
+        
+        if not raw_data:
+            logger.warning("No raw data received from API")
+            return {
+                "status": "warning",
+                "message": "No data available from odds provider",
+                "timestamp": datetime.now().isoformat(),
+                "task_id": task_id
+            }
+        
+        # Check for shutdown
+        if is_shutting_down:
+            return {"status": "cancelled", "reason": "shutdown"}
+        
+        # 2. Process the raw data into opportunities
+        logger.info(f"⚙️  Processing {len(raw_data)} raw events...")
+        opportunities = process_opportunities(raw_data)
+        
+        # Check for shutdown
+        if is_shutting_down:
+            return {"status": "cancelled", "reason": "shutdown"}
+        
+        # 3. Cache the processed data
+        logger.info("💾 Caching processed opportunities...")
+        analytics = generate_analytics(opportunities)
+        store_role_based_cache(opportunities, analytics)
+        
+        # 4. Broadcast updates if not shutting down
+        if not is_shutting_down:
+            publish_realtime_update(opportunities)
+        
+        processing_time = time.time() - start_time
+        result = {
+            "status": "success",
+            "total_opportunities": len(opportunities),
+            "positive_ev_count": len([o for o in opportunities if o.get('EV_Raw', 0) > 0]),
+            "high_ev_count": len([o for o in opportunities if o.get('EV_Raw', 0) >= 0.045]),
+            "processing_time": round(processing_time, 2),
+            "timestamp": datetime.now().isoformat(),
+            "task_id": task_id
+        }
+        
+        logger.info(f"✅ Task {task_id} completed successfully in {processing_time:.2f}s")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Task {task_id} failed: {str(e)}")
+        raise self.retry(countdown=60, exc=e)
+    finally:
+        active_tasks.discard(task_id) 
