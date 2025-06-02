@@ -823,45 +823,25 @@ async def get_betting_opportunities(request: Request):
     Admins: Unlimited access
     """
     try:
-        # Try to get current user, but allow guest access
-        user = None
-        try:
-            from core.session import get_current_user_from_cookie
-            user = get_current_user_from_cookie(request)
-        except Exception:
-            # Create guest user for free tier access
-            from types import SimpleNamespace
-            user = SimpleNamespace(
-                id="guest",
-                email="guest@example.com", 
-                role="free",
-                subscription_status="none"
-            )
+        # Use centralized user service
+        from services.user_service import UserContextManager
+        from services.data_service import OpportunityProcessor
         
-        # Get cached data from Redis
-        opportunities = get_ev_data()
-        analytics = get_analytics_data()
-        last_update = get_last_update()
+        user_ctx = UserContextManager(request)
         
-        # Process opportunities for UI display
-        if opportunities:
-            ui_opportunities = process_opportunities_for_ui(opportunities)
-            ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
-        else:
-            ui_opportunities = []
-        
-        # Apply role-based filtering
-        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+        # Process opportunities with current data
+        processor = OpportunityProcessor(user_ctx.role)
+        result = processor.process()
         
         # Add metadata
-        filtered_response.update({
-            "analytics": analytics,
-            "last_update": last_update,
-            "data_source": "redis_cache",
-            "is_guest": user.id == "guest"
+        result["filtered_response"].update({
+            "analytics": result["analytics"],
+            "last_update": result["last_update"],
+            "data_source": result["data_source"],
+            "is_guest": user_ctx.is_guest
         })
         
-        return filtered_response
+        return result["filtered_response"]
         
     except Exception as e:
         logger.error(f"Failed to retrieve opportunities: {e}")
@@ -894,116 +874,31 @@ async def api_opportunities(
     - sport: Filter by specific sport (americanfootball_nfl, basketball_nba, etc.)
     """
     try:
-        # Try to get current user, but allow guest access
-        user = None
-        try:
-            from core.session import get_current_user_from_cookie
-            user = get_current_user_from_cookie(request)
-        except Exception:
-            # User not authenticated, that's fine - will create guest user below
-            pass
+        # Use centralized user service
+        from services.user_service import UserContextManager
+        from services.data_service import OpportunityProcessor
+        from services.response_service import create_filtered_opportunities_response, ErrorHandler
         
-        # If no user, create a guest user context for free tier
-        if not user:
-            from types import SimpleNamespace
-            user = SimpleNamespace(
-                id="guest",
-                email="guest@example.com",
-                role="free", 
-                subscription_status="none"
-            )
+        user_ctx = UserContextManager(request)
+        processor = OpportunityProcessor(user_ctx.role)
         
-        # Try cached data first
-        cached_opportunities = get_ev_data()
-        cached_analytics = get_analytics_data()
-        last_update = get_last_update()
+        # Process opportunities with filters
+        result = processor.process(search=search, sport=sport)
         
-        if cached_opportunities and cached_analytics:
-            # Use cached data
-            opportunities = cached_opportunities
-            analytics = cached_analytics
-            data_source = "cache"
-        else:
-            # Fallback to live data
-            raw_data = fetch_raw_odds_data()
-            if raw_data['status'] != 'success':
-                return {"error": raw_data.get('error', 'Unknown error'), "opportunities": [], "role": user.role, "is_guest": user.id == "guest"}
-            
-            opportunities, analytics = process_opportunities(raw_data)
-            data_source = "live"
-        
-        ui_opportunities = process_opportunities_for_ui(opportunities)
-        
-        # Apply server-side filtering before role filtering
-        if search or sport:
-            filtered_opps = []
-            search_term = search.lower() if search else None
-            
-            for opp in ui_opportunities:
-                # Search filter
-                if search_term:
-                    searchable_text = " ".join([
-                        opp.get('event', ''),
-                        opp.get('bet_description', ''),
-                        opp.get('bet_type', ''),
-                        opp.get('best_odds_source', '')
-                    ]).lower()
-                    
-                    if search_term not in searchable_text:
-                        continue
-                
-                # Sport filter  
-                if sport:
-                    # Map sport codes to identifiers that might appear in event names
-                    sport_keywords = {
-                        'americanfootball_nfl': ['nfl', 'football', 'patriots', 'cowboys', 'packers', 'steelers'],
-                        'basketball_nba': ['nba', 'basketball', 'lakers', 'warriors', 'celtics', 'nets'],
-                        'baseball_mlb': ['mlb', 'baseball', 'yankees', 'dodgers', 'red sox', 'giants'],
-                        'icehockey_nhl': ['nhl', 'hockey', 'rangers', 'bruins', 'kings', 'devils']
-                    }
-                    
-                    keywords = sport_keywords.get(sport, [sport])
-                    event_text = opp.get('event', '').lower()
-                    
-                    # Check if any sport keyword appears in the event
-                    if not any(keyword in event_text for keyword in keywords):
-                        continue
-                
-                filtered_opps.append(opp)
-            
-            ui_opportunities = filtered_opps
-        
-        # Sort by EV percentage (highest first) for better user experience
-        ui_opportunities.sort(key=lambda x: x['ev_percentage'], reverse=True)
-        
-        # Apply role-based filtering
-        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
-        
-        # Add metadata including filter info
-        filtered_response.update({
-            "analytics": analytics,
-            "last_update": last_update or datetime.now().isoformat(),
-            "data_source": data_source,
-            "is_guest": user.id == "guest",
-            "filters_applied": {
-                "search": search,
-                "sport": sport,
-                "has_filters": bool(search or sport)
-            }
-        })
-        
-        # Add Cache-Control header for no-store to prevent caching of filtered results
-        if search or sport:
-            from fastapi import Response as FastAPIResponse
-            response = FastAPIResponse(content=filtered_response)
-            response.headers["Cache-Control"] = "no-store"
-            return response
-        
-        return filtered_response
+        # Create standardized response
+        return create_filtered_opportunities_response(
+            filtered_response=result["filtered_response"],
+            analytics=result["analytics"],
+            user=user_ctx.user,
+            data_source=result["data_source"],
+            last_update=result["last_update"],
+            filters_applied=result["filters_applied"]
+        )
         
     except Exception as e:
         logger.error(f"Error in API route: {e}")
-        return {"error": str(e), "opportunities": [], "role": "free", "is_guest": True}
+        user_ctx = UserContextManager(request)
+        return ErrorHandler.handle_data_fetch_error(e, user_ctx.user)
 
 @app.get("/health")
 async def health_check():
@@ -1435,26 +1330,13 @@ async def trigger_manual_refresh(request: Request):
         raise HTTPException(status_code=404, detail="Debug endpoint not available in production")
     
     try:
-        # Get current user for role-based filtering
-        user = None
-        try:
-            from core.session import get_current_user_from_cookie
-            user = get_current_user_from_cookie(request)
-        except Exception:
-            # User not authenticated, that's fine
-            pass
+        # Use centralized user service
+        from services.user_service import UserContextManager
+        from services.data_service import OpportunityProcessor
         
-        # If no user, create a guest user context for free tier
-        if not user:
-            from types import SimpleNamespace
-            user = SimpleNamespace(
-                id="guest",
-                email="guest@example.com",
-                role="free", 
-                subscription_status="none"
-            )
+        user_ctx = UserContextManager(request)
         
-        logger.info(f"🔄 Manual refresh triggered for user role: {user.role}")
+        logger.info(f"🔄 Manual refresh triggered for user role: {user_ctx.role}")
         
         # Trigger the background task for cache refresh
         task = refresh_odds_data.delay()
@@ -1462,25 +1344,21 @@ async def trigger_manual_refresh(request: Request):
         # Wait a moment for the task to start
         time.sleep(1)
         
-        # Get the refreshed data from cache (should be updated by now or soon)
-        opportunities = get_ev_data()
+        # Process opportunities with current data
+        processor = OpportunityProcessor(user_ctx.role)
+        result = processor.process()
         
-        if opportunities:
-            # Process and filter opportunities server-side
-            ui_opportunities = process_opportunities_for_ui(opportunities)
-            ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
-            
-            # Apply role-based filtering server-side
-            filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+        if result["filtered_response"].get("opportunities"):
+            filtered_response = result["filtered_response"]
             
             return {
                 "status": "success",
-                "message": f"Refresh triggered for {user.role} user",
+                "message": f"Refresh triggered for {user_ctx.role} user",
                 "task_id": task.id,
                 "task_state": task.state,
                 "opportunities_count": len(filtered_response.get('opportunities', [])),
                 "total_available": filtered_response.get('total_available', 0),
-                "role": user.role,
+                "role": user_ctx.role,
                 "filtered_data": filtered_response,
                 "timestamp": datetime.now().isoformat()
             }
@@ -1490,7 +1368,7 @@ async def trigger_manual_refresh(request: Request):
                 "message": "Refresh triggered, data processing in progress",
                 "task_id": task.id,
                 "task_state": task.state,
-                "role": user.role,
+                "role": user_ctx.role,
                 "timestamp": datetime.now().isoformat()
             }
             
