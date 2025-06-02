@@ -201,12 +201,13 @@
 <!-- Enhanced Free Tier Upgrade Banner -->
 {% if user_role == 'free' and role_metadata.truncated %}
 <div class="container-fluid mt-3">
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
         <strong><i class="fas fa-star me-1"></i>Upgrade to Premium →</strong> 
-        You're seeing only {{ role_metadata.shown }}/{{ role_metadata.total_available }} opportunities. 
+        You're seeing main lines only (moneyline, spreads, totals). 
+        <strong>Upgrade to unlock props, alt lines, and live markets.</strong>
         <a href="/pricing" class="alert-link">See plans</a>.
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close upgrade banner"></button>
-                    </div>
+    </div>
 </div>
 {% endif %}
 
