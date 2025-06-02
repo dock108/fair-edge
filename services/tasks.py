@@ -79,25 +79,31 @@ def worker_shutdown_handler(sender=None, **kwargs):
     logger.info("✅ Celery cleanup completed")
 
 def cleanup_celery():
-    """Cleanup function for Celery workers"""
-    global is_shutting_down
+    """Cleanup Celery workers gracefully"""
+    global is_shutting_down, active_tasks
     is_shutting_down = True
     
     logger.info("🔧 Cleaning up Celery workers...")
     
-    # Stop accepting new tasks
     try:
-        celery_app.control.cancel_consumer('celery')
+        # Cancel active tasks
+        for task_id in list(active_tasks):
+            try:
+                celery_app.control.revoke(task_id, terminate=True)
+                active_tasks.discard(task_id)
+            except Exception as e:
+                logger.warning(f"Failed to cancel task {task_id}: {e}")
+        
+        # Stop workers gracefully (if we're the worker process)
+        try:
+            celery_app.control.shutdown()
+        except Exception:
+            pass  # This might fail if we're not a worker
+        
+        logger.info("✅ Celery workers cleaned up")
+        
     except Exception as e:
-        logger.warning(f"Error stopping consumer: {e}")
-    
-    # Shutdown workers gracefully
-    try:
-        celery_app.control.shutdown()
-    except Exception as e:
-        logger.warning(f"Error shutting down workers: {e}")
-    
-    logger.info("✅ Celery workers cleaned up")
+        logger.error(f"Error during Celery cleanup: {e}")
 
 # Register cleanup function
 try:
@@ -536,4 +542,39 @@ def process_ev_opportunities_task(self):
         logger.error(f"❌ Task {task_id} failed: {str(e)}")
         raise self.retry(countdown=60, exc=e)
     finally:
-        active_tasks.discard(task_id) 
+        active_tasks.discard(task_id)
+
+def get_celery_stats():
+    """Get Celery worker statistics"""
+    try:
+        from celery import current_app
+        
+        # Get active stats
+        inspect = current_app.control.inspect()
+        
+        # Get active tasks
+        active = inspect.active()
+        active_count = sum(len(tasks) for tasks in active.values()) if active else 0
+        
+        # Get registered tasks
+        registered = inspect.registered()
+        registered_count = sum(len(tasks) for tasks in registered.values()) if registered else 0
+        
+        # Get worker stats
+        stats = inspect.stats()
+        worker_count = len(stats) if stats else 0
+        
+        return {
+            "worker_count": worker_count,
+            "active_tasks": active_count,
+            "registered_tasks": registered_count,
+            "total_tasks_in_active": len(active_tasks),
+            "is_shutting_down": is_shutting_down
+        }
+        
+    except Exception as e:
+        return {
+            "error": f"Failed to get Celery stats: {str(e)}",
+            "worker_count": 0,
+            "active_tasks": 0
+        } 
