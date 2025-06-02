@@ -223,6 +223,44 @@ def refresh_odds_data(self):
         # Store role-specific cached data for performance
         store_role_based_cache(all_opportunities, analytics)
         
+        # NEW: Persist opportunities to database
+        try:
+            logger.info("💾 Persisting opportunities to database...")
+            from services.bet_persistence import bet_persistence
+            import asyncio
+            
+            # Run async persistence in sync context
+            persistence_result = asyncio.run(
+                bet_persistence.save_opportunities_batch(
+                    all_opportunities, 
+                    source="celery_refresh_task"
+                )
+            )
+            
+            logger.info(f"✅ Database persistence completed: "
+                       f"{persistence_result['bets_created']} bets created, "
+                       f"{persistence_result['offers_created']} offers created, "
+                       f"{len(persistence_result['errors'])} errors")
+            
+            # Include persistence results in final result
+            persistence_summary = {
+                "status": persistence_result["status"],
+                "bets_created": persistence_result["bets_created"],
+                "bets_updated": persistence_result["bets_updated"],
+                "offers_created": persistence_result["offers_created"],
+                "errors_count": len(persistence_result["errors"]),
+                "processing_time_ms": persistence_result["processing_time_ms"]
+            }
+            
+        except Exception as e:
+            # Log error but don't fail the entire task
+            logger.error(f"❌ Database persistence failed: {str(e)}", exc_info=True)
+            persistence_summary = {
+                "status": "error",
+                "error": str(e),
+                "note": "Refresh task continued despite DB persistence failure"
+            }
+        
         # Publish real-time update
         publish_realtime_update(all_opportunities)
         
@@ -250,7 +288,8 @@ def refresh_odds_data(self):
                 'sports_processed': len(successful_sports),
                 'sports_failed': len(failed_sports),
                 'opportunities_per_second': round(len(all_opportunities) / processing_time, 2)
-            }
+            },
+            'persistence_summary': persistence_summary
         }
         
         logger.info(

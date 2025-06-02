@@ -98,6 +98,17 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
+async def get_async_session() -> AsyncSession:
+    """
+    Get a standalone async database session for direct use
+    Usage: async with get_async_session() as session:
+    """
+    if not AsyncSessionLocal:
+        raise RuntimeError("Database not properly configured. Check DB_CONNECTION_STRING environment variable.")
+    
+    return AsyncSessionLocal()
+
+
 def get_supabase() -> Client:
     """
     Get Supabase client for server-side operations
