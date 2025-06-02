@@ -9,16 +9,12 @@ from typing import AsyncGenerator
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request
 from sse_starlette.sse import EventSourceResponse
 import redis.asyncio as aioredis
-import os
-import sys
 from datetime import datetime
+from utils.redis_utils import get_redis_url
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# Redis configuration for async operations
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # Global connection pool for cleanup
 redis_pool = None
@@ -28,7 +24,8 @@ async def get_redis_pool():
     """Get or create Redis connection pool"""
     global redis_pool
     if redis_pool is None:
-        redis_pool = aioredis.ConnectionPool.from_url(REDIS_URL)
+        redis_url = get_redis_url()
+        redis_pool = aioredis.ConnectionPool.from_url(redis_url)
     return redis_pool
 
 async def cleanup_redis_connections():
@@ -56,16 +53,6 @@ async def cleanup_redis_connections():
     
     logger.info("✅ Redis connections cleaned up")
 
-# Register cleanup function
-try:
-    # Import the register_cleanup function from main app
-    if 'app' in sys.modules:
-        from app import register_cleanup
-        register_cleanup(cleanup_redis_connections)
-except ImportError:
-    # App not available during import, will register later
-    pass
-
 class ConnectionManager:
     """Manage WebSocket connections"""
     def __init__(self):
@@ -92,13 +79,8 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Register WebSocket cleanup
-try:
-    if 'app' in sys.modules:
-        from app import register_cleanup
-        register_cleanup(manager.close_all)
-except ImportError:
-    pass
+# Cleanup functions will be registered by the main app during startup
+# This removes the circular dependency on the app module
 
 @router.websocket("/ws/ev")
 async def websocket_endpoint(websocket: WebSocket):
@@ -188,7 +170,7 @@ async def realtime_health_check():
     """Health check endpoint for real-time services"""
     try:
         # Test Redis connection
-        redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
+        redis_client = aioredis.from_url(get_redis_url(), decode_responses=True)
         await redis_client.ping()
         await redis_client.close()
         
