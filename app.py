@@ -575,7 +575,11 @@ async def home(request: Request, admin: Optional[str] = None):
                 }
             })
         
-        return templates.TemplateResponse("dashboard.html", context)
+        # Create template response with SEO-friendly cache headers
+        response = templates.TemplateResponse("dashboard.html", context)
+        # Align cache timing with noscript meta refresh for consistency
+        response.headers["Cache-Control"] = "max-age=60, stale-while-revalidate=30"
+        return response
         
     except Exception as e:
         logger.error(f"Home page error: {e}")
@@ -620,7 +624,9 @@ async def disclaimer(request: Request):
             "current_date": datetime.now().strftime('%B %d, %Y')
         }
         
-        return templates.TemplateResponse("disclaimer.html", context)
+        response = templates.TemplateResponse("disclaimer.html", context)
+        response.headers["Cache-Control"] = "max-age=3600, stale-while-revalidate=1800"  # Longer cache for static content
+        return response
         
     except Exception as e:
         logger.error(f"Disclaimer page error: {e}")
@@ -636,7 +642,9 @@ async def education(request: Request):
             "request": request
         }
         
-        return templates.TemplateResponse("education.html", context)
+        response = templates.TemplateResponse("education.html", context)
+        response.headers["Cache-Control"] = "max-age=3600, stale-while-revalidate=1800"  # Longer cache for static content
+        return response
         
     except Exception as e:
         logger.error(f"Education page error: {e}")
@@ -654,7 +662,9 @@ async def pricing_page(request: Request):
             "page_title": "Pricing - Sports Betting +EV Analyzer"
         }
         
-        return templates.TemplateResponse("pricing.html", context)
+        response = templates.TemplateResponse("pricing.html", context)
+        response.headers["Cache-Control"] = "max-age=3600, stale-while-revalidate=1800"  # Longer cache for static content
+        return response
         
     except Exception as e:
         logger.error(f"Pricing page error: {e}")
