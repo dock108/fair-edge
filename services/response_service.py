@@ -1,75 +1,324 @@
 """
-Response Service for standardizing API response patterns
-Centralizes response formatting that was duplicated across endpoints
+Response Service for standardized API responses and error handling
+Updated to use new standardized exception handling patterns
 """
 from typing import Dict, List, Any, Optional
 from datetime import datetime
-from fastapi import HTTPException
 import logging
 
+from fastapi import HTTPException
+
 from core.auth import UserCtx
+from core.exceptions import (
+    ExceptionHandler,
+    DataFetchError,
+    ValidationError,
+    safe_execute
+)
 
 logger = logging.getLogger(__name__)
 
 
+class ResponseFormatter:
+    """Standardized response formatting for all API endpoints"""
+    
+    @staticmethod
+    def success_response(
+        data: Any = None,
+        message: str = "Success",
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Format successful API responses"""
+        response = {
+            "status": "success",
+            "message": message,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        if data is not None:
+            response["data"] = data
+            
+        if metadata:
+            response["metadata"] = metadata
+            
+        return response
+    
+    @staticmethod
+    def error_response(
+        error: str,
+        code: str = "ERROR",
+        details: Optional[Dict[str, Any]] = None,
+        status_code: int = 500
+    ) -> HTTPException:
+        """Format error responses with consistent structure"""
+        error_detail = {
+            "status": "error",
+            "error": error,
+            "code": code,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        if details:
+            error_detail["details"] = details
+            
+        return HTTPException(status_code=status_code, detail=error_detail)
+    
+    @staticmethod
+    def paginated_response(
+        data: List[Any],
+        total_count: int,
+        page: int = 1,
+        page_size: int = 50,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Format paginated responses"""
+        return ResponseFormatter.success_response(
+            data=data,
+            metadata={
+                "pagination": {
+                    "total_count": total_count,
+                    "page": page,
+                    "page_size": page_size,
+                    "total_pages": (total_count + page_size - 1) // page_size,
+                    "has_next": page * page_size < total_count,
+                    "has_previous": page > 1
+                },
+                **(metadata or {})
+            }
+        )
+
+
+class APIResponseHandler:
+    """High-level API response handling with error management"""
+    
+    def __init__(self, context: str = "unknown"):
+        self.context = context
+    
+    def handle_data_response(self, data_func, *args, user: Optional[UserCtx] = None, **kwargs) -> Dict[str, Any]:
+        """Handle data fetching with standardized error responses"""
+        try:
+            result = safe_execute(
+                data_func, 
+                *args, 
+                context=f"{self.context}_data_fetch",
+                fallback=None,
+                **kwargs
+            )
+            
+            if result is None:
+                raise DataFetchError(
+                    f"No data returned from {self.context}",
+                    source=self.context
+                )
+            
+            return ResponseFormatter.success_response(
+                data=result,
+                metadata={"source": self.context}
+            )
+            
+        except Exception as e:
+            error_response = ExceptionHandler.handle_data_fetch_error(e, self.context, user)
+            return error_response
+    
+    async def handle_async_data_response(self, data_func, *args, user: Optional[UserCtx] = None, **kwargs) -> Dict[str, Any]:
+        """Handle async data fetching with standardized error responses"""
+        try:
+            from core.exceptions import safe_execute_async
+            
+            result = await safe_execute_async(
+                data_func,
+                *args,
+                context=f"{self.context}_async_data_fetch", 
+                fallback=None,
+                **kwargs
+            )
+            
+            if result is None:
+                raise DataFetchError(
+                    f"No data returned from async {self.context}",
+                    source=self.context
+                )
+            
+            return ResponseFormatter.success_response(
+                data=result,
+                metadata={"source": self.context, "async": True}
+            )
+            
+        except Exception as e:
+            error_response = ExceptionHandler.handle_data_fetch_error(e, self.context, user)
+            return error_response
+
+
+# Legacy compatibility functions (maintaining existing API)
+def format_success_response(
+    data: Any = None,
+    message: str = "Success",
+    metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Legacy wrapper for success responses"""
+    return ResponseFormatter.success_response(data, message, metadata)
+
+
+def format_error_response(
+    error: str,
+    code: str = "ERROR", 
+    details: Optional[Dict[str, Any]] = None,
+    status_code: int = 500
+) -> HTTPException:
+    """Legacy wrapper for error responses"""
+    return ResponseFormatter.error_response(error, code, details, status_code)
+
+
+def handle_data_fetch_error(error: Exception, user: Optional[UserCtx] = None) -> Dict[str, Any]:
+    """Legacy wrapper for data fetch errors"""
+    return ExceptionHandler.handle_data_fetch_error(error, "legacy_context", user)
+
+
+def handle_authentication_error(error: Exception) -> HTTPException:
+    """Legacy wrapper for authentication errors"""
+    return ExceptionHandler.handle_authentication_error(error)
+
+
+def handle_authorization_error(user_role: str, required_role: str) -> HTTPException:
+    """Legacy wrapper for authorization errors"""
+    from core.exceptions import AuthorizationError
+    error = AuthorizationError(
+        f"Access denied. Required role: {required_role}, user role: {user_role}",
+        required_role=required_role,
+        user_role=user_role
+    )
+    return ExceptionHandler.handle_authorization_error(error)
+
+
+def format_opportunities_response(
+    opportunities: List[Dict[str, Any]], 
+    user_role: str,
+    analytics: Optional[Dict[str, Any]] = None,
+    filters_applied: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Format betting opportunities response with role-based filtering
+    """
+    from core.config import feature_config
+    
+    # Apply role-based masking
+    if user_role == "free":
+        # Remove advanced fields for free users
+        filtered_opportunities = []
+        for opp in opportunities:
+            filtered_opp = {k: v for k, v in opp.items() 
+                            if not feature_config.should_mask_field(k, user_role)}
+            filtered_opportunities.append(filtered_opp)
+        opportunities = filtered_opportunities
+    
+    response_data = {
+        "opportunities": opportunities,
+        "role": user_role,
+        "total_count": len(opportunities)
+    }
+    
+    if analytics:
+        # Apply same role-based filtering to analytics
+        if user_role == "free":
+            filtered_analytics = {k: v for k, v in analytics.items() 
+                                  if not feature_config.should_mask_field(k, user_role)}
+        else:
+            filtered_analytics = analytics
+        response_data["analytics"] = filtered_analytics
+    
+    metadata = {
+        "features": feature_config.get_user_features(user_role)
+    }
+    
+    if filters_applied:
+        metadata["filters_applied"] = filters_applied
+    
+    return ResponseFormatter.success_response(
+        data=response_data,
+        metadata=metadata
+    )
+
+
+def validate_request_params(params: Dict[str, Any], required: List[str] = None, context: str = "request") -> None:
+    """
+    Validate request parameters and raise appropriate exceptions
+    """
+    required = required or []
+    
+    for param in required:
+        if param not in params or params[param] is None:
+            raise ValidationError(
+                f"Missing required parameter: {param}",
+                field=param,
+                details={"required_params": required, "provided_params": list(params.keys())}
+            )
+    
+    # Additional validation can be added here
+    logger.debug(f"Request validation passed for {context}: {list(params.keys())}")
+
+
+# Convenience class for endpoint handlers
+class EndpointHandler:
+    """Convenience wrapper for common endpoint patterns"""
+    
+    def __init__(self, endpoint_name: str):
+        self.endpoint_name = endpoint_name
+        self.response_handler = APIResponseHandler(endpoint_name)
+    
+    def validate_and_execute(
+        self,
+        data_func,
+        request_params: Dict[str, Any],
+        required_params: List[str] = None,
+        user: Optional[UserCtx] = None
+    ) -> Dict[str, Any]:
+        """Validate parameters and execute data function with error handling"""
+        try:
+            # Validate request parameters
+            validate_request_params(request_params, required_params, self.endpoint_name)
+            
+            # Execute data function
+            return self.response_handler.handle_data_response(
+                data_func,
+                **request_params,
+                user=user
+            )
+            
+        except ValidationError as e:
+            raise ExceptionHandler.handle_validation_error(e, self.endpoint_name)
+        except Exception as e:
+            raise ExceptionHandler.handle_generic_error(e, self.endpoint_name)
+
+
+# Legacy compatibility classes and functions
 class APIResponse:
-    """
-    Standardized API response builder
-    Ensures consistent response format across all endpoints
-    """
+    """Legacy compatibility class - redirects to new ResponseFormatter"""
     
     @staticmethod
     def success(data: Dict[str, Any], 
                 user: Optional[UserCtx] = None,
                 message: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Create a successful API response
-        
-        Args:
-            data: The main response data
-            user: User context for metadata
-            message: Optional success message
-        """
-        response = {
-            "status": "success",
-            "timestamp": datetime.now().isoformat(),
-            **data
-        }
-        
-        if user:
-            from services.user_service import create_user_response_metadata
-            response.update(create_user_response_metadata(user))
-        
-        if message:
-            response["message"] = message
-            
-        return response
+        """Legacy success method"""
+        return ResponseFormatter.success_response(
+            data=data,
+            message=message or "Success",
+            metadata={"user": user.role if user else None}
+        )
     
     @staticmethod
     def error(message: str, 
               error_code: str = "GENERAL_ERROR",
               details: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        Create an error API response
-        
-        Args:
-            message: Error message
-            error_code: Error code for client handling
-            details: Additional error details
-        """
-        response = {
+        """Legacy error method - returns dict instead of HTTPException for compatibility"""
+        return {
             "status": "error",
             "error": {
                 "code": error_code,
-                "message": message
+                "message": message,
+                "details": details
             },
             "timestamp": datetime.now().isoformat()
         }
-        
-        if details:
-            response["error"]["details"] = details
-            
-        return response
     
     @staticmethod
     def opportunities_response(opportunities: List[Dict[str, Any]],
@@ -78,10 +327,7 @@ class APIResponse:
                                data_source: str = "cache",
                                last_update: Optional[str] = None,
                                filters_applied: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        Standardized opportunities response format
-        Used by multiple endpoints that return opportunities
-        """
+        """Legacy opportunities response method"""
         response_data = {
             "opportunities": opportunities,
             "analytics": analytics,
@@ -96,15 +342,15 @@ class APIResponse:
 
 
 class ErrorHandler:
-    """
-    Centralized error handling with consistent error responses
-    """
+    """Legacy compatibility class - redirects to new ExceptionHandler"""
     
     @staticmethod
     def handle_data_fetch_error(error: Exception, user: Optional[UserCtx] = None) -> Dict[str, Any]:
-        """Handle data fetching errors with fallback response"""
-        logger.error(f"Data fetch error: {error}")
+        """Legacy data fetch error handler"""
+        # Log the error using the new handler (but don't use the response)
+        ExceptionHandler.handle_data_fetch_error(error, "legacy_context", user)
         
+        # Convert to legacy format for backwards compatibility
         fallback_data = {
             "opportunities": [],
             "analytics": {},
@@ -117,150 +363,10 @@ class ErrorHandler:
     
     @staticmethod
     def handle_authentication_error(error: Exception) -> HTTPException:
-        """Handle authentication errors consistently"""
-        logger.warning(f"Authentication error: {error}")
-        return HTTPException(status_code=401, detail="Authentication required")
+        """Legacy authentication error handler"""
+        return ExceptionHandler.handle_authentication_error(error)
     
     @staticmethod
     def handle_authorization_error(user_role: str, required_role: str) -> HTTPException:
-        """Handle authorization errors consistently"""
-        logger.warning(f"Authorization error: {user_role} tried to access {required_role} resource")
-        return HTTPException(
-            status_code=403, 
-            detail=f"Insufficient permissions. Required: {required_role}, Current: {user_role}"
-        )
-
-
-def create_paginated_response(
-    items: List[Any],
-    total_count: int,
-    page: int = 1,
-    page_size: int = 50,
-    user: Optional[UserCtx] = None
-) -> Dict[str, Any]:
-    """
-    Create a paginated response format
-    For future use when pagination is needed
-    """
-    total_pages = (total_count + page_size - 1) // page_size
-    
-    pagination_data = {
-        "items": items,
-        "pagination": {
-            "current_page": page,
-            "total_pages": total_pages,
-            "total_items": total_count,
-            "page_size": page_size,
-            "has_next": page < total_pages,
-            "has_previous": page > 1
-        }
-    }
-    
-    return APIResponse.success(pagination_data, user)
-
-
-def create_filtered_opportunities_response(
-    filtered_response: Dict[str, Any],
-    analytics: Dict[str, Any],
-    user: UserCtx,
-    data_source: str = "cache",
-    last_update: Optional[str] = None,
-    filters_applied: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
-    """
-    Create a standardized response for filtered opportunities
-    This is the most common response format in the application
-    """
-    opportunities = filtered_response.get("opportunities", [])
-    
-    response_data = {
-        "total": filtered_response.get("total_available", 0),
-        "shown": filtered_response.get("shown", 0),
-        "opportunities": opportunities,
-        "analytics": analytics,
-        "data_source": data_source,
-        "last_update": last_update or datetime.now().isoformat(),
-        "truncated": filtered_response.get("truncated", False),
-        "role_metadata": {
-            "role": filtered_response.get("role", user.role),
-            "features": filtered_response.get("features", {}),
-            "limit": filtered_response.get("limit")
-        }
-    }
-    
-    if filters_applied:
-        response_data["filters_applied"] = filters_applied
-    
-    return APIResponse.success(response_data, user)
-
-
-def create_dashboard_template_context(
-    request: Any,
-    user: UserCtx,
-    filtered_response: Dict[str, Any],
-    analytics: Dict[str, Any],
-    settings: Any,
-    sports_supported: List[str],
-    admin_mode: bool = False,
-    debug_data: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
-    """
-    Create standardized dashboard template context
-    Eliminates duplication in page endpoints that show dashboard data
-    """
-    # Apply filters from query parameters
-    sport_filter = request.query_params.get('sport', '').strip()
-    market_filter = request.query_params.get('market', '').strip()
-    
-    filtered_opportunities = filtered_response.get('opportunities', [])
-    
-    # Apply client-side filters if needed
-    if sport_filter:
-        filtered_opportunities = [
-            op for op in filtered_opportunities 
-            if sport_filter.lower() in op.get('sport', '').lower()
-        ]
-    
-    if market_filter:
-        filtered_opportunities = [
-            op for op in filtered_opportunities 
-            if market_filter.lower() in op.get('market', '').lower()
-        ]
-    
-    # Calculate UI analytics
-    ui_analytics = {
-        'total_opportunities': len(filtered_opportunities),
-        'positive_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) > 0]),
-        'high_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) >= 4.5]),
-        'max_ev_percentage': round(max([op.get('ev_percentage', 0) for op in filtered_opportunities], default=0), 2)
-    }
-    
-    # Base context
-    context = {
-        "request": request,
-        "settings": settings,
-        "user": user,
-        "user_role": user.role,
-        "is_guest": getattr(user, 'id', None) == "guest",
-        "opportunities": filtered_opportunities,
-        "analytics": ui_analytics,
-        "admin_mode": admin_mode,
-        "filter_applied": bool(sport_filter or market_filter),
-        "current_sport": sport_filter,
-        "current_market": market_filter,
-        "page_title": "Live Betting Dashboard - Sports +EV Analysis",
-        "role_metadata": {
-            "truncated": filtered_response.get('truncated', False),
-            "limit": filtered_response.get('limit'),
-            "total_available": filtered_response.get('total_available', 0),
-            "shown": filtered_response.get('shown', 0),
-            "features": filtered_response.get('features', {})
-        },
-        "sports_supported": sports_supported
-    }
-    
-    # Add debug data if provided
-    if debug_data:
-        context.update(debug_data)
-    
-    return context 
+        """Legacy authorization error handler"""
+        return handle_authorization_error(user_role, required_role) 

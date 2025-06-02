@@ -16,7 +16,7 @@ logging.basicConfig(
 
 # Get refresh interval from environment
 REFRESH_INTERVAL_MINUTES = int(os.getenv("REFRESH_INTERVAL_MINUTES", "60"))  # Default 1 hour
-REDIS_URL = settings.redis_url if hasattr(settings, 'redis_url') else os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = settings.redis_url
 
 # Create Celery app
 celery_app = Celery(
