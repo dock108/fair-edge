@@ -35,6 +35,52 @@ _cache_lock = threading.Lock()
 logger.info(f"Cache configuration: {'DEBUG' if DEBUG_MODE else 'PRODUCTION'} mode, {CACHE_DURATION//60} minute cache duration")
 
 
+def deduplicate_opportunities(opportunities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Remove duplicate opportunities, keeping only the most recent version of each unique bet.
+    
+    Creates a unique identifier for each opportunity based on:
+    - Event (game/match)
+    - Market type (h2h, spreads, totals, etc.)
+    - Outcome (team name, over/under, etc.)
+    - Point value (for spreads/totals)
+    
+    Args:
+        opportunities: List of opportunity dictionaries
+        
+    Returns:
+        List of deduplicated opportunities (most recent version of each unique bet)
+    """
+    if not opportunities:
+        return []
+    
+    # Dictionary to store the best version of each unique bet
+    unique_bets = {}
+    
+    for opp in opportunities:
+        # Create unique identifier for this bet
+        event = opp.get('Event', '').strip()
+        market = opp.get('Market', '').strip()
+        bet_description = opp.get('Bet Description', '').strip()
+        
+        # Create a unique key combining event, market, and bet description
+        # This ensures we identify the same bet even if described slightly differently
+        unique_key = f"{event}|{market}|{bet_description}".lower()
+        
+        # If this is the first time we see this bet, or if this version has better EV, keep it
+        if (unique_key not in unique_bets or 
+                opp.get('EV_Raw', 0) > unique_bets[unique_key].get('EV_Raw', 0)):
+            unique_bets[unique_key] = opp
+    
+    # Convert back to list and sort by EV
+    deduplicated = list(unique_bets.values())
+    deduplicated.sort(key=lambda x: x.get('EV_Raw', 0), reverse=True)
+    
+    logger.info(f"Deduplication: {len(opportunities)} → {len(deduplicated)} opportunities (removed {len(opportunities) - len(deduplicated)} duplicates)")
+    
+    return deduplicated
+
+
 def _load_cache_file(cache_file: str) -> Dict[str, Any]:
     """Load cache data from file"""
     try:
@@ -186,21 +232,24 @@ def process_opportunities(raw_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
             
             analytics['sports_breakdown'][sport_key] = sport_opportunities
         
-        # Calculate analytics
-        analytics['total_opportunities'] = len(opportunities)
+        # Sort opportunities by EV (highest first)
+        opportunities.sort(key=lambda x: x.get('EV_Raw', 0), reverse=True)
+        
+        # DEDUPLICATION: Remove duplicate opportunities, keeping only the most recent
+        deduplicated_opportunities = deduplicate_opportunities(opportunities)
+        
+        # Update analytics with deduplicated counts
+        analytics['total_opportunities'] = len(deduplicated_opportunities)
         analytics['processing_time'] = round(time.time() - start_time, 2)
         
-        if opportunities:
-            ev_values = [opp.get('EV_Raw', 0) for opp in opportunities]
+        if deduplicated_opportunities:
+            ev_values = [opp.get('EV_Raw', 0) for opp in deduplicated_opportunities]
             analytics['high_ev_count'] = sum(1 for ev in ev_values if ev >= 0.045)
             analytics['positive_ev_count'] = sum(1 for ev in ev_values if ev > 0)
             analytics['max_ev'] = max(ev_values)
             analytics['avg_ev'] = sum(ev_values) / len(ev_values)
         
-        # Sort opportunities by EV (highest first)
-        opportunities.sort(key=lambda x: x.get('EV_Raw', 0), reverse=True)
-        
-        result = (opportunities, analytics)
+        result = (deduplicated_opportunities, analytics)
         
         # Save to persistent cache
         with _cache_lock:
@@ -210,7 +259,7 @@ def process_opportunities(raw_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
             }
             _save_cache_file(PROCESSED_DATA_CACHE_FILE, cache_data)
         
-        logger.info(f"Processed {len(opportunities)} opportunities in {analytics['processing_time']}s and cached to file")
+        logger.info(f"Processed {len(opportunities)} opportunities ({len(deduplicated_opportunities)} after deduplication) in {analytics['processing_time']}s and cached to file")
         return result
         
     except Exception as e:

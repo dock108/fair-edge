@@ -392,204 +392,28 @@
         
         <!-- Opportunities Grid -->
         <div class="cards-grid" role="list" aria-label="Betting opportunities">
-            {% for opportunity in opportunities %}
-            <article class="odds-card ev-{{ opportunity.ev_classification }}" role="listitem" 
-                     aria-labelledby="card-{{ loop.index }}-title"
-                     aria-describedby="card-{{ loop.index }}-recommended">
-                
-                <!-- Card Header -->
-                <header class="odds-card__header">
-                    <h2 class="odds-card__title" id="card-{{ loop.index }}-title">{{ opportunity.event }}</h2>
-                    <p class="odds-card__subtitle">{{ opportunity.bet_description }}</p>
-                </header>
-
-                <!-- Card Body with Recommended Odds as Focal Point -->
-                <div class="odds-card__body">
-                    <!-- Recommended Posting Odds - PRIMARY FOCAL POINT -->
-                    {% if opportunity.recommended_posting_odds != 'N/A' %}
-                    <div class="odds-card__recommended" id="card-{{ loop.index }}-recommended">
-                        <span class="recommended-label">
-                            <span class="tooltip-container">
-                                Recommended Posting Odds:
-                                <button class="help-icon" aria-label="Posting Odds Help" type="button" tabindex="0">?</button>
-                                <div class="tooltip tooltip-large" role="tooltip">
-                                    Recommended odds to post on betting exchanges to achieve at least 2.5% expected value after commission fees.
-                                </div>
-                            </span>
-                        </span>
-                        <span class="recommended-value" aria-label="Recommended posting odds: {{ opportunity.recommended_posting_odds }}">
-                            {{ opportunity.recommended_posting_odds }}
-                        </span>
-                        
-                        <!-- Action Buttons under Recommended Odds -->
-                        {% if opportunity._original.Links and opportunity._original.Links != 'N/A' %}
-                        <div class="action-buttons" role="group" aria-label="Betting actions">
-                            {% for link in opportunity._original.Links.split('|') %}
-                                {% if link.strip() %}
-                                    {% set link_parts = link.strip().split(':') %}
-                                    {% if link_parts|length >= 2 %}
-                                        {% set action_type = link_parts[0].strip() %}
-                                        {% set action_url = link_parts[1:]|join(':')|trim %}
-                                        {% if action_type == 'Post' %}
-                                        <a href="{{ action_url }}" 
-                                           class="odds-card__action-btn post" 
-                                           target="_blank" 
-                                           rel="noopener noreferrer"
-                                           aria-label="Post bet - opens in new window">
-                                            <i class="fas fa-plus me-1" aria-hidden="true"></i>
-                                            Post Bet
-                                        </a>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-
-                    <!-- Other Odds Details - Secondary Information -->
-                    <div class="odds-card__details">
-                        <!-- Fair Odds -->
-                        <div class="detail-item">
-                            <span class="detail-label">
-                                <span class="tooltip-container">
-                                    Fair Odds:
-                                    <button class="help-icon" aria-label="Fair Odds Help" type="button" tabindex="0">?</button>
-                                    <div class="tooltip tooltip-large" role="tooltip">
-                                        The true odds calculated by our model. If available odds are better than this, the bet has positive expected value.
-                                    </div>
-                                </span>
-                            </span>
-                            <span class="detail-value" aria-label="Fair odds: {{ opportunity.fair_odds }}">
-                                {{ opportunity.fair_odds }}
-                            </span>
-                        </div>
-
-                        <!-- Best Available Odds -->
-                        <div class="detail-item">
-                            <span class="detail-label">
-                                <span class="tooltip-container">
-                                    Best Available:
-                                    <button class="help-icon" aria-label="Best Odds Help" type="button" tabindex="0">?</button>
-                                    <div class="tooltip tooltip-large" role="tooltip">
-                                        The best odds currently available across all sportsbooks, adjusted for exchange commissions where applicable.
-                                    </div>
-                                </span>
-                            </span>
-                            <span class="detail-value best-odds" aria-label="Best available odds: {{ opportunity.best_available_odds }}">
-                                {{ opportunity.best_available_odds }}
-                            </span>
-                        </div>
-
-                        <!-- Expected Value - Moved to appear under Best Available Odds -->
-                        <div class="detail-item ev-detail">
-                            <span class="detail-label">
-                                <span class="tooltip-container">
-                                    Expected Value:
-                                    <button class="help-icon" aria-label="Expected Value Help" type="button" tabindex="0">?</button>
-                                    <div class="tooltip tooltip-large" role="tooltip">
-                                        Expected Value (EV) is the percentage edge this bet has over fair odds. Positive EV means the bet is theoretically profitable long-term.
-                                    </div>
-                                </span>
-                            </span>
-                            <span class="detail-value ev-value {{ opportunity.ev_classification }}" 
-                                  aria-label="Expected value: {{ opportunity.ev_percentage|round(1) }}%">
-                                {{ opportunity.ev_percentage|round(1) }}%
-                            </span>
-                        </div>
-
-                        <!-- Available Odds from All Sportsbooks -->
-                        {% if opportunity.available_odds %}
-                        <div class="detail-item available-odds-section">
-                            <span class="detail-label">Available Odds:</span>
-                            <div class="available-odds-list" role="list" aria-label="Sportsbook odds">
-                                {% for odds_item in opportunity.available_odds %}
-                                <span class="odds-item" role="listitem" 
-                                      aria-label="{{ odds_item.bookmaker }}: {{ odds_item.odds }}">
-                                    {{ odds_item.bookmaker }}: {{ odds_item.odds }}
-                                </span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
+            <!-- Opportunities will be loaded here by JavaScript -->
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading opportunities...</span>
                 </div>
-                
-                {% if admin_mode %}
-                <!-- Admin Mode: Per-Card Debug Information -->
-                <section class="card-debug-section">
-                    <details class="card-debug">
-                        <summary class="card-debug-summary">
-                            <i class="fas fa-bug me-2"></i>Debug Information
-                        </summary>
-                        <div class="card-debug-content">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h5>EV Calculation Breakdown</h5>
-                                    <div class="debug-calc">
-                                        <strong>Fair Odds:</strong><br>
-                                        &nbsp;&nbsp;American: {{ opportunity._debug.ev_breakdown.fair_odds.american }}<br>
-                                        &nbsp;&nbsp;Decimal: {{ opportunity._debug.ev_breakdown.fair_odds.decimal }}<br>
-                                        &nbsp;&nbsp;Implied Prob: {{ opportunity._debug.ev_breakdown.fair_odds.implied_probability }}%<br><br>
-                                        
-                                        <strong>Best Odds:</strong><br>
-                                        &nbsp;&nbsp;American: {{ opportunity._debug.ev_breakdown.best_odds.american }}<br>
-                                        &nbsp;&nbsp;Decimal: {{ opportunity._debug.ev_breakdown.best_odds.decimal }}<br>
-                                        &nbsp;&nbsp;Implied Prob: {{ opportunity._debug.ev_breakdown.best_odds.implied_probability }}%<br><br>
-                                        
-                                        <strong>EV Formula:</strong><br>
-                                        &nbsp;&nbsp;{{ opportunity._debug.ev_breakdown.ev_calculation.formula }}<br>
-                                        &nbsp;&nbsp;= {{ opportunity._debug.ev_breakdown.ev_calculation.theoretical_ev }}<br>
-                                        &nbsp;&nbsp;Actual EV: {{ opportunity._debug.ev_breakdown.ev_calculation.actual_ev_percentage }}%<br>
-                                        &nbsp;&nbsp;Difference: {{ opportunity._debug.ev_breakdown.ev_calculation.difference }}<br><br>
-                                        
-                                        <strong>Classification:</strong><br>
-                                        &nbsp;&nbsp;Tier: {{ opportunity._debug.ev_breakdown.classification.ev_tier }}<br>
-                                        &nbsp;&nbsp;Logic: {{ opportunity._debug.ev_breakdown.classification.reasoning }}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5>Data Sources & Transformations</h5>
-                                    <div class="debug-sources">
-                                        <strong>Sources:</strong><br>
-                                        &nbsp;&nbsp;Best Odds: {{ opportunity._debug.data_sources.best_odds_source }}<br>
-                                        &nbsp;&nbsp;Fair Odds: {{ opportunity._debug.data_sources.fair_odds_model }}<br>
-                                        &nbsp;&nbsp;Exchange: {{ opportunity._debug.data_sources.posting_exchange }}<br><br>
-                                        
-                                        <strong>UI Transformation:</strong><br>
-                                        &nbsp;&nbsp;Original Fields: {{ opportunity._debug.ui_transformations.original_keys|length }}<br>
-                                        &nbsp;&nbsp;UI Fields: {{ opportunity._debug.ui_transformations.ui_keys|length }}<br>
-                                        &nbsp;&nbsp;Classification: {{ opportunity._debug.ui_transformations.classification_logic }}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-3">
-                                <h5>Raw Data Dump</h5>
-                                <details class="raw-data-dump">
-                                    <summary>Show Original Data Structure</summary>
-                                    <pre class="raw-data"><code>{{ opportunity._original | tojson(indent=2) }}</code></pre>
-                                </details>
-                                
-                                <h5 class="mt-3">UI Data Structure</h5>
-                                <details class="ui-data-dump">
-                                    <summary>Show UI-Transformed Data</summary>
-                                    <pre class="ui-data"><code>{{ opportunity._debug.ui_data_structure | tojson(indent=2) }}</code></pre>
-                                </details>
-                            </div>
-                        </div>
-                    </details>
-                </section>
-                {% endif %}
-            </article>
-            {% endfor %}
+                <p class="mt-2 text-muted">Loading betting opportunities...</p>
+            </div>
         </div>
         {% endif %}
     </div>
 </main>
 
 <script>
+// ===========================
+// TEMPLATE CONTEXT VARIABLES
+// ===========================
+
+// Pass template variables to JavaScript
+window.userRole = '{{ user_role }}';
+window.isGuest = {{ 'true' if is_guest else 'false' }};
+window.userEmail = '{{ user.email if not is_guest else "" }}';
+
 // ===========================
 // ENHANCED BOOTSTRAP 5 HELPERS
 // ===========================
@@ -649,7 +473,7 @@ const filterSpinner = document.querySelector('.filter-spinner');
 const debouncedFilter = debounce(() => {
     applyClientSideFilters();
 }, 300);
-
+    
 // Update results count
 function updateResultsCount(count, total) {
     if (resultsCount) {
@@ -724,7 +548,7 @@ async function fetchFilteredData() {
         const params = new URLSearchParams();
         if (currentFilters.search.trim()) {
             params.set("search", currentFilters.search.trim());
-        }
+    }
         if (currentFilters.sport) {
             params.set("sport", currentFilters.sport);
         }
@@ -780,29 +604,117 @@ function renderOpportunities(opportunities) {
     // For now, we'll show a simple list. In production, you'd want to 
     // recreate the full card HTML structure here
     cardsGrid.innerHTML = opportunities.map((opp, index) => `
-        <article class="odds-card ev-${opp.ev_classification}" role="listitem">
-            <header class="odds-card__header">
-                <h2 class="odds-card__title">${opp.event}</h2>
+        <article class="odds-card ev-${opp.ev_classification}" role="listitem" 
+                 aria-labelledby="card-${index}-title"
+                 aria-describedby="card-${index}-recommended">
+                
+                <!-- Card Header -->
+                <header class="odds-card__header">
+                <h2 class="odds-card__title" id="card-${index}-title">${opp.event}</h2>
                 <p class="odds-card__subtitle">${opp.bet_description}</p>
-            </header>
-            <div class="odds-card__body">
-                <div class="odds-card__details">
-                    <div class="detail-item">
-                        <span class="detail-label">Expected Value:</span>
-                        <span class="detail-value ev-value ${opp.ev_classification}">
-                            ${opp.ev_percentage.toFixed(1)}%
+                </header>
+
+                <!-- Card Body with Recommended Odds as Focal Point -->
+                <div class="odds-card__body">
+                    <!-- Recommended Posting Odds - PRIMARY FOCAL POINT -->
+                ${opp.recommended_posting_odds && opp.recommended_posting_odds !== 'N/A' ? `
+                <div class="odds-card__recommended" id="card-${index}-recommended">
+                        <span class="recommended-label">
+                            <span class="tooltip-container">
+                                Recommended Posting Odds:
+                                <button class="help-icon" aria-label="Posting Odds Help" type="button" tabindex="0">?</button>
+                                <div class="tooltip tooltip-large" role="tooltip">
+                                    Recommended odds to post on betting exchanges to achieve at least 2.5% expected value after commission fees.
+                                </div>
+                            </span>
                         </span>
+                    <span class="recommended-value" aria-label="Recommended posting odds: ${opp.recommended_posting_odds}">
+                        ${opp.recommended_posting_odds}
+                        </span>
+                        
+                        <!-- Action Buttons under Recommended Odds -->
+                    ${opp.action_link ? `
+                        <div class="action-buttons" role="group" aria-label="Betting actions">
+                        <a href="${opp.action_link}" 
+                                           class="odds-card__action-btn post" 
+                                           target="_blank" 
+                                           rel="noopener noreferrer"
+                                           aria-label="Post bet - opens in new window">
+                                            <i class="fas fa-plus me-1" aria-hidden="true"></i>
+                                            Post Bet
+                                        </a>
+                        </div>
+                    ` : ''}
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Fair Odds:</span>
-                        <span class="detail-value">${opp.fair_odds}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Best Available:</span>
-                        <span class="detail-value best-odds">${opp.best_available_odds}</span>
+                ` : ''}
+
+                    <!-- Other Odds Details - Secondary Information -->
+                    <div class="odds-card__details">
+                        <!-- Fair Odds -->
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <span class="tooltip-container">
+                                    Fair Odds:
+                                    <button class="help-icon" aria-label="Fair Odds Help" type="button" tabindex="0">?</button>
+                                    <div class="tooltip tooltip-large" role="tooltip">
+                                        The true odds calculated by our model. If available odds are better than this, the bet has positive expected value.
+                                    </div>
+                                </span>
+                            </span>
+                        <span class="detail-value" aria-label="Fair odds: ${opp.fair_odds}">
+                            ${opp.fair_odds}
+                            </span>
+                        </div>
+
+                        <!-- Best Available Odds -->
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <span class="tooltip-container">
+                                    Best Available:
+                                    <button class="help-icon" aria-label="Best Odds Help" type="button" tabindex="0">?</button>
+                                    <div class="tooltip tooltip-large" role="tooltip">
+                                        The best odds currently available across all sportsbooks, adjusted for exchange commissions where applicable.
+                                    </div>
+                                </span>
+                            </span>
+                        <span class="detail-value best-odds" aria-label="Best available odds: ${opp.best_available_odds}">
+                            ${opp.best_available_odds}
+                            </span>
+                        </div>
+
+                        <!-- Expected Value - Moved to appear under Best Available Odds -->
+                        <div class="detail-item ev-detail">
+                            <span class="detail-label">
+                                <span class="tooltip-container">
+                                    Expected Value:
+                                    <button class="help-icon" aria-label="Expected Value Help" type="button" tabindex="0">?</button>
+                                    <div class="tooltip tooltip-large" role="tooltip">
+                                        Expected Value (EV) is the percentage edge this bet has over fair odds. Positive EV means the bet is theoretically profitable long-term.
+                                    </div>
+                                </span>
+                            </span>
+                        <span class="detail-value ev-value ${opp.ev_classification}" 
+                              aria-label="Expected value: ${opp.ev_percentage.toFixed(1)}%">
+                            ${opp.ev_percentage.toFixed(1)}%
+                            </span>
+                        </div>
+
+                        <!-- Available Odds from All Sportsbooks -->
+                    ${opp.available_odds && opp.available_odds.length > 0 ? `
+                        <div class="detail-item available-odds-section">
+                            <span class="detail-label">Available Odds:</span>
+                            <div class="available-odds-list" role="list" aria-label="Sportsbook odds">
+                            ${opp.available_odds.map(odds_item => `
+                                <span class="odds-item" role="listitem" 
+                                  aria-label="${odds_item.bookmaker}: ${odds_item.odds}">
+                                ${odds_item.bookmaker}: ${odds_item.odds}
+                                </span>
+                            `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
                     </div>
                 </div>
-            </div>
         </article>
     `).join('');
 }
@@ -988,6 +900,219 @@ function createTimestampDisplay() {
     return timestampDisplay;
 }
 
+// Helper functions for parsing backend data
+function extractActionLink(linksStr) {
+    if (!linksStr || linksStr === 'N/A') return null;
+    
+    // Parse "Post:https://novig.com/exchange" format
+    const links = linksStr.split('|');
+    for (const link of links) {
+        if (link.trim()) {
+            const linkParts = link.trim().split(':');
+            if (linkParts.length >= 2 && linkParts[0].trim() === 'Post') {
+                return linkParts.slice(1).join(':').trim();
+            }
+        }
+    }
+    return null;
+}
+
+function parseAvailableOdds(allOddsStr) {
+    if (!allOddsStr || allOddsStr === 'N/A') return [];
+    
+    // Parse "DraftKings: +110; FanDuel: +105; ..." format
+    const available_odds = [];
+    const odds_parts = allOddsStr.split('; ');
+    for (const part of odds_parts) {
+        if (part.includes(':')) {
+            const [bookmaker, odds] = part.split(':', 2);
+            available_odds.push({
+                bookmaker: bookmaker.trim(),
+                odds: odds.trim()
+            });
+        }
+    }
+    
+    // Sort odds from best to worst
+    return available_odds.sort((a, b) => {
+        try {
+            const oddsA = parseInt(a.odds.replace('+', ''));
+            const oddsB = parseInt(b.odds.replace('+', ''));
+            
+            if (oddsA > 0 && oddsB > 0) {
+                return oddsB - oddsA; // Higher positive is better
+            } else if (oddsA < 0 && oddsB < 0) {
+                return oddsA - oddsB; // Less negative is better
+            } else if (oddsA > 0 && oddsB < 0) {
+                return -1; // Positive odds are better than negative
+            } else {
+                return 1; // Negative odds are worse than positive
+            }
+        } catch (error) {
+            return 0; // Keep original order if parsing fails
+        }
+    });
+}
+
+// Role-based filtering functions (mirror server-side logic)
+function getUserRole() {
+    // Try to get user role from page context
+    // Check if there's a user_role variable from template
+    if (typeof window.userRole !== 'undefined') {
+        return window.userRole;
+    }
+    
+    // Check meta tag
+    const roleMeta = document.querySelector('meta[name="user-role"]');
+    if (roleMeta) {
+        return roleMeta.getAttribute('content');
+    }
+    
+    // Default to free for safety
+    return 'free';
+}
+
+const MAIN_LINES = new Set(['h2h', 'spreads', 'totals']); // Main line markets for free users
+
+function applyRoleBasedFiltering(opportunities, userRole) {
+    if (userRole === 'subscriber' || userRole === 'admin') {
+        // Full access for paid users
+        return opportunities;
+    }
+    
+    // Free users: filter by market type only (no quantity limit in real-time updates)
+    const filteredOpportunities = [];
+    for (const opp of opportunities) {
+        // Get the original market key from the backend data
+        const originalMarket = opp._original?.Market || '';
+        
+        // Check if this is a main line market
+        if (MAIN_LINES.has(originalMarket)) {
+            // Remove advanced fields for free users (same as server-side MASK_FIELDS_FOR_FREE)
+            const filteredOpp = { ...opp };
+            
+            // Remove advanced fields if they exist
+            const fieldsToMask = [
+                'kelly_factor', 'true_hold', 'confidence_score',
+                'historical_performance', 'risk_assessment', 'recommended_stake',
+                'expected_roi', 'market_efficiency', 'sharp_money_indicator'
+            ];
+            
+            for (const field of fieldsToMask) {
+                delete filteredOpp[field];
+                if (filteredOpp._original) {
+                    delete filteredOpp._original[field];
+                }
+            }
+            
+            filteredOpportunities.push(filteredOpp);
+        }
+    }
+    
+    return filteredOpportunities;
+}
+
+// Update analytics metrics in the UI
+function updateAnalyticsDisplay(opportunities) {
+    if (!opportunities || opportunities.length === 0) return;
+    
+    // Calculate analytics from current opportunities
+    const totalCount = opportunities.length;
+    const positiveEvCount = opportunities.filter(opp => opp.ev_percentage > 0).length;
+    const highEvCount = opportunities.filter(opp => opp.ev_percentage >= 4.5).length;
+    const maxEv = Math.max(...opportunities.map(opp => opp.ev_percentage), 0);
+    
+    // Update the metric cards
+    const totalElement = document.querySelector('.metric-card .metric-value[aria-describedby="total-desc"]');
+    if (totalElement) {
+        totalElement.textContent = totalCount;
+    }
+    
+    const positiveElement = document.querySelector('.metric-card .metric-value[aria-describedby="positive-desc"]');
+    if (positiveElement) {
+        positiveElement.textContent = positiveEvCount;
+    }
+    
+    const highElement = document.querySelector('.metric-card .metric-value[aria-describedby="high-desc"]');
+    if (highElement) {
+        highElement.textContent = highEvCount;
+    }
+    
+    const maxElement = document.querySelector('.metric-card .metric-value[aria-describedby="max-desc"]');
+    if (maxElement) {
+        maxElement.textContent = `${maxEv.toFixed(1)}%`;
+    }
+    
+    console.log(`📊 Updated analytics: ${totalCount} total, ${positiveEvCount} positive EV, ${highEvCount} high EV, ${maxEv.toFixed(1)}% max`);
+}
+
+// Load initial data from server
+async function loadInitialData() {
+    try {
+        console.log('Loading initial opportunities data...');
+        
+        const response = await fetch('/api/opportunities', {
+            credentials: 'include',
+            headers: {
+                'Cache-Control': 'no-cache'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.opportunities && data.opportunities.length > 0) {
+            // Store the original data
+            originalOpportunities = data.opportunities;
+            
+            // Render initial opportunities
+            renderOpportunities(originalOpportunities);
+            
+            // Update results count
+            updateResultsCount(originalOpportunities.length, originalOpportunities.length);
+            
+            // Update analytics metrics
+            updateAnalyticsDisplay(originalOpportunities);
+            
+            console.log(`✅ Loaded ${originalOpportunities.length} initial opportunities`);
+        } else {
+            // Show empty state
+            const cardsGrid = document.querySelector('.cards-grid');
+            if (cardsGrid) {
+                cardsGrid.innerHTML = `
+                    <div class="empty-state text-center py-5">
+                        <i class="fas fa-search fa-3x mb-3 text-muted"></i>
+                        <h3>No Opportunities Available</h3>
+                        <p class="text-muted">No betting opportunities are currently available. Please check back later.</p>
+                                    </div>
+                `;
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error loading initial data:', error);
+        
+        // Show error state
+        const cardsGrid = document.querySelector('.cards-grid');
+        if (cardsGrid) {
+            cardsGrid.innerHTML = `
+                <div class="empty-state text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning"></i>
+                    <h3>Unable to Load Data</h3>
+                    <p class="text-muted">Failed to load betting opportunities: ${error.message}</p>
+                    <button class="btn btn-primary" onclick="loadInitialData()">
+                        <i class="fas fa-refresh me-1"></i>
+                        Try Again
+                    </button>
+                            </div>
+            `;
+        }
+    }
+}
+
 function updateTableWithNewData(data) {
     try {
         // Hide loading spinner on first update
@@ -1006,7 +1131,7 @@ function updateTableWithNewData(data) {
             // Update original opportunities data for filtering
             if (data.data && Array.isArray(data.data)) {
                 // Convert backend format to UI format for filtering
-                originalOpportunities = data.data.map(opp => ({
+                let uiOpportunities = data.data.map(opp => ({
                     event: opp.Event || 'Unknown Event',
                     bet_description: opp['Bet Description'] || 'Unknown Bet',
                     bet_type: opp.Market || 'Unknown Market',
@@ -1015,11 +1140,23 @@ function updateTableWithNewData(data) {
                                      (opp.EV_Raw || 0) > 0 ? 'positive' : 'neutral',
                     fair_odds: opp['Fair Odds'] || 'N/A',
                     best_available_odds: opp['Best Available Odds'] || 'N/A',
-                    best_odds_source: opp['Best_Odds_Source'] || ''
+                    best_odds_source: opp['Best_Odds_Source'] || '',
+                    recommended_posting_odds: opp['Proposed Posting Odds'] || 'N/A',
+                    action_link: extractActionLink(opp['Links'] || ''),
+                    available_odds: parseAvailableOdds(opp['All Available Odds'] || ''),
+                    // Keep original data for market filtering
+                    _original: opp
                 }));
+                
+                // Apply role-based filtering (same logic as server-side)
+                const userRole = getUserRole();
+                originalOpportunities = applyRoleBasedFiltering(uiOpportunities, userRole);
                 
                 // Re-apply current filters to new data
                 applyClientSideFilters();
+                
+                // Update analytics metrics
+                updateAnalyticsDisplay(originalOpportunities);
             }
             
             // Show update notification with improved formatting
@@ -1027,6 +1164,9 @@ function updateTableWithNewData(data) {
                 `Updated with ${data.summary.total_count} opportunities (${data.summary.positive_ev_count} positive EV)`,
                 'success'
             );
+            
+            // Update analytics metrics
+            updateAnalyticsDisplay(originalOpportunities);
         }
     } catch (error) {
         console.error('Error updating table:', error);
@@ -1144,13 +1284,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Only connect real-time updates if we're on a page with opportunities
     const opportunitiesContainer = document.querySelector('.cards-grid');
     if (opportunitiesContainer) {
-        console.log('Initializing real-time updates...');
+        console.log('Initializing dashboard...');
+        
+        // Load initial data from server
+        loadInitialData();
         
         // Create timestamp display
         createTimestampDisplay();
-        
-        // Show loading spinner initially (Bootstrap 5 pattern)
-        showLoadingSpinner();
         
         // Connect to real-time updates
         connectWebSocket();
