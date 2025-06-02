@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>How Our Analysis Works - The Math Behind the Recommendations</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
+    
+    <!-- Graceful degradation: Auto-refresh for browsers without JavaScript -->
+    <noscript>
+        <!-- Refresh the whole page every 60s when JavaScript is unavailable -->
+        <meta http-equiv="refresh" content="60">
+    </noscript>
+    
     <style>
         .education-container {
             max-width: 900px;
