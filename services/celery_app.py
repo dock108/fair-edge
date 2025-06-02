@@ -48,10 +48,10 @@ celery_app.conf.update(
     worker_max_tasks_per_child=100,  # Restart worker to prevent memory leaks
     worker_disable_rate_limits=False,
     
-    # Beat Schedule Configuration
+    # Beat Schedule Configuration - Use exact task names from @shared_task decorators
     beat_schedule={
         'refresh-ev-data': {
-            'task': 'refresh_odds_data',
+            'task': 'refresh_odds_data',  # Matches @shared_task(name="refresh_odds_data")
             'schedule': crontab(minute=f"*/{REFRESH_INTERVAL_MINUTES}"),
             'options': {
                 'expires': 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up
@@ -67,7 +67,7 @@ celery_app.conf.update(
             }
         },
         'health-check': {
-            'task': 'health_check',
+            'task': 'health_check',  # Matches @shared_task(name="health_check")
             'schedule': crontab(minute='*/5'),
             'options': {
                 'expires': 300,
