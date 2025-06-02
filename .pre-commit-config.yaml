@@ -1,0 +1,48 @@
+repos:
+  - repo: local
+    hooks:
+      - id: no-pandas-numpy
+        name: Block pandas/numpy imports
+        entry: bash
+        args: ['-c', 'if grep -r "import pandas\|import numpy\|from pandas\|from numpy" --include="*.py" .; then echo "❌ pandas/numpy imports detected - these dependencies were removed"; exit 1; fi']
+        language: system
+        files: '\.py$'
+        
+      - id: check-app-size
+        name: Check app.py size limit
+        entry: bash
+        args: ['-c', 'lines=$(wc -l < app.py); if [ $lines -gt 800 ]; then echo "❌ app.py has $lines lines (limit: 800) - consider refactoring"; exit 1; fi']
+        language: system
+        files: '^app\.py$'
+        
+      - id: no-direct-app-imports
+        name: Block direct app imports in routes
+        entry: bash
+        args: ['-c', 'if grep -r "from app import\|import app" routes/ --include="*.py" 2>/dev/null; then echo "❌ Direct app imports in routes detected - use dependency injection"; exit 1; fi']
+        language: system
+        files: '^routes/.*\.py$'
+        
+      - id: check-env-security
+        name: Check for committed secrets
+        entry: bash
+        args: ['-c', 'if [ -f .env ] && ! grep -q "^\.env$" .gitignore; then echo "❌ .env file exists but not in .gitignore"; exit 1; fi']
+        language: system
+        pass_filenames: false
+        
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        args: [--line-length=100]
+        
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=100, --ignore=E203,W503]
+        
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100] 
