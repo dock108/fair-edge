@@ -182,4 +182,66 @@ deployment/
 dmypy.json
 .pyre/
 .pytype/
-cython_debug/ 
+cython_debug/
+
+# ===== BET-INTEL SPECIFIC =====
+
+# Database & Persistence
+*.db-journal
+*.db-wal
+*.db-shm
+alembic_version_table_*.sql
+database_dumps/
+migrations_backup/
+
+# Celery & Background Tasks
+celerybeat-schedule
+celerybeat.pid
+celery-worker.pid
+celery-beat.pid
+.celerybeat.pid
+*.celerybeat
+
+# Redis & Cache Data
+redis-data/
+redis.log
+dump.rdb
+.redis/
+
+# Betting Data & APIs
+odds_data_cache/
+betting_history/
+api_responses/
+raw_odds_*.json
+processed_opportunities_*.json
+
+# Development & Testing Scripts
+check_*.py
+verify_*.py
+test_persistence*.py
+run_real_data_load.py
+*_verification.py
+*_diagnostic.py
+
+# Logs (bet-intel specific)
+bet-intel.log
+celery.log
+worker.log
+beat.log
+persistence.log
+
+# Development Database Files
+development.db
+test.db
+local.db
+*.db.backup
+
+# Temporary Analysis Files
+analysis_*.py
+scratch_*.py
+experiment_*.py
+
+# Configuration Overrides
+config_override.py
+local_config.py
+dev_settings.py 
