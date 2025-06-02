@@ -54,6 +54,7 @@ from core.constants import MASK_FIELDS_FOR_FREE, ROLE_FEATURES
 # Import routes
 from routes.billing import router as billing_router
 from routes.realtime import router as realtime_router
+from routes.admin import router as admin_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -175,6 +176,9 @@ app.include_router(billing_router)
 
 # Include realtime router
 app.include_router(realtime_router)
+
+# Include admin router
+app.include_router(admin_router)
 
 # Register cleanup functions from other modules
 try:
@@ -706,37 +710,69 @@ async def account_page(request: Request):
         logger.error(f"Account page error: {e}")
         raise HTTPException(status_code=500, detail="Unable to load account page")
 
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request, admin_user: UserCtx = Depends(require_role("admin"))):
+    """
+    Admin dashboard page - allows administrators to manage users and view system stats
+    Requires admin role for access
+    """
+    try:
+        context = {
+            "request": request,
+            "settings": settings,
+            "page_title": "Admin Dashboard - Sports Betting +EV Analyzer",
+            "admin_user": admin_user
+        }
+        
+        return templates.TemplateResponse("admin.html", context)
+        
+    except Exception as e:
+        logger.error(f"Admin page error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to load admin page")
+
+# Define main line markets that free users can access
+MAIN_LINES = {"h2h", "spreads", "totals"}  # moneyline, game spreads, game totals
+
 def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role: str) -> Dict[str, Any]:
     """
-    Filter and mask opportunities based on user role
-    Returns role-aware response with metadata
+    Filter opportunities based on user role
+    Free users: Only main lines (moneyline, spreads, totals)
+    Subscribers/Admins: All markets
     """
     total_available = len(opportunities)
-    role_config = ROLE_FEATURES.get(user_role, ROLE_FEATURES["free"])
-    max_opportunities = role_config["max_opportunities"]
     
-    # Apply limits for non-admin users
-    if max_opportunities == -1:  # unlimited (admin)
+    if user_role in ("subscriber", "admin"):
+        # Full access for paid users and admins
         filtered_opportunities = opportunities
         truncated = False
+        limit = None
     else:
-        filtered_opportunities = opportunities[:max_opportunities]
-        truncated = total_available > max_opportunities
+        # Free users: filter by market type only (no quantity limit)
+        filtered_opportunities = []
+        for opp in opportunities:
+            # Get the original market key from the _original data
+            original_market = opp.get('_original', {}).get('Market', '')
+            
+            # Check if this is a main line market
+            if original_market in MAIN_LINES:
+                # Mask advanced fields for free users
+                filtered_opp = opp.copy()
+                for field in MASK_FIELDS_FOR_FREE:
+                    filtered_opp.pop(field, None)
+                    # Also remove from _original if it exists
+                    if '_original' in filtered_opp:
+                        filtered_opp['_original'].pop(field, None)
+                filtered_opportunities.append(filtered_opp)
+        
+        truncated = len(filtered_opportunities) < total_available
+        limit = "main lines only"
     
-    # Mask advanced fields for free users
-    if user_role == "free":
-        for opportunity in filtered_opportunities:
-            # Remove advanced fields from the opportunity data
-            for field in MASK_FIELDS_FOR_FREE:
-                opportunity.pop(field, None)
-                # Also remove from _original if it exists
-                if '_original' in opportunity:
-                    opportunity['_original'].pop(field, None)
+    role_config = ROLE_FEATURES.get(user_role, ROLE_FEATURES["free"])
     
     return {
         "role": user_role,
         "truncated": truncated,
-        "limit": max_opportunities if max_opportunities != -1 else None,
+        "limit": limit,
         "total_available": total_available,
         "shown": len(filtered_opportunities),
         "features": role_config,
