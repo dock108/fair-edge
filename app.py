@@ -50,7 +50,6 @@ from core.session import (
 
 # Import core settings
 from core.config import settings
-from core.constants import MASK_FIELDS_FOR_FREE, ROLE_FEATURES
 
 # Import routes
 from routes.billing import router as billing_router
@@ -110,27 +109,10 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Configure CORS based on environment
-if settings.environment == "production":
-    # Production: Only allow your domain
-    origins = [
-        "https://app.betintel.com",
-        "https://betintel.com"
-    ]
-else:
-    # Development: Allow localhost variations
-    origins = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000", 
-        "http://127.0.0.1:5173",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000"
-    ]
-
+# Configure CORS based on environment - use new config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,  # Required for cookies
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
@@ -228,10 +210,6 @@ def setup_signal_handlers():
 # Setup signal handlers
 setup_signal_handlers()
 
-# Admin mode configuration
-DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
-ADMIN_SECRET = os.getenv("ADMIN_SECRET", "dev_debug_2024")
-
 def is_admin_mode_enabled(request: Request, admin_param: Optional[str] = None) -> bool:
     """
     Determine if admin mode should be enabled for this request.
@@ -241,7 +219,7 @@ def is_admin_mode_enabled(request: Request, admin_param: Optional[str] = None) -
     2. Admin query parameter must be present
     3. Optional: Admin secret verification
     """
-    if not DEBUG_MODE:
+    if not settings.is_debug:
         return False
     
     if admin_param != "true":
@@ -249,7 +227,7 @@ def is_admin_mode_enabled(request: Request, admin_param: Optional[str] = None) -
     
     # Additional security: check for admin secret in headers or another param
     admin_secret = request.query_params.get("secret")
-    if admin_secret and admin_secret != ADMIN_SECRET:
+    if admin_secret and admin_secret != settings.admin_secret:
         return False
     
     return True
@@ -258,9 +236,9 @@ def get_debug_metrics() -> Dict[str, Any]:
     """Get system debug metrics"""
     return {
         "app_version": "2.1.0",
-        "debug_mode": DEBUG_MODE,
+        "debug_mode": settings.is_debug,
         "timestamp": datetime.now().isoformat(),
-        "environment": os.getenv("ENVIRONMENT", "development"),
+        "environment": settings.environment,
         "python_version": os.sys.version.split()[0],
         "performance": {
             "page_generation_start": time.time()
@@ -769,8 +747,9 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
             # Check if this is a main line market
             if original_market in MAIN_LINES:
                 # Mask advanced fields for free users
+                from core.config import feature_config
                 filtered_opp = opp.copy()
-                for field in MASK_FIELDS_FOR_FREE:
+                for field in feature_config.MASK_FIELDS_FOR_FREE:
                     filtered_opp.pop(field, None)
                     # Also remove from _original if it exists
                     if '_original' in filtered_opp:
@@ -780,7 +759,8 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
         truncated = len(filtered_opportunities) < total_available
         limit = "main lines only"
     
-    role_config = ROLE_FEATURES.get(user_role, ROLE_FEATURES["free"])
+    from core.config import feature_config
+    role_config = feature_config.get_user_features(user_role)
     
     return {
         "role": user_role,
@@ -812,50 +792,6 @@ async def premium_dashboard(request: Request, admin: Optional[str] = None, user:
             status_code=500
         )
 
-@app.get("/api/bets", tags=["opportunities"])
-@limiter.limit("60/minute")
-async def get_betting_opportunities(request: Request):
-    """
-    Get betting opportunities with role-based filtering
-    Now supports guest access with free tier limits
-    Free users: Limited to first 10 opportunities with masked advanced fields
-    Subscribers: Up to 100 opportunities with full data
-    Admins: Unlimited access
-    """
-    try:
-        # Use centralized user service
-        from services.user_service import UserContextManager
-        from services.data_service import OpportunityProcessor
-        
-        user_ctx = UserContextManager(request)
-        
-        # Process opportunities with current data
-        processor = OpportunityProcessor(user_ctx.role)
-        result = processor.process()
-        
-        # Add metadata
-        result["filtered_response"].update({
-            "analytics": result["analytics"],
-            "last_update": result["last_update"],
-            "data_source": result["data_source"],
-            "is_guest": user_ctx.is_guest
-        })
-        
-        return result["filtered_response"]
-        
-    except Exception as e:
-        logger.error(f"Failed to retrieve opportunities: {e}")
-        return {
-            "role": "free",
-            "truncated": False,
-            "total_available": 0,
-            "shown": 0,
-            "opportunities": [],
-            "error": "Unable to retrieve opportunities data",
-            "data_source": "error",
-            "is_guest": True
-        }
-
 @app.get("/api/opportunities")
 @limiter.limit("60/minute")
 async def api_opportunities(
@@ -864,8 +800,8 @@ async def api_opportunities(
     sport: Optional[str] = None
 ):
     """
-    API endpoint for getting opportunities data with role-based access control
-    Now supports guest access with free tier limits and server-side filtering
+    Main API endpoint for getting opportunities data with role-based access control
+    Supports guest access with free tier limits and server-side filtering
     Falls back to live data if cache is empty
     Rate limited to prevent abuse
     
@@ -877,7 +813,6 @@ async def api_opportunities(
         # Use centralized user service
         from services.user_service import UserContextManager
         from services.data_service import OpportunityProcessor
-        from services.response_service import create_filtered_opportunities_response, ErrorHandler
         
         user_ctx = UserContextManager(request)
         processor = OpportunityProcessor(user_ctx.role)
@@ -885,18 +820,23 @@ async def api_opportunities(
         # Process opportunities with filters
         result = processor.process(search=search, sport=sport)
         
-        # Create standardized response
-        return create_filtered_opportunities_response(
-            filtered_response=result["filtered_response"],
-            analytics=result["analytics"],
-            user=user_ctx.user,
-            data_source=result["data_source"],
-            last_update=result["last_update"],
-            filters_applied=result["filters_applied"]
-        )
+        # Return standardized format for frontend compatibility
+        filtered_response = result["filtered_response"]
+        filtered_response.update({
+            "analytics": result["analytics"],
+            "last_update": result["last_update"],
+            "data_source": result["data_source"],
+            "is_guest": user_ctx.is_guest,
+            "filters_applied": result["filters_applied"]
+        })
+        
+        return filtered_response
         
     except Exception as e:
         logger.error(f"Error in API route: {e}")
+        # Import ErrorHandler outside the try block to avoid scoping issues
+        from services.response_service import ErrorHandler
+        from services.user_service import UserContextManager
         user_ctx = UserContextManager(request)
         return ErrorHandler.handle_data_fetch_error(e, user_ctx.user)
 
@@ -1155,93 +1095,6 @@ async def get_task_status(task_id: str, request: Request, admin_user: UserCtx = 
         raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
 
 
-@app.get("/api/odds", tags=["opportunities"])
-@limiter.limit("60/minute")
-async def get_cached_opportunities(request: Request):
-    """
-    Get cached EV opportunities from Redis (public endpoint)
-    This is the main endpoint for getting opportunities without triggering API calls
-    Now applies free-tier filtering for unauthenticated users
-    Rate limited to prevent abuse
-    """
-    try:
-        # Try to get current user, but allow guest access
-        user_role = "free"  # Default to free tier
-        is_guest = True
-        
-        try:
-            from core.session import get_current_user_from_cookie
-            user = get_current_user_from_cookie(request)
-            if user:
-                user_role = user.role
-                is_guest = False
-        except Exception:
-            # Guest access - use free tier
-            pass
-        
-        # Get cached data from Redis
-        opportunities = get_ev_data()
-        
-        if opportunities:
-            ui_opportunities = process_opportunities_for_ui(opportunities)
-            ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
-        else:
-            ui_opportunities = []
-        
-        # Apply role-based filtering
-        filtered_response = filter_opportunities_by_role(ui_opportunities, user_role)
-        
-        return {
-            "total": filtered_response.get('total_available', 0),
-            "shown": filtered_response.get('shown', 0),
-            "opportunities": filtered_response.get('opportunities', []),
-            "analytics": get_analytics_data(),
-            "last_update": get_last_update(),
-            "data_source": "redis_cache",
-            "role": user_role,
-            "is_guest": is_guest,
-            "truncated": filtered_response.get('truncated', False)
-        }
-    except Exception as e:
-        logger.error(f"Failed to retrieve cached opportunities: {e}")
-        # Fallback to live data if Redis fails
-        try:
-            raw_data = fetch_raw_odds_data()
-            if raw_data['status'] == 'success':
-                opportunities, analytics = process_opportunities(raw_data)
-                ui_opportunities = process_opportunities_for_ui(opportunities)
-                ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
-                
-                # Apply free tier filtering for fallback
-                filtered_response = filter_opportunities_by_role(ui_opportunities, "free")
-                
-                return {
-                    "total": filtered_response.get('total_available', 0),
-                    "shown": filtered_response.get('shown', 0),
-                    "opportunities": filtered_response.get('opportunities', []),
-                    "analytics": analytics,
-                    "last_update": datetime.now().isoformat(),
-                    "data_source": "live_fallback",
-                    "role": "free",
-                    "is_guest": True,
-                    "truncated": True
-                }
-        except Exception as fallback_error:
-            logger.error(f"Fallback also failed: {fallback_error}")
-        
-        return {
-            "total": 0,
-            "shown": 0,
-            "opportunities": [],
-            "analytics": {},
-            "error": "Unable to retrieve opportunities data",
-            "data_source": "error",
-            "role": "free",
-            "is_guest": True,
-            "truncated": False
-        }
-
-
 @app.get("/api/cache-status", tags=["system"])
 @limiter.limit("30/minute")
 async def get_cache_status(request: Request):
@@ -1326,7 +1179,7 @@ async def trigger_manual_refresh(request: Request):
     Triggers immediate data refresh and returns the updated opportunities
     Only active when DEBUG_MODE is enabled
     """
-    if not settings.debug_mode:
+    if not settings.is_debug:
         raise HTTPException(status_code=404, detail="Debug endpoint not available in production")
     
     try:
