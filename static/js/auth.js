@@ -19,12 +19,14 @@
     /**
      * Initialize authentication system
      */
-    function initializeAuth() {
-        updateAuthUI();
+    async function initializeAuth() {
+        console.log('auth.js: Initializing authentication system');
+        
+        await updateAuthUI();
         setupAuthEventListeners();
         
         // Check if we're on a protected page without auth
-        if (isProtectedPage() && !isAuthenticated()) {
+        if (isProtectedPage() && !(await isAuthenticated())) {
             redirectToLogin();
         }
     }
@@ -32,11 +34,10 @@
     /**
      * Check if user is authenticated
      */
-    function isAuthenticated() {
+    async function isAuthenticated() {
         if (USE_SECURE_COOKIES) {
-            // Check for session cookie presence (not accessible via JS)
-            // We'll make a quick API call to verify
-            return checkCookieAuthentication();
+            // Check for session cookie presence via API call
+            return await checkCookieAuthentication();
         } else {
             const token = localStorage.getItem('sb_token');
             return token && token.length > 0;
@@ -53,6 +54,7 @@
             });
             return response.ok;
         } catch (error) {
+            console.error('Cookie auth check failed:', error);
             return false;
         }
     }
@@ -67,8 +69,11 @@
                     credentials: 'include'
                 });
                 if (response.ok) {
-                    return await response.json();
+                    const user = await response.json();
+                    console.log('Got current user:', user);
+                    return user;
                 }
+                console.log('User fetch failed:', response.status);
                 return null;
             } catch (error) {
                 console.error('Error fetching user data:', error);
@@ -125,12 +130,19 @@
      */
     async function updateAuthUI() {
         const authStatus = document.getElementById('auth-status');
-        if (!authStatus) return;
+        if (!authStatus) {
+            console.log('No auth-status element found');
+            return;
+        }
 
+        console.log('Updating auth UI...');
+        
         if (await isAuthenticated()) {
             const user = await getCurrentUser();
             const userEmail = user ? user.email : 'Unknown User';
             const userRole = user ? user.role : 'free';
+            
+            console.log('User authenticated:', userEmail, 'Role:', userRole);
             
             authStatus.innerHTML = `
                 <div class="nav-item dropdown">
@@ -150,12 +162,79 @@
             
             // Handle role-based UI elements
             handleRoleBasedUI(userRole);
+            
+            // Update server-side role display if needed
+            updateServerRoleDisplay(user);
         } else {
+            console.log('User not authenticated, showing login button');
             authStatus.innerHTML = `
                 <a class="nav-link" href="/login">
                     <i class="fas fa-sign-in-alt me-1"></i> Login
                 </a>
             `;
+            
+            // Clear any role-based UI
+            handleRoleBasedUI('guest');
+        }
+    }
+
+    /**
+     * Update server-side role display elements
+     */
+    function updateServerRoleDisplay(user) {
+        // Update role badges that might be rendered server-side
+        const roleBadges = document.querySelectorAll('.user-role-badge');
+        roleBadges.forEach(badge => {
+            badge.textContent = user.role.toUpperCase();
+            badge.className = `badge user-role-badge bg-${getRoleBadgeColor(user.role)} rounded-pill`;
+        });
+        
+        // Update user email displays
+        const emailDisplays = document.querySelectorAll('.user-email-display');
+        emailDisplays.forEach(display => {
+            display.textContent = user.email;
+        });
+        
+        // Update upgrade visibility
+        updateUpgradeVisibility(user);
+        
+        // Force page refresh if role significantly changed (e.g., free -> subscriber)
+        const currentPageRole = document.body.dataset.userRole;
+        if (currentPageRole && currentPageRole !== user.role) {
+            console.log(`Role changed from ${currentPageRole} to ${user.role}, refreshing page`);
+            // Set a flag to prevent infinite refresh loops
+            if (!sessionStorage.getItem('role_refresh_done')) {
+                sessionStorage.setItem('role_refresh_done', 'true');
+                setTimeout(() => {
+                    sessionStorage.removeItem('role_refresh_done');
+                    location.reload();
+                }, 100);
+            }
+        }
+    }
+
+    /**
+     * Update upgrade visibility based on user
+     */
+    function updateUpgradeVisibility(user) {
+        const upgradeCTA = document.getElementById('upgrade-cta');
+        const upgradeBanner = document.getElementById('upgrade-banner');
+        const manageBillingNav = document.getElementById('manage-billing-nav');
+        
+        if (user && user.role === 'free') {
+            // Show upgrade CTA for free users
+            if (upgradeCTA) upgradeCTA.classList.remove('d-none');
+            // Hide manage billing for free users
+            if (manageBillingNav) manageBillingNav.classList.add('d-none');
+        } else if (user && (user.role === 'subscriber' || user.role === 'admin')) {
+            // Hide upgrade CTA for premium users
+            if (upgradeCTA) upgradeCTA.classList.add('d-none');
+            // Show manage billing for subscribers
+            if (manageBillingNav && user.role === 'subscriber') {
+                manageBillingNav.classList.remove('d-none');
+            }
+            // Hide upgrade banner for premium users
+            if (upgradeBanner) upgradeBanner.style.display = 'none';
         }
     }
 
@@ -175,13 +254,19 @@
      * Handle role-based UI elements and upgrade banner
      */
     function handleRoleBasedUI(userRole) {
+        console.log('Handling role-based UI for role:', userRole);
+        
         // Show/hide role-specific elements
         toggleElementsByRole('free-only', userRole === 'free');
         toggleElementsByRole('subscriber-only', userRole === 'subscriber' || userRole === 'admin');
         toggleElementsByRole('admin-only', userRole === 'admin');
         
+        // Handle premium content visibility
+        toggleElementsByRole('premium-content', userRole === 'subscriber' || userRole === 'admin');
+        toggleElementsByRole('premium-feature', userRole === 'subscriber' || userRole === 'admin');
+        
         // Handle upgrade banner persistence
-        handleUpgradeBanner();
+        handleUpgradeBanner(userRole);
     }
 
     /**
@@ -189,17 +274,30 @@
      */
     function toggleElementsByRole(className, show) {
         const elements = document.querySelectorAll(`.${className}`);
+        console.log(`Found ${elements.length} elements with class ${className}, showing: ${show}`);
         elements.forEach(element => {
-            element.style.display = show ? 'block' : 'none';
+            if (show) {
+                element.style.display = '';
+                element.classList.remove('d-none');
+            } else {
+                element.style.display = 'none';
+                element.classList.add('d-none');
+            }
         });
     }
 
     /**
      * Handle upgrade banner display and persistence
      */
-    function handleUpgradeBanner() {
+    function handleUpgradeBanner(userRole) {
         const banner = document.getElementById('upgrade-banner');
         if (!banner) return;
+
+        // Hide banner for premium users
+        if (userRole === 'subscriber' || userRole === 'admin') {
+            banner.style.display = 'none';
+            return;
+        }
 
         // Check if user has dismissed banner this session
         const userId = getCurrentUserId();
@@ -208,11 +306,14 @@
 
         if (isDismissed) {
             banner.style.display = 'none';
+        } else {
+            banner.style.display = '';
         }
 
         // Listen for banner close
         const closeBtn = banner.querySelector('.btn-close');
-        if (closeBtn) {
+        if (closeBtn && !closeBtn.hasAttribute('data-listener-added')) {
+            closeBtn.setAttribute('data-listener-added', 'true');
             closeBtn.addEventListener('click', () => {
                 sessionStorage.setItem(sessionKey, 'true');
             });
@@ -534,7 +635,38 @@
         logout,
         refreshAuthToken,
         updateAuthUI,
-        showAuthMessage
+        showAuthMessage,
+        // Add method to force auth state refresh
+        forceAuthRefresh: async function() {
+            console.log('Forcing auth state refresh...');
+            await updateAuthUI();
+            
+            // If we're authenticated, also refresh the page to get server-side content
+            if (await isAuthenticated()) {
+                const user = await getCurrentUser();
+                if (user && user.role !== 'free') {
+                    console.log('Premium user detected, refreshing to show full content');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                }
+            }
+        }
+    };
+
+    // Listen for storage events (for cross-tab auth sync)
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'auth_state_changed') {
+            console.log('Auth state changed in another tab, refreshing...');
+            window.authHelpers.forceAuthRefresh();
+        }
+    });
+
+    // Add method to manually trigger auth refresh (useful for login success)
+    window.triggerAuthRefresh = function() {
+        localStorage.setItem('auth_state_changed', Date.now());
+        localStorage.removeItem('auth_state_changed');
+        window.authHelpers.forceAuthRefresh();
     };
 
     /**

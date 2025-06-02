@@ -6,7 +6,7 @@ Serves the new HTML/CSS UI using Jinja2 templates
 from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -1579,19 +1579,29 @@ async def create_session(request: Request, response: Response):
         csrf_token = SessionManager.set_auth_cookie(response, access_token, user_data)
         
         logger.info(f"Session created successfully for user: {user_data.get('email')}")
+        logger.info(f"Cookies being set - Auth: {SessionManager.AUTH_COOKIE}, CSRF: {SessionManager.CSRF_COOKIE}")
         
-        return JSONResponse(
-            content={
-                "status": "success",
-                "csrf_token": csrf_token,
-                "user": {
-                    "id": user_data.get("id"),
-                    "email": user_data.get("email"),
-                    "role": user_data.get("role", "free")
-                }
-            },
-            headers={"X-CSRF-Token": csrf_token}
-        )
+        # Create response content
+        response_content = {
+            "status": "success",
+            "csrf_token": csrf_token,
+            "user": {
+                "id": user_data.get("id"),
+                "email": user_data.get("email"),
+                "role": user_data.get("role", "free")
+            }
+        }
+        
+        # Set headers and return the response object (which now has cookies)
+        response.headers["X-CSRF-Token"] = csrf_token
+        response.headers["Content-Type"] = "application/json"
+        
+        # Use the response object we've been setting cookies on
+        import json
+        response.body = json.dumps(response_content).encode()
+        response.status_code = 200
+        
+        return response
         
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
@@ -1624,9 +1634,14 @@ async def get_session_user(request: Request):
     Get current user from session cookie
     Rate limited to prevent abuse
     """
+    logger.info(f"Session user endpoint called. Cookies: {dict(request.cookies)}")
+    
     user = get_current_user_from_cookie(request)
     if not user:
+        logger.warning("No user found from session cookie")
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    logger.info(f"User found from cookie: {user.email} ({user.role})")
     
     return {
         "id": user.id,
@@ -1711,6 +1726,38 @@ async def advanced_analytics(request: Request, subscriber: UserCtx = Depends(req
     except Exception as e:
         logger.error(f"Advanced analytics error for {subscriber.email}: {e}")
         raise HTTPException(status_code=500, detail="Analytics generation failed")
+
+@app.get("/debug/cookies")
+async def debug_cookies(request: Request):
+    """Debug endpoint to inspect cookies and session state"""
+    from core.session import SessionManager, get_current_user_from_cookie
+    
+    debug_info = {
+        "all_cookies": dict(request.cookies),
+        "auth_cookie_name": SessionManager.AUTH_COOKIE,
+        "csrf_cookie_name": SessionManager.CSRF_COOKIE,
+        "auth_cookie_value": request.cookies.get(SessionManager.AUTH_COOKIE),
+        "csrf_cookie_value": request.cookies.get(SessionManager.CSRF_COOKIE),
+        "user_from_cookie": None,
+        "jwt_decode_error": None
+    }
+    
+    # Try to get user from cookie
+    try:
+        user = get_current_user_from_cookie(request)
+        if user:
+            debug_info["user_from_cookie"] = {
+                "id": user.id,
+                "email": user.email,
+                "role": user.role,
+                "subscription_status": user.subscription_status
+            }
+        else:
+            debug_info["user_from_cookie"] = "No user found"
+    except Exception as e:
+        debug_info["jwt_decode_error"] = str(e)
+    
+    return debug_info
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 

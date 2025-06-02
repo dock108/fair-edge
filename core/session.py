@@ -29,16 +29,15 @@ class SessionManager:
         Set secure httpOnly authentication cookie
         Returns CSRF token for client-side storage
         """
-        # Set the auth cookie (httpOnly, secure in prod)
-        is_production = settings.environment == "production"
-        
+        # Set the auth cookie (httpOnly, not secure for localhost development)
         response.set_cookie(
             key=cls.AUTH_COOKIE,
             value=access_token,
             max_age=settings.jwt_expires_minutes * 60,  # Convert to seconds
             httponly=True,  # Block JS access
-            secure=is_production,  # HTTPS only in production
+            secure=False,  # Always False for development (localhost doesn't use HTTPS)
             samesite="lax",  # CSRF protection
+            path="/",  # Ensure cookie is available for all paths
             domain=None  # Use default domain
         )
         
@@ -51,8 +50,10 @@ class SessionManager:
             value=csrf_token,
             max_age=cls.CSRF_LIFETIME_MINUTES * 60,
             httponly=False,  # JS needs to read this
-            secure=is_production,
-            samesite="lax"
+            secure=False,  # Always False for development
+            samesite="lax",
+            path="/",  # Ensure cookie is available for all paths
+            domain=None
         )
         
         return csrf_token
@@ -60,8 +61,8 @@ class SessionManager:
     @classmethod
     def clear_auth_cookies(cls, response: Response):
         """Clear authentication and CSRF cookies"""
-        response.delete_cookie(key=cls.AUTH_COOKIE, samesite="lax")
-        response.delete_cookie(key=cls.CSRF_COOKIE, samesite="lax")
+        response.delete_cookie(key=cls.AUTH_COOKIE, path="/", samesite="lax")
+        response.delete_cookie(key=cls.CSRF_COOKIE, path="/", samesite="lax")
     
     @classmethod
     def get_auth_token_from_cookie(cls, request: Request) -> Optional[str]:
