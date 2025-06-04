@@ -6,15 +6,16 @@ import os
 import sys
 
 # Add the project root to sys.path so we can import our modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Import our models and database configuration after path setup
+# Import models and configuration
 from models import Base  # noqa: E402
-from core.config import settings  # noqa: E402
+from core.settings import settings  # noqa: E402
 
 # Set the database URL from our settings (convert from async to sync for Alembic)
 db_url = settings.db_connection_string

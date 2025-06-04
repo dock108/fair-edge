@@ -1,11 +1,12 @@
 """
-Stripe integration module for bet-intel application
-Handles payment processing, subscriptions, and webhooks
+Stripe integration utilities for bet-intel
+Handles subscription management and payment processing
 """
 import stripe
 import logging
 from typing import Optional
-from core.config import settings
+from core.settings import settings
+from core.auth import UserCtx
 
 # Configure Stripe with secret key if available
 if settings.stripe_secret_key:
@@ -25,7 +26,7 @@ def _check_stripe_config():
         )
 
 
-def create_checkout_session(user, price_id: str) -> str:
+def create_checkout_session(user: UserCtx, price_id: str) -> str:
     """
     Create a Stripe Checkout session for subscription upgrade.
     

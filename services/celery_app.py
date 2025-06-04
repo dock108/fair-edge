@@ -6,13 +6,10 @@ from celery import Celery
 from celery.schedules import crontab
 import os
 import logging
-from core.config import settings
+from core.settings import settings
 
-# Configure logging for Celery
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-)
+# Configure Celery logging before other imports
+logging.basicConfig(level=logging.INFO)
 
 # Get refresh interval from environment
 REFRESH_INTERVAL_MINUTES = int(os.getenv("REFRESH_INTERVAL_MINUTES", "60"))  # Default 1 hour

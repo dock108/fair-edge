@@ -244,4 +244,9 @@ experiment_*.py
 # Configuration Overrides
 config_override.py
 local_config.py
-dev_settings.py 
+dev_settings.py
+
+# Environment variables - never commit real credentials
+.env.production
+
+# Byte-compiled / optimized / DLL files 

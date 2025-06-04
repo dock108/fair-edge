@@ -12,7 +12,7 @@ from slowapi.util import get_remote_address
 
 from core.auth import get_current_user, UserCtx
 from core.stripe import create_checkout_session, construct_webhook_event
-from core.config import settings
+from core.settings import settings
 from db import get_db
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])

@@ -5,6 +5,40 @@ This script will guide you through setting up Stripe for bet-intel
 """
 import sys
 from pathlib import Path
+import os
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def setup_minimal_env():
+    """Setup minimal environment for accessing settings"""
+    # Check if we have the required environment variables
+    required_vars = ['STRIPE_SECRET_KEY']
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    
+    if missing_vars:
+        logger.error(f"Missing required environment variables: {missing_vars}")
+        logger.error("Please set these in your .env file or environment")
+        raise SystemExit(1)
+
+def get_stripe_settings():
+    """Get Stripe settings without full app import if possible"""
+    try:
+        # Try to import settings normally
+        from core.settings import settings
+        return settings
+    except Exception as e:
+        logger.warning(f"Could not import full settings: {e}")
+        logger.info("Using minimal configuration from environment variables")
+        
+        # Fallback to environment variables
+        class MinimalSettings:
+            stripe_secret_key = os.getenv('STRIPE_SECRET_KEY')
+            environment = os.getenv('ENVIRONMENT', 'development')
+        
+        return MinimalSettings()
 
 def main():
     print("🚀 Stripe Integration Setup for bet-intel")
@@ -77,7 +111,7 @@ def main():
         # Add the current directory to Python path
         sys.path.insert(0, str(Path(__file__).parent))
         
-        from core.config import settings
+        from core.settings import settings
         
         print("✅ Configuration loaded successfully")
         print(f"   Stripe configured: {'Yes' if settings.stripe_configured else 'No'}")
