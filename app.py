@@ -809,7 +809,8 @@ async def premium_dashboard(request: Request, admin: Optional[str] = None, user:
 async def api_opportunities(
     request: Request, 
     search: Optional[str] = None,
-    sport: Optional[str] = None
+    sport: Optional[str] = None,
+    batch_id: Optional[str] = None  # Phase 3.1: Support batch polling
 ):
     """
     Main API endpoint for getting opportunities data with role-based access control
@@ -820,8 +821,118 @@ async def api_opportunities(
     Query parameters:
     - search: Search term for teams, events, players, bet descriptions
     - sport: Filter by specific sport (americanfootball_nfl, basketball_nba, etc.)
+    - batch_id: Poll for results of a specific batch calculation (Phase 3.1)
     """
     try:
+        # Phase 3.1: Handle batch polling
+        if batch_id:
+            from tasks.ev import get_batch_results, get_batch_status
+            
+            # Check if batch results are ready
+            batch_results = get_batch_results(batch_id)
+            if batch_results:
+                logger.info(f"📦 Serving batch results for {batch_id}")
+                
+                # Extract opportunities and apply same filtering as normal flow
+                opportunities = batch_results.get('opportunities', [])
+                analytics = batch_results.get('analytics', {})
+                
+                # Get user context for role-based filtering
+                user = None
+                try:
+                    from core.session import get_current_user_from_cookie
+                    user = get_current_user_from_cookie(request)
+                except Exception:
+                    pass
+                
+                if not user:
+                    from types import SimpleNamespace
+                    user = SimpleNamespace(
+                        id="guest",
+                        email="guest@example.com", 
+                        role="free",
+                        subscription_status="none"
+                    )
+                
+                # Process and filter the batch results
+                ui_opportunities = process_opportunities_for_ui(opportunities)
+                
+                # Apply search/sport filters if provided
+                if search:
+                    search_term = search.lower()
+                    ui_opportunities = [
+                        opp for opp in ui_opportunities
+                        if search_term in " ".join([
+                            opp.get('event', ''),
+                            opp.get('bet_description', ''),
+                            opp.get('bet_type', ''),
+                            opp.get('best_odds_source', '')
+                        ]).lower()
+                    ]
+                
+                if sport:
+                    sport_keywords = {
+                        'americanfootball_nfl': ['nfl', 'football'],
+                        'basketball_nba': ['nba', 'basketball'],
+                        'baseball_mlb': ['mlb', 'baseball'],
+                        'icehockey_nhl': ['nhl', 'hockey']
+                    }
+                    keywords = sport_keywords.get(sport, [sport])
+                    ui_opportunities = [
+                        opp for opp in ui_opportunities
+                        if any(keyword in opp.get('event', '').lower() for keyword in keywords)
+                    ]
+                
+                # Apply role-based filtering
+                filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+                
+                # Build response with batch metadata
+                response_data = {
+                    **filtered_response,
+                    "analytics": analytics,
+                    "last_update": batch_results.get('generated_at'),
+                    "data_source": "batch_cache",
+                    "is_guest": user.id == "guest",
+                    "batch_info": {
+                        "batch_id": batch_id,
+                        "processing_time_ms": batch_results.get('processing_time_ms'),
+                        "cache_hit": True
+                    },
+                    "filters_applied": {
+                        "search": search,
+                        "sport": sport,
+                        "has_filters": bool(search or sport)
+                    }
+                }
+                
+                return JSONResponse(content=response_data)
+            
+            else:
+                # Check batch status
+                batch_status = get_batch_status(batch_id)
+                if batch_status:
+                    return JSONResponse(
+                        content={
+                            "status": "processing",
+                            "batch_id": batch_id,
+                            "batch_status": batch_status,
+                            "message": "Batch calculation in progress",
+                            "retry_after": 30  # Suggest retry in 30 seconds
+                        },
+                        status_code=202
+                    )
+                else:
+                    return JSONResponse(
+                        content={
+                            "status": "error",
+                            "batch_id": batch_id,
+                            "error": "Batch not found or expired",
+                            "message": "Please trigger a new batch calculation"
+                        },
+                        status_code=404
+                    )
+        
+        # Regular flow (non-batch) - existing logic
         # Simple user context without external services to avoid circular imports
         user = None
         try:
@@ -935,6 +1046,54 @@ async def api_opportunities(
         
         # Return JSONResponse for proper slowapi compatibility
         return JSONResponse(content=error_response, status_code=500)
+
+@app.post("/api/opportunities/refresh", tags=["opportunities"])
+@limiter.limit("10/minute")  # Lower limit for compute-intensive operations
+async def trigger_ev_refresh(request: Request):
+    """
+    Trigger EV calculation batch processing - Phase 3.1 implementation
+    
+    This endpoint:
+    1. Schedules calc_ev_batch.delay(...) 
+    2. Returns 202 with batch ID
+    3. Clients poll /api/opportunities?batch_id=... for results
+    
+    Heavy CPU work moved off FastAPI event loop per Phase 3 plan
+    """
+    try:
+        from tasks.ev import calc_ev_batch, generate_batch_id
+        
+        # Generate unique batch ID for tracking
+        batch_id = generate_batch_id()
+        
+        logger.info(f"🚀 Triggering EV batch calculation: {batch_id}")
+        
+        # Schedule the heavy computation task
+        task = calc_ev_batch.delay(batch_id)
+        
+        # Return 202 Accepted with batch tracking info
+        return JSONResponse(
+            content={
+                "status": "accepted",
+                "message": "EV calculation batch scheduled",
+                "batch_id": batch_id,
+                "task_id": task.id,
+                "poll_url": f"/api/opportunities?batch_id={batch_id}",
+                "estimated_completion": "2-5 minutes"
+            },
+            status_code=202
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to schedule EV batch: {e}")
+        return JSONResponse(
+            content={
+                "status": "error",
+                "error": "Failed to schedule batch calculation",
+                "details": str(e)
+            },
+            status_code=500
+        )
 
 @app.get("/health")
 async def health_check():

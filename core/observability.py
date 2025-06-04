@@ -146,11 +146,12 @@ class ObservabilityManager:
                 # Instrument the FastAPI app
                 self.instrumentator.instrument(app)
                 
-                # Expose metrics endpoint
+                # Expose metrics endpoint with gzip compression - Phase 3.5
                 self.instrumentator.expose(
                     app, 
                     endpoint="/metrics",
                     include_in_schema=False,
+                    should_gzip=True,  # Enable gzip compression
                     tags=["monitoring"]
                 )
             
