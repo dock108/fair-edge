@@ -9,11 +9,16 @@
     <!-- CSS Framework and Custom Styles -->
     <!-- Design Tokens - MUST load first -->
     <link rel="stylesheet" href="{{ url_for('static', path='/css/_tokens.css') }}">
+    <!-- Layout Utilities - MUST load after tokens -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/_layout.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
     
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Alpine.js for interactive components -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <!-- Graceful degradation: Auto-refresh for browsers without JavaScript -->
     <noscript>
@@ -21,7 +26,7 @@
         <meta http-equiv="refresh" content="60">
     </noscript>
     
-    {% block extra_head %}{% endblock %}
+    {% block head %}{% endblock %}
 </head>
 <body>
     <!-- Header Section - COMMENTED OUT: Replaced with hero banner in dashboard.html -->
@@ -48,9 +53,9 @@
     </header>
     -->
 
-    <!-- Navigation Bar (if needed for future phases) -->
+    <!-- Navigation Bar (Updated to use content-wrap) -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container-fluid">
+        <div class="content-wrap">
             <div class="navbar-nav me-auto">
                 <a class="nav-link active" href="/">
                     <i class="fas fa-home me-1"></i> Dashboard
@@ -132,27 +137,20 @@
         </div>
     </nav>
 
-    <!-- Main Content Container -->
-    <main class="main-container">
-        <div class="container-fluid">
-            {% block content %}
-            <!-- Page-specific content will be inserted here -->
-            {% endblock %}
-        </div>
-    </main>
+    {% block content %}
+    <!-- Page-specific content will be inserted here -->
+    {% endblock %}
 
-    <!-- Footer -->
+    <!-- Footer (Updated to use content-wrap) -->
     <footer class="footer mt-5 py-3 bg-light">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <small class="text-muted">
-                        Sports Betting +EV Analyzer v2.1.0 | 
-                        <span id="last-updated">Last updated: <span class="fw-bold">Just now</span></span> |
-                        <a href="/education" class="text-muted text-decoration-none" title="Learn about sports betting basics">📚 Learn the Basics</a> |
-                        <a href="/disclaimer" class="text-muted text-decoration-none" title="Important legal disclaimer and risk disclosure">⚠️ Disclaimer</a>
-                    </small>
-                </div>
+        <div class="content-wrap">
+            <div class="text-center">
+                <small class="text-muted">
+                    Sports Betting +EV Analyzer v2.1.0 | 
+                    <span id="last-updated">Last updated: <span class="fw-bold">Just now</span></span> |
+                    <a href="/education" class="text-muted text-decoration-none" title="Learn about sports betting basics">📚 Learn the Basics</a> |
+                    <a href="/disclaimer" class="text-muted text-decoration-none" title="Important legal disclaimer and risk disclosure">⚠️ Disclaimer</a>
+                </small>
             </div>
         </div>
     </footer>
@@ -174,6 +172,7 @@
     
     <script src="{{ url_for('static', path='/js/auth.js') }}"></script>
     <script src="{{ url_for('static', path='/js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/layout.js') }}"></script>
     
     <!-- Upgrade Flow JavaScript -->
     <script>

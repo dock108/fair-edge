@@ -1,0 +1,246 @@
+<!-- 
+    Stats Drawer Component
+    Mobile: Collapsible drawer below top shell
+    Desktop: Transforms into sidebar
+-->
+
+<!-- Mobile Stats Drawer (hidden on desktop) -->
+<aside class="stats-drawer" 
+       x-data="{ open: false }" 
+       role="region" 
+       aria-labelledby="stats-drawer-label"
+       x-bind:aria-expanded="open">
+    
+    <!-- Drawer Toggle -->
+    <button class="stats-drawer__toggle" 
+            x-bind:aria-expanded="open"
+            x-on:click="open = !open"
+            x-on:keydown.escape="open = false"
+            type="button"
+            id="stats-drawer-label">
+        <span>Summary Statistics</span>
+        <span class="stats-drawer__toggle-icon" 
+              x-bind:aria-hidden="true">▾</span>
+    </button>
+    
+    <!-- Drawer Content -->
+    <div class="stats-drawer__content" 
+         x-show="open" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 transform -translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform -translate-y-2"
+         x-trap.inert.noscroll="open">
+        
+        <div class="stats-drawer__grid">
+            <!-- Total Opportunities -->
+            <div class="metric-card">
+                <span class="metric-value" aria-describedby="total-desc">{{ analytics.total_opportunities or 0 }}</span>
+                <div class="metric-label">
+                    <span>Total Opportunities</span>
+                    <div id="total-desc" class="sr-only">Total number of betting opportunities currently available</div>
+                </div>
+            </div>
+            
+            <!-- Positive EV Count -->
+            <div class="metric-card">
+                <span class="metric-value" aria-describedby="positive-desc">{{ analytics.positive_ev_count or 0 }}</span>
+                <div class="metric-label">
+                    <span>Positive EV Bets</span>
+                    <div id="positive-desc" class="sr-only">Number of bets with positive expected value</div>
+                </div>
+            </div>
+            
+            <!-- High EV Count -->
+            <div class="metric-card">
+                <span class="metric-value" aria-describedby="high-desc">{{ analytics.high_ev_count or 0 }}</span>
+                <div class="metric-label">
+                    <span>High EV (4.5%+)</span>
+                    <div id="high-desc" class="sr-only">High expected value opportunities with 4.5% or greater edge</div>
+                </div>
+            </div>
+            
+            <!-- Max EV -->
+            <div class="metric-card">
+                <span class="metric-value" aria-describedby="max-desc">
+                    {% if analytics.max_ev_found %}
+                        {{ "%.1f"|format(analytics.max_ev_found * 100) }}%
+                    {% else %}
+                        0.0%
+                    {% endif %}
+                </span>
+                <div class="metric-label">
+                    <span>Max EV Found</span>
+                    <div id="max-desc" class="sr-only">Highest expected value percentage found in current opportunities</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- Desktop Stats Sidebar (hidden on mobile) -->
+<aside class="stats-sidebar" role="complementary" aria-labelledby="stats-sidebar-title">
+    <h2 class="stats-sidebar__title" id="stats-sidebar-title">Summary Statistics</h2>
+    
+    <div class="stats-sidebar__grid">
+        <!-- Total Opportunities -->
+        <div class="metric-card">
+            <span class="metric-value" aria-describedby="sidebar-total-desc">{{ analytics.total_opportunities or 0 }}</span>
+            <div class="metric-label">
+                <span class="tooltip-container">
+                    Total Opportunities
+                    <button class="help-icon" aria-label="Help" type="button" tabindex="0">?</button>
+                    <div class="tooltip tooltip-large" role="tooltip">
+                        Total number of betting opportunities currently being tracked across all sportsbooks and markets
+                    </div>
+                </span>
+            </div>
+            <div id="sidebar-total-desc" class="sr-only">Total number of betting opportunities currently available</div>
+        </div>
+        
+        <!-- Positive EV Count -->
+        <div class="metric-card">
+            <span class="metric-value" aria-describedby="sidebar-positive-desc">{{ analytics.positive_ev_count or 0 }}</span>
+            <div class="metric-label">
+                <span class="tooltip-container">
+                    Positive EV Bets
+                    <button class="help-icon" aria-label="Help" type="button" tabindex="0">?</button>
+                    <div class="tooltip tooltip-large" role="tooltip">
+                        Bets with positive expected value - theoretically profitable opportunities based on our fair odds model
+                    </div>
+                </span>
+            </div>
+            <div id="sidebar-positive-desc" class="sr-only">Number of bets with positive expected value</div>
+        </div>
+        
+        <!-- High EV Count -->
+        <div class="metric-card">
+            <span class="metric-value" aria-describedby="sidebar-high-desc">{{ analytics.high_ev_count or 0 }}</span>
+            <div class="metric-label">
+                <span class="tooltip-container">
+                    High EV (4.5%+)
+                    <button class="help-icon" aria-label="Help" type="button" tabindex="0">?</button>
+                    <div class="tooltip tooltip-large" role="tooltip">
+                        Premium opportunities with 4.5% or higher expected value - our strongest betting recommendations
+                    </div>
+                </span>
+            </div>
+            <div id="sidebar-high-desc" class="sr-only">High expected value opportunities with 4.5% or greater edge</div>
+        </div>
+        
+        <!-- Max EV -->
+        <div class="metric-card">
+            <span class="metric-value" aria-describedby="sidebar-max-desc">
+                {% if analytics.max_ev_found %}
+                    {{ "%.1f"|format(analytics.max_ev_found * 100) }}%
+                {% else %}
+                    0.0%
+                {% endif %}
+            </span>
+            <div class="metric-label">
+                <span class="tooltip-container">
+                    Max EV Found
+                    <button class="help-icon" aria-label="Help" type="button" tabindex="0">?</button>
+                    <div class="tooltip tooltip-large" role="tooltip">
+                        The highest expected value percentage found among all current opportunities. This represents the best theoretical edge available.
+                    </div>
+                </span>
+            </div>
+            <div id="sidebar-max-desc" class="sr-only">Highest expected value percentage found in current opportunities</div>
+        </div>
+        
+        <!-- Last Updated -->
+        <div class="metric-card">
+            <span class="metric-value text-muted" style="font-size: var(--fs-1-25);">
+                {% if analytics.last_updated %}
+                    {{ analytics.last_updated.strftime('%H:%M') }}
+                {% else %}
+                    --:--
+                {% endif %}
+            </span>
+            <div class="metric-label">
+                <span>Last Updated</span>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- Alpine.js for interactive behavior -->
+<script>
+// Ensure Alpine.js is available (should be loaded in base template)
+document.addEventListener('alpine:init', () => {
+    // Custom Alpine directive for focus trapping
+    Alpine.directive('trap', (el, { modifiers, expression }, { effect, evaluateLater, cleanup }) => {
+        let evaluator = evaluateLater(expression);
+        let oldValue = false;
+        
+        effect(() => evaluator(value => {
+            if (oldValue === value) return;
+            
+            if (value && !oldValue) {
+                // Trap focus when opening
+                trapFocus(el);
+            } else if (!value && oldValue) {
+                // Release focus when closing
+                releaseFocus();
+            }
+            
+            oldValue = value;
+        }));
+    });
+});
+
+// Focus trap utility functions
+let previouslyFocused = null;
+let focusableElementsSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+function trapFocus(element) {
+    previouslyFocused = document.activeElement;
+    
+    // Get all focusable elements within the trapped area
+    const focusableElements = element.querySelectorAll(focusableElementsSelector);
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements[focusableElements.length - 1];
+    
+    // Focus first element
+    if (firstFocusable) {
+        firstFocusable.focus();
+    }
+    
+    // Handle tab cycling
+    element.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            if (e.shiftKey) {
+                if (document.activeElement === firstFocusable) {
+                    e.preventDefault();
+                    lastFocusable.focus();
+                }
+            } else {
+                if (document.activeElement === lastFocusable) {
+                    e.preventDefault();
+                    firstFocusable.focus();
+                }
+            }
+        }
+        
+        // Close on Escape
+        if (e.key === 'Escape') {
+            releaseFocus();
+            // Trigger Alpine.js close
+            const toggle = element.querySelector('.stats-drawer__toggle');
+            if (toggle) {
+                toggle.click();
+            }
+        }
+    });
+}
+
+function releaseFocus() {
+    if (previouslyFocused) {
+        previouslyFocused.focus();
+        previouslyFocused = null;
+    }
+}
+</script> 
