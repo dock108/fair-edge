@@ -4,9 +4,7 @@ Serves the new HTML/CSS UI using Jinja2 templates
 """
 
 from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter, Response
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -138,11 +136,8 @@ app.add_middleware(
     expose_headers=["X-CSRF-Token"]  # Allow frontend to read CSRF token
 )
 
-# Configure static files (CSS, JS, images)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Configure Jinja2 templates
-templates = Jinja2Templates(directory="templates")
+# Static files and templates removed - now handled by Next.js frontend
+# API-only endpoints remain
 
 # Create auth router
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
