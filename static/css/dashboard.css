@@ -1,119 +1,121 @@
 /* ===========================
    Sports Betting Dashboard CSS - Phase 5 Polish
    Professional styling with accessibility compliance
+   
+   NOTE: All colors must reference /static/css/_tokens.css
    =========================== */
 
-/* ===== ENHANCED COLOR SYSTEM ===== */
+/* ===== LEGACY COLOR MAPPINGS ===== */
 :root {
-    /* Primary Brand Colors */
-    --color-primary: #2c5aa0;
-    --color-primary-light: #3d6db0;
-    --color-primary-dark: #1e3f73;
-    --color-secondary: #1d4e3f;
-    --color-secondary-light: #2e6b5a;
-    --color-secondary-dark: #0f2922;
+    /* Map existing color variables to design tokens */
+    --color-primary: var(--brand-blue-600);
+    --color-primary-light: var(--brand-blue-400);
+    --color-primary-dark: var(--brand-blue-900);
+    --color-secondary: var(--brand-green-600);
+    --color-secondary-light: var(--brand-green-400);
+    --color-secondary-dark: var(--brand-green-900);
     
-    /* EV Classification Colors - WCAG AA Compliant */
-    --color-ev-excellent: #0f7b0f;          /* Dark green for 5%+ EV */
-    --color-ev-excellent-bg: #e8f5e8;
-    --color-ev-excellent-border: #4caf50;
+    /* EV Classification Colors - Now reference tokens */
+    --color-ev-excellent: var(--ev-excellent);
+    --color-ev-excellent-bg: var(--ev-excellent-bg);
+    --color-ev-excellent-border: var(--ev-excellent-border);
     
-    --color-ev-high: #2e7d32;               /* Green for 2.5%+ EV */
-    --color-ev-high-bg: #f1f8e9;
-    --color-ev-high-border: #66bb6a;
+    --color-ev-high: var(--ev-high);
+    --color-ev-high-bg: var(--ev-high-bg);
+    --color-ev-high-border: var(--ev-high-border);
     
-    --color-ev-positive: #f57c00;           /* Orange for positive EV */
-    --color-ev-positive-bg: #fff8e1;
-    --color-ev-positive-border: #ffb74d;
+    --color-ev-positive: var(--ev-positive);
+    --color-ev-positive-bg: var(--ev-positive-bg);
+    --color-ev-positive-border: var(--ev-positive-border);
     
-    --color-ev-neutral: #424242;            /* Dark gray for neutral/negative */
-    --color-ev-neutral-bg: #f5f5f5;
-    --color-ev-neutral-border: #9e9e9e;
+    --color-ev-neutral: var(--ev-neutral);
+    --color-ev-neutral-bg: var(--ev-neutral-bg);
+    --color-ev-neutral-border: var(--ev-neutral-border);
     
-    --color-ev-negative: #c62828;           /* Red for significant negative EV */
-    --color-ev-negative-bg: #ffebee;
-    --color-ev-negative-border: #ef5350;
+    --color-ev-negative: var(--ev-negative);
+    --color-ev-negative-bg: var(--ev-negative-bg);
+    --color-ev-negative-border: var(--ev-negative-border);
     
-    /* UI Colors - Enhanced Contrast */
-    --color-text-primary: #000000;          /* Pure black for maximum readability */
-    --color-text-secondary: #1a1a1a;        /* Very dark gray */
-    --color-text-muted: #333333;           /* Dark gray instead of light gray */
-    --color-text-inverse: #ffffff;
+    /* UI Colors - Map to tokens */
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-muted: var(--text-muted);
+    --color-text-inverse: var(--text-inverse);
     
-    --color-bg-primary: #ffffff;
-    --color-bg-secondary: #fafafa;
-    --color-bg-tertiary: #f5f5f5;
+    --color-bg-primary: var(--surface-0);
+    --color-bg-secondary: var(--grey-50);
+    --color-bg-tertiary: var(--grey-100);
     
-    --color-border: #e0e0e0;
-    --color-border-light: #eeeeee;
-    --color-border-focus: var(--color-primary);
+    --color-border: var(--border-primary);
+    --color-border-light: var(--border-light);
+    --color-border-focus: var(--border-focus);
     
     --color-shadow: rgba(0, 0, 0, 0.12);
     --color-shadow-hover: rgba(0, 0, 0, 0.16);
     --color-shadow-focus: rgba(44, 90, 160, 0.25);
     
     /* Interactive States */
-    --color-hover-bg: #f8f9fa;
-    --color-active-bg: #e9ecef;
-    --color-focus-outline: var(--color-primary);
+    --color-hover-bg: var(--bg-hover);
+    --color-active-bg: var(--bg-active);
+    --color-focus-outline: var(--border-focus);
     
     /* Status Colors */
-    --color-success: #2e7d32;
-    --color-warning: #f57c00;
-    --color-error: #c62828;
-    --color-info: var(--color-primary);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-error: var(--error);
+    --color-info: var(--info);
     
-    /* Typography - Enhanced Hierarchy */
-    --font-family-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-    --font-family-mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+    /* Typography - Use tokens */
+    --font-family-primary: var(--font-sans);
+    --font-family-mono: var(--font-mono);
     
-    --font-weight-light: 300;
-    --font-weight-regular: 400;
-    --font-weight-medium: 500;
-    --font-weight-semibold: 600;
-    --font-weight-bold: 700;
+    --font-weight-light: var(--fw-light);
+    --font-weight-regular: var(--fw-regular);
+    --font-weight-medium: var(--fw-medium);
+    --font-weight-semibold: var(--fw-semibold);
+    --font-weight-bold: var(--fw-bold);
     
-    /* Enhanced Spacing System */
-    --spacing-xs: 0.25rem;     /* 4px */
-    --spacing-sm: 0.5rem;      /* 8px */
-    --spacing-md: 1rem;        /* 16px */
-    --spacing-lg: 1.5rem;      /* 24px */
-    --spacing-xl: 2rem;        /* 32px */
-    --spacing-xxl: 3rem;       /* 48px */
-    --spacing-xxxl: 4rem;      /* 64px */
+    /* Spacing System - Use tokens */
+    --spacing-xs: var(--sp-1);
+    --spacing-sm: var(--sp-2);
+    --spacing-md: var(--sp-4);
+    --spacing-lg: var(--sp-6);
+    --spacing-xl: var(--sp-8);
+    --spacing-xxl: var(--sp-12);
+    --spacing-xxxl: var(--sp-16);
     
-    /* Container System */
-    --container-sm: 576px;
-    --container-md: 768px;
-    --container-lg: 992px;
-    --container-xl: 1200px;
-    --container-xxl: 1400px;
+    /* Container System - Use tokens */
+    --container-sm: var(--container-sm);
+    --container-md: var(--container-md);
+    --container-lg: var(--container-lg);
+    --container-xl: var(--container-xl);
+    --container-xxl: var(--container-xxl);
     
-    /* Grid System */
-    --grid-gap-xs: 0.75rem;
-    --grid-gap-sm: 1rem;
-    --grid-gap-md: 1.25rem;
-    --grid-gap-lg: 1.5rem;
-    --grid-gap-xl: 2rem;
+    /* Grid System - Use tokens */
+    --grid-gap-xs: var(--grid-gap-xs);
+    --grid-gap-sm: var(--grid-gap-sm);
+    --grid-gap-md: var(--grid-gap-md);
+    --grid-gap-lg: var(--grid-gap-lg);
+    --grid-gap-xl: var(--grid-gap-xl);
     
-    /* Border Radius */
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
+    /* Border Radius - Use tokens */
+    --radius-sm: var(--radius-s);
+    --radius-md: var(--radius-m);
+    --radius-lg: var(--radius-l);
+    --radius-xl: var(--radius-xl);
     
-    /* Transitions */
-    --transition-fast: 0.15s ease-out;
-    --transition-base: 0.2s ease-out;
-    --transition-slow: 0.3s ease-out;
+    /* Transitions - Use tokens */
+    --transition-fast: var(--transition-fast);
+    --transition-base: var(--transition-base);
+    --transition-slow: var(--transition-slow);
     
-    /* Z-index Scale */
-    --z-dropdown: 1000;
-    --z-sticky: 1020;
-    --z-fixed: 1030;
-    --z-modal: 1040;
-    --z-popover: 1050;
-    --z-tooltip: 1060;
+    /* Z-index Scale - Use tokens */
+    --z-dropdown: var(--z-dropdown);
+    --z-sticky: var(--z-sticky);
+    --z-fixed: var(--z-fixed);
+    --z-modal: var(--z-modal);
+    --z-popover: var(--z-popover);
+    --z-tooltip: var(--z-tooltip);
 }
 
 body {
@@ -133,20 +135,20 @@ h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-family-primary);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
-    line-height: 1.3;
+    line-height: var(--lh-tight);
     margin: 0 0 var(--spacing-md) 0;
 }
 
-h1 { font-size: 2.5rem; }
-h2 { font-size: 2rem; }
-h3 { font-size: 1.5rem; }
-h4 { font-size: 1.25rem; }
-h5 { font-size: 1.125rem; }
-h6 { font-size: 1rem; }
+h1 { font-size: var(--fs-7); }  /* 40px */
+h2 { font-size: var(--fs-6); }  /* 32px */
+h3 { font-size: var(--fs-5); }  /* 24px */
+h4 { font-size: var(--fs-4); }  /* 20px */
+h5 { font-size: var(--fs-3); }  /* 18px */
+h6 { font-size: var(--fs-2); }  /* 16px */
 
 p {
     margin: 0 0 var(--spacing-md) 0;
-    line-height: 1.6;
+    line-height: var(--lh-relaxed);
 }
 
 /* Focus Management for Accessibility */
@@ -243,47 +245,41 @@ p {
 }
 
 .metric-card {
-    text-align: center;
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
-    border-radius: 12px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px solid var(--color-border);
-    transition: all 0.3s ease;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    text-align: center;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-s);
 }
 
 .metric-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    background: linear-gradient(135deg, var(--surface-0) 0%, var(--surface-2) 100%);
+    box-shadow: var(--shadow-m);
+    transform: translateY(-2px);
 }
 
 .metric-value {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: var(--fs-6);
+    font-weight: var(--font-weight-bold);
     color: var(--color-primary);
-    display: block;
-    margin-bottom: var(--spacing-xs);
+    margin: 0;
 }
 
 .metric-label {
-    font-size: 0.9rem;
-    color: #333333;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 600;
-    line-height: 1.2;
+    font-size: var(--fs-1);
+    color: var(--text-muted);
+    margin: 0;
+    font-weight: var(--font-weight-medium);
 }
 
 /* ===== BETTING CARDS - ENHANCED RESPONSIVE GRID ===== */
 .opportunities-section {
-    margin-bottom: 0;
-    background: #fafafa;
+    margin-top: var(--spacing-xxl);
     padding: var(--spacing-xl) 0;
-    min-height: 50vh;
+    background: var(--grey-50);
+    border-radius: var(--radius-lg);
 }
 
 /* Enhanced Grid Container with Responsive Design */
@@ -300,13 +296,15 @@ p {
 
 /* Individual Betting Card - Enhanced for Horizontal Layout */
 .bet-card {
-    background: white;
-    border-radius: 12px;
-    padding: var(--spacing-lg);
-    box-shadow: 0 2px 8px var(--color-shadow);
+    background: var(--color-bg-primary);
     border: 1px solid var(--color-border);
-    transition: all 0.3s ease;
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-s);
     position: relative;
+    overflow: hidden;
     
     /* Horizontal layout */
     display: grid;
@@ -318,14 +316,14 @@ p {
     min-height: 120px;
     
     /* Overflow handling */
-    overflow: hidden;
     word-wrap: break-word;
     word-break: break-word;
 }
 
 .bet-card:hover {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-    transform: translateY(-4px);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-l);
+    border-color: var(--color-border-focus);
 }
 
 /* EV-based Card Styling - Enhanced with New Color System */
@@ -370,61 +368,42 @@ p {
 }
 
 .event-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #000000;
-    margin-bottom: var(--spacing-xs);
-    line-height: 1.3;
-    
-    /* Allow more text in horizontal layout */
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    text-overflow: ellipsis;
+    font-size: var(--fs-3);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-sm) 0;
+    line-height: var(--lh-tight);
 }
 
 .bet-description {
-    font-size: 1rem;
-    font-weight: 500;
-    color: #1a1a1a;
-    margin-bottom: var(--spacing-sm);
-    
-    /* Allow more text in horizontal layout */
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    text-overflow: ellipsis;
+    font-size: var(--fs-2);
+    font-weight: var(--font-weight-regular);
+    color: var(--text-secondary);
+    margin: 0 0 var(--spacing-sm) 0;
+    line-height: var(--lh-base);
 }
 
 .bet-type {
-    font-size: 0.85rem;
-    color: #333333;
+    font-size: var(--fs-1);
+    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.05em;
+    margin: 0 0 var(--spacing-md) 0;
 }
 
 /* EV Badge - Enhanced Accessibility and Visual Design */
 .ev-badge {
-    grid-area: ev-badge;
-    position: static;
-    margin-bottom: 0;
-    align-self: flex-start;
-    justify-self: flex-end;
-    width: fit-content;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-xl);
-    font-size: 0.75rem;
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: var(--spacing-xs);
-    transition: all var(--transition-base);
-    border: 2px solid transparent;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-m);
+    font-size: var(--fs-1);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border: 1px solid transparent;
 }
 
 .ev-badge.excellent {
@@ -464,7 +443,7 @@ p {
 
 /* EV Badge Icons with Accessible Labels */
 .ev-badge .ev-icon {
-    font-size: 0.875rem;
+    font-size: var(--fs-1);
     margin-right: var(--spacing-xs);
 }
 
@@ -479,7 +458,7 @@ p {
 
 .ev-percentage {
     font-weight: var(--font-weight-bold);
-    font-size: 0.8rem;
+    font-size: var(--fs-0-5);
 }
 
 /* EV Metric Section - Second grid area */
@@ -495,16 +474,16 @@ p {
 }
 
 .ev-metric-label {
-    font-size: 0.85rem;
+    font-size: var(--fs-0-75);
     font-weight: 500;
-    color: #333333;
+    color: var(--text-muted);
     margin-bottom: var(--spacing-xs);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .ev-metric-value {
-    font-size: 1.25rem;
+    font-size: var(--fs-4);
     font-weight: 700;
     margin: 0;
 }
@@ -521,9 +500,9 @@ p {
 }
 
 .odds-title {
-    font-size: 0.9rem;
+    font-size: var(--fs-1-25);
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--text-secondary);
     margin-bottom: var(--spacing-sm);
     display: flex;
     align-items: center;
@@ -542,18 +521,16 @@ p {
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: 6px;
     border: 1px solid var(--color-border);
-    font-size: 0.8rem;
+    font-size: var(--fs-0-5);
     text-align: center;
     white-space: nowrap;
     transition: all 0.2s ease;
 }
 
 .odds-item.best {
-    background: #d4edda;
-    border-color: var(--color-ev-high);
-    font-weight: 600;
-    color: #155724;
-    box-shadow: 0 1px 3px rgba(40, 167, 69, 0.2);
+    background: var(--success);
+    color: var(--text-inverse);
+    border-radius: var(--radius-s);
 }
 
 .odds-item:hover {
@@ -577,8 +554,7 @@ p {
 }
 
 .fair-odds {
-    color: #6c757d;
-    font-style: italic;
+    color: var(--text-disabled);
 }
 
 .best-odds {
@@ -587,15 +563,15 @@ p {
 }
 
 .odds-label {
-    font-size: 0.8rem;
-    color: #333333;
+    font-size: var(--fs-0-5);
+    color: var(--text-disabled);
     margin-bottom: var(--spacing-xs);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .odds-value {
-    font-size: 1rem;
+    font-size: var(--fs-2);
     font-weight: 600;
 }
 
@@ -609,18 +585,19 @@ p {
 }
 
 .recommendation {
-    font-size: 0.85rem;
+    font-size: var(--fs-0-75);
     font-weight: 500;
     margin-bottom: var(--spacing-sm);
     padding: var(--spacing-sm);
     background: rgba(0, 123, 255, 0.1);
     border-radius: 4px;
-    border-left: 3px solid #007bff;
+    border-left: 3px solid var(--info);
+    padding-left: var(--spacing-sm);
 }
 
 .posting-suggestion {
-    font-size: 0.85rem;
-    color: #6c757d;
+    font-size: var(--fs-0-75);
+    color: var(--text-disabled);
     margin-bottom: var(--spacing-md);
 }
 
@@ -638,7 +615,7 @@ p {
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: 6px;
     text-decoration: none;
-    font-size: 0.8rem;
+    font-size: var(--fs-0-5);
     font-weight: 500;
     text-align: center;
     transition: all 0.2s ease;
@@ -655,23 +632,23 @@ p {
 }
 
 .action-btn.take {
-    background: linear-gradient(135deg, var(--color-ev-high) 0%, #20c997 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--ev-high) 0%, var(--success) 100%);
+    color: var(--text-inverse);
+    border: none;
 }
 
 .action-btn.take:hover {
-    background: linear-gradient(135deg, #1e7e34 0%, #1c7a7a 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--success) 0%, var(--brand-green-600) 100%);
 }
 
 .action-btn.post {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--info) 0%, var(--brand-blue-900) 100%);
+    color: var(--text-inverse);
+    border: none;
 }
 
 .action-btn.post:hover {
-    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--brand-blue-900) 0%, var(--brand-blue-900) 100%);
 }
 
 /* ===== RESPONSIVE DESIGN - ENHANCED BREAKPOINTS ===== */
@@ -712,11 +689,16 @@ p {
 }
 
 .metric-value {
-    font-size: 1.5rem;
+    font-size: var(--fs-6);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin: 0;
 }
 
 .ev-metric-value {
-    font-size: 1.25rem;
+    font-size: var(--fs-4);
+    font-weight: 700;
+    margin: 0;
 }
 
 /* Small devices (landscape phones, 576px and up) */
@@ -734,11 +716,11 @@ p {
     }
     
     .metric-value {
-        font-size: 1.75rem;
+        font-size: var(--fs-5-5);
     }
     
     .ev-metric-value {
-        font-size: 1.4rem;
+        font-size: var(--fs-4);
     }
 }
 
@@ -780,19 +762,19 @@ p {
     }
     
     .metric-value {
-        font-size: 2rem;
+        font-size: var(--fs-6);
     }
     
     .ev-metric-value {
-        font-size: 1.5rem;
+        font-size: var(--fs-5);
     }
     
     .header-title {
-        font-size: 2.5rem;
+        font-size: var(--fs-7);
     }
     
     .header-subtitle {
-        font-size: 1.2rem;
+        font-size: var(--fs-3-5);
     }
 }
 
@@ -854,7 +836,7 @@ html, body {
 .text-center { text-align: center; }
 .fw-bold { font-weight: 700; }
 .fw-semibold { font-weight: 600; }
-.text-muted { color: #6c757d; }
+.text-muted { color: var(--text-disabled); }
 .mb-0 { margin-bottom: 0; }
 .mt-1 { margin-top: var(--spacing-xs); }
 .mt-2 { margin-top: var(--spacing-sm); }
@@ -863,24 +845,24 @@ html, body {
 /* ===== LOADING AND EMPTY STATES ===== */
 .empty-state {
     text-align: center;
-    padding: var(--spacing-xxl) var(--spacing-xl);
-    border-radius: 12px;
-    border: 2px dashed var(--color-border);
+    padding: var(--spacing-xxl);
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+    color: var(--text-disabled);
+    border-radius: var(--radius-lg);
     margin: var(--spacing-xl) 0;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    color: #6c757d;
 }
 
 .empty-state h3 {
-    color: #495057;
-    margin-bottom: var(--spacing-md);
-    font-weight: 600;
+    color: var(--grey-600);
 }
 
 .empty-state p {
-    font-size: 1.1rem;
+    font-size: var(--fs-2-25);
     margin-bottom: var(--spacing-lg);
     line-height: 1.6;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .empty-state .btn {
@@ -897,7 +879,7 @@ html, body {
 
 /* ===== FILTER CONTROLS SECTION ===== */
 .filters-section {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
     border-top: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
     padding: var(--spacing-lg) 0;
@@ -938,27 +920,27 @@ html, body {
 }
 
 .filter-label {
-    font-size: 0.9rem;
+    font-size: var(--fs-1-25);
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--text-secondary);
     white-space: nowrap;
     margin-bottom: 0;
 }
 
 .filter-select {
-    background: white;
-    border: 2px solid #e9ecef;
+    background: var(--surface-0);
+    border: 2px solid var(--surface-3);
     border-radius: 8px;
     padding: var(--spacing-sm) var(--spacing-md);
-    font-size: 0.9rem;
-    color: #495057;
+    font-size: var(--fs-1-25);
+    color: var(--grey-600);
     min-width: 150px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .filter-select:hover {
-    border-color: var(--color-primary);
+    border-color: var(--grey-400);
 }
 
 .filter-select:focus {
@@ -969,12 +951,12 @@ html, body {
 
 .filter-btn {
     background: white;
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--surface-3);
     border-radius: 8px;
     padding: var(--spacing-sm) var(--spacing-md);
-    font-size: 0.9rem;
+    font-size: var(--fs-1-25);
     font-weight: 500;
-    color: #495057;
+    color: var(--grey-600);
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
@@ -990,13 +972,13 @@ html, body {
 }
 
 .filter-btn-clear {
-    border-color: #dc3545;
-    color: #dc3545;
+    border-color: var(--error);
+    color: var(--error);
 }
 
 .filter-btn-clear:hover {
-    background: #dc3545;
-    color: white;
+    background: var(--error);
+    color: var(--text-inverse);
 }
 
 .filter-btn-apply {
@@ -1011,8 +993,9 @@ html, body {
 
 /* Filter Active Badge */
 .badge.bg-info {
-    background: linear-gradient(135deg, var(--color-primary) 0%, #1e7e34 100%) !important;
-    color: white;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--success) 100%) !important;
+    color: var(--text-inverse) !important;
+    border: none !important;
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: 20px;
     font-weight: 500;
@@ -1120,7 +1103,7 @@ html, body {
 .loading-container {
     text-align: center;
     padding: var(--spacing-xxl);
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
     border-radius: 12px;
     border: 2px dashed var(--color-border);
     margin: var(--spacing-xl) 0;
@@ -1144,23 +1127,23 @@ html, body {
 /* ===== RESPONSIVE ADJUSTMENTS ===== */
 @media (max-width: 768px) {
     .header-title {
-        font-size: 2rem;
+        font-size: var(--fs-6);
     }
     
     .header-subtitle {
-        font-size: 1.1rem;
+        font-size: var(--fs-2-25);
     }
     
     .header-tagline {
-        font-size: 0.9rem;
+        font-size: var(--fs-1-25);
     }
     
     .metric-value {
-        font-size: 1.5rem;
+        font-size: var(--fs-5);
     }
     
     .metric-label {
-        font-size: 0.8rem;
+        font-size: var(--fs-0-5);
     }
     
     .metrics-section {
@@ -1258,7 +1241,7 @@ html, body {
     color: var(--color-text-inverse);
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--radius-md);
-    font-size: 0.875rem;
+    font-size: var(--fs-1);
     font-weight: var(--font-weight-regular);
     line-height: 1.4;
     white-space: nowrap;
@@ -1320,7 +1303,7 @@ html, body {
     border-radius: 50%;
     background: var(--color-info);
     color: var(--color-text-inverse);
-    font-size: 0.75rem;
+    font-size: var(--fs-0);
     font-weight: var(--font-weight-bold);
     margin-left: var(--spacing-xs);
     cursor: help;
@@ -1337,7 +1320,7 @@ html, body {
 
 /* Accessible Help Text */
 .help-text {
-    font-size: 0.8rem;
+    font-size: var(--fs-0-5);
     color: var(--color-text-muted);
     font-style: italic;
     margin-top: var(--spacing-xs);
@@ -1372,7 +1355,7 @@ html, body {
     border: 2px solid transparent;
     border-radius: var(--radius-md);
     font-family: var(--font-family-primary);
-    font-size: 0.875rem;
+    font-size: var(--fs-1);
     font-weight: var(--font-weight-medium);
     text-decoration: none;
     cursor: pointer;
@@ -1573,7 +1556,7 @@ html, body {
 }
 
 .empty-state p {
-    font-size: 1.1rem;
+    font-size: var(--fs-2-25);
     margin-bottom: var(--spacing-lg);
     line-height: 1.6;
     max-width: 500px;
@@ -1606,7 +1589,7 @@ html, body {
 
 .text-primary { color: var(--color-primary); }
 .text-secondary { color: var(--color-text-secondary); }
-.text-muted { color: var(--color-text-muted); }
+.text-muted { color: var(--text-disabled); }
 .text-success { color: var(--color-success); }
 .text-warning { color: var(--color-warning); }
 .text-error { color: var(--color-error); }
@@ -1656,22 +1639,22 @@ html, body {
     }
 
     .bet-card {
-        border: 1px solid #000 !important;
-        background: white !important;
+        border: 1px solid var(--text-primary) !important;
+        background: var(--surface-0) !important;
         box-shadow: none !important;
         page-break-inside: avoid;
         margin-bottom: var(--spacing-md) !important;
     }
 
     .header-section {
-        background: white !important;
-        color: black !important;
-        border-bottom: 2px solid #000;
+        background: var(--surface-0) !important;
+        color: var(--text-primary) !important;
+        border-bottom: 2px solid var(--text-primary);
     }
 
     body {
-        background: white !important;
-        color: black !important;
+        background: var(--surface-0) !important;
+        color: var(--text-primary) !important;
         font-size: 12pt;
         line-height: 1.4;
     }
@@ -1681,12 +1664,12 @@ html, body {
 
 /* Global Admin Debug Panel */
 .admin-debug-panel {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-    color: #ffffff;
-    border-bottom: 3px solid #ff6b35;
-    padding: var(--spacing-lg) 0;
-    margin-bottom: 0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, var(--grey-900) 0%, var(--grey-800) 100%);
+    color: var(--text-inverse);
+    border-bottom: 3px solid var(--warning);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    border-radius: var(--radius-lg);
 }
 
 .debug-header {
@@ -1695,98 +1678,57 @@ html, body {
 }
 
 .debug-header h2 {
-    color: #ff6b35;
-    font-size: 1.5rem;
-    font-weight: var(--font-weight-bold);
-    margin-bottom: var(--spacing-sm);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    color: var(--warning);
+    font-size: var(--fs-5);
 }
 
 .debug-header p {
-    color: #cccccc;
-    font-size: 0.9rem;
-    margin-bottom: 0;
+    color: var(--grey-200);
+    font-size: var(--fs-1);
 }
 
 /* Debug Sections */
 .debug-section {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    border-radius: var(--radius-md);
+    border: 1px solid var(--warning);
+    border-radius: var(--radius-m);
     margin-bottom: var(--spacing-md);
-    transition: all var(--transition-base);
 }
 
 .debug-section:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 107, 53, 0.5);
+    border-color: var(--warning);
 }
 
 .debug-section[open] {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: #ff6b35;
+    border-color: var(--warning);
 }
 
 .debug-summary {
+    color: var(--warning);
+    background: transparent;
+    border: none;
     padding: var(--spacing-md);
     cursor: pointer;
     font-weight: var(--font-weight-semibold);
-    color: #ff6b35;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-base);
-    user-select: none;
-    list-style: none;
+    color: var(--text-inverse);
 }
 
 .debug-summary:hover {
-    background: rgba(255, 107, 53, 0.1);
-    color: #ffffff;
-}
-
-.debug-summary::marker {
-    display: none;
-}
-
-.debug-summary::before {
-    content: '▶';
-    display: inline-block;
-    width: 1em;
-    margin-right: var(--spacing-xs);
-    transition: transform var(--transition-base);
-}
-
-.debug-section[open] .debug-summary::before {
-    transform: rotate(90deg);
-}
-
-.debug-content {
-    padding: 0 var(--spacing-md) var(--spacing-md) var(--spacing-md);
-    border-top: 1px solid rgba(255, 107, 53, 0.2);
-    background: rgba(0, 0, 0, 0.2);
+    color: var(--warning);
 }
 
 .debug-content h4 {
-    color: #ff6b35;
-    font-size: 1rem;
-    margin-bottom: var(--spacing-sm);
-    border-bottom: 1px solid rgba(255, 107, 53, 0.3);
-    padding-bottom: var(--spacing-xs);
+    color: var(--warning);
+    font-size: var(--fs-2);
 }
 
 .debug-data {
-    font-family: var(--font-family-mono);
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: #e0e0e0;
-    background: rgba(0, 0, 0, 0.3);
-    padding: var(--spacing-sm);
-    border-radius: var(--radius-sm);
-    border-left: 3px solid #ff6b35;
+    color: var(--grey-300);
+    border-left: 3px solid var(--warning);
+    padding-left: var(--spacing-md);
 }
 
 .debug-data strong {
-    color: #ffffff;
-    font-weight: var(--font-weight-semibold);
+    color: var(--text-inverse);
 }
 
 /* Per-Card Debug Information */
@@ -1797,38 +1739,37 @@ html, body {
 }
 
 .card-debug {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 2px solid #ff6b35;
-    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--surface-0) 0%, var(--surface-2) 100%);
+    border: 2px solid var(--warning);
+    border-radius: var(--radius-m);
     transition: all var(--transition-base);
 }
 
 .card-debug:hover {
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
-    transform: translateY(-2px);
+    background: linear-gradient(135deg, var(--surface-0) 0%, var(--surface-2) 100%);
 }
 
 .card-debug[open] {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.15);
+    background: linear-gradient(135deg, var(--surface-0) 0%, var(--surface-2) 100%);
+    box-shadow: 0 6px 20px rgba(245, 124, 0, 0.15);
 }
 
 .card-debug-summary {
     padding: var(--spacing-sm) var(--spacing-md);
     cursor: pointer;
     font-weight: var(--font-weight-semibold);
-    color: #ff6b35;
-    background: rgba(255, 107, 53, 0.1);
+    color: var(--warning);
+    background: rgba(245, 124, 0, 0.1);
     border-radius: var(--radius-md);
     transition: all var(--transition-base);
     user-select: none;
     list-style: none;
-    border-bottom: 1px solid rgba(255, 107, 53, 0.2);
+    border-bottom: 1px solid rgba(245, 124, 0, 0.2);
 }
 
 .card-debug-summary:hover {
-    background: rgba(255, 107, 53, 0.15);
-    color: #d55a2b;
+    background: rgba(245, 124, 0, 0.15);
+    color: var(--ev-positive);
 }
 
 .card-debug-summary::marker {
@@ -1847,27 +1788,27 @@ html, body {
 }
 
 .card-debug-content h5 {
-    color: #ff6b35;
-    font-size: 0.95rem;
+    color: var(--warning);
+    font-size: var(--fs-1-5);
     margin-bottom: var(--spacing-sm);
     font-weight: var(--font-weight-semibold);
-    border-bottom: 1px solid rgba(255, 107, 53, 0.3);
+    border-bottom: 1px solid rgba(245, 124, 0, 0.3);
     padding-bottom: var(--spacing-xs);
 }
 
 .debug-calc, .debug-sources {
     font-family: var(--font-family-mono);
-    font-size: 0.8rem;
+    font-size: var(--fs-0-5);
     line-height: 1.5;
-    background: rgba(255, 107, 53, 0.05);
+    background: rgba(245, 124, 0, 0.05);
     padding: var(--spacing-sm);
     border-radius: var(--radius-sm);
-    border-left: 3px solid #ff6b35;
+    border-left: 3px solid var(--warning);
     color: var(--color-text-primary);
 }
 
 .debug-calc strong, .debug-sources strong {
-    color: #d55a2b;
+    color: var(--ev-positive);
     font-weight: var(--font-weight-semibold);
 }
 
@@ -1879,22 +1820,23 @@ html, body {
 .raw-data-dump summary, .ui-data-dump summary {
     cursor: pointer;
     font-weight: var(--font-weight-medium);
-    color: #ff6b35;
+    color: var(--warning);
     padding: var(--spacing-xs) 0;
-    border-bottom: 1px dotted rgba(255, 107, 53, 0.4);
+    border-bottom: 1px dotted rgba(245, 124, 0, 0.4);
     transition: color var(--transition-base);
+    font-size: var(--fs-0);
 }
 
 .raw-data-dump summary:hover, .ui-data-dump summary:hover {
-    color: #d55a2b;
+    color: var(--ev-positive);
 }
 
 .raw-data, .ui-data {
     font-family: var(--font-family-mono);
-    font-size: 0.75rem;
+    font-size: var(--fs-0);
     line-height: 1.4;
-    background: #2d2d2d;
-    color: #f8f8f2;
+    background: var(--grey-800);
+    color: var(--grey-200);
     padding: var(--spacing-md);
     border-radius: var(--radius-sm);
     overflow-x: auto;
@@ -1902,7 +1844,7 @@ html, body {
     word-break: break-all;
     max-height: 300px;
     overflow-y: auto;
-    border: 1px solid #ff6b35;
+    border: 1px solid var(--warning);
     margin-top: var(--spacing-xs);
 }
 
@@ -1918,15 +1860,15 @@ html, body {
     position: fixed;
     top: 10px;
     right: 10px;
-    background: #ff6b35;
-    color: white;
+    background: var(--warning);
+    color: var(--text-inverse);
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--radius-xl);
-    font-size: 0.75rem;
+    font-size: var(--fs-0);
     font-weight: var(--font-weight-bold);
     z-index: var(--z-tooltip);
     animation: pulse 2s infinite;
-    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+    box-shadow: 0 2px 8px rgba(245, 124, 0, 0.4);
 }
 
 @keyframes pulse {
@@ -1941,7 +1883,7 @@ html, body {
     }
     
     .debug-header h2 {
-        font-size: 1.3rem;
+        font-size: var(--fs-3-75);
     }
     
     .debug-content .row {
@@ -1954,11 +1896,11 @@ html, body {
     }
     
     .debug-data, .debug-calc, .debug-sources {
-        font-size: 0.8rem;
+        font-size: var(--fs-0-5);
     }
     
     .raw-data, .ui-data {
-        font-size: 0.7rem;
+        font-size: var(--fs-minus-1);
         max-height: 200px;
     }
     
@@ -1967,22 +1909,129 @@ html, body {
     }
 }
 
+/* Landscape mobile orientation */
+@media (max-width: 767px) and (orientation: landscape) {
+    .odds-card__body {
+        /* On landscape mobile, we can afford horizontal layout */
+        flex-direction: row;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+    
+    .odds-card__recommended {
+        margin-bottom: 0;
+        margin-right: var(--spacing-md);
+        min-width: 200px;
+        flex-shrink: 0;
+    }
+    
+    .recommended-value {
+        font-size: var(--fs-4-25);
+    }
+    
+    .detail-item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .detail-value {
+        text-align: right;
+    }
+    
+    .action-buttons {
+        flex-direction: row;
+        gap: var(--spacing-sm);
+    }
+    
+    .odds-card__action-btn {
+        width: auto;
+        flex: 1;
+    }
+}
+
+/* Very large screens readability */
+@media (min-width: 1200px) {
+    .odds-card {
+        /* Prevent cards from becoming too wide for readability */
+        max-width: 600px;
+        /* Center the card if it's in a flexible container */
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    /* Increase spacing for better visual hierarchy on large screens */
+    .odds-card__body {
+        gap: var(--spacing-xxxl);
+    }
+    
+    .odds-card__recommended {
+        min-width: 320px;
+        padding: var(--spacing-xl);
+    }
+    
+    .recommended-value {
+        font-size: var(--fs-6);
+    }
+    
+    /* Improve typography scaling */
+    .odds-card__title {
+        font-size: var(--fs-4-25);
+    }
+    
+    .detail-item {
+        padding: var(--spacing-md);
+    }
+    
+    .detail-label {
+        font-size: var(--fs-1-25);
+    }
+    
+    .detail-value {
+        font-size: var(--fs-2);
+    }
+}
+
+/* Ultra-wide screens */
+@media (min-width: 1600px) {
+    .odds-card {
+        /* Maintain readability on ultra-wide screens */
+        max-width: 700px;
+    }
+    
+    .odds-card__recommended {
+        min-width: 360px;
+    }
+    
+    .recommended-value {
+        font-size: var(--fs-6-25);
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .odds-card {
+        border: 2px solid var(--color-text-primary);
+    }
+    
+    .recommended-value {
+        color: var(--color-text-primary);
+        -webkit-text-fill-color: var(--color-text-primary);
+    }
+    
+    .detail-item {
+        border: 1px solid var(--color-text-primary);
+    }
+}
+
 /* Accessibility Enhancements for Debug Mode */
 .debug-summary:focus,
 .card-debug-summary:focus,
 .raw-data-dump summary:focus,
 .ui-data-dump summary:focus {
-    outline: 3px solid #ff6b35;
+    outline: 3px solid var(--warning);
     outline-offset: 2px;
-}
-
-/* Print Styles - Hide Debug Info */
-@media print {
-    .admin-debug-panel,
-    .card-debug-section,
-    .debug-mode-indicator {
-        display: none !important;
-    }
 }
 
 /* ===== ODDS CARD REDESIGN - NEW SEMANTIC STRUCTURE ===== */
@@ -2007,6 +2056,10 @@ html, body {
     overflow: hidden;
     word-wrap: break-word;
     word-break: break-word;
+    
+    /* Responsive width handling */
+    width: 100%;
+    max-width: 100%;
 }
 
 .odds-card:hover {
@@ -2022,19 +2075,15 @@ html, body {
 }
 
 .odds-card__title {
-    font-size: 1.1rem;
+    font-size: var(--fs-3);
     font-weight: var(--font-weight-semibold);
-    color: #000000;
-    margin-bottom: var(--spacing-xs);
-    line-height: 1.3;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-xs) 0;
 }
 
 .odds-card__subtitle {
-    font-size: 0.85rem;
-    color: #1a1a1a;
-    margin-bottom: 0;
-    font-style: italic;
-    line-height: 1.4;
+    font-size: var(--fs-1);
+    color: var(--text-secondary);
 }
 
 /* Card Body - Flex Container */
@@ -2044,6 +2093,7 @@ html, body {
     justify-content: space-between;
     gap: var(--spacing-lg);
     margin-bottom: 0;
+    flex-wrap: wrap;
 }
 
 /* Recommended Posting Odds - PRIMARY FOCAL POINT */
@@ -2053,21 +2103,22 @@ html, body {
     align-items: center;
     gap: var(--spacing-sm);
     flex-shrink: 0;
-    padding: var(--spacing-md);
+    padding: var(--spacing-lg);
     background: rgba(255, 255, 255, 0.8);
     border-radius: var(--radius-md);
     border: 2px solid var(--color-primary);
     box-shadow: 0 2px 8px rgba(44, 90, 160, 0.15);
     min-width: 200px;
-    max-width: 280px;
+    max-width: 380px;
     text-align: center;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    flex: 0 0 220px;
 }
 
 .recommended-label {
-    font-size: 0.75rem;
-    color: #1a1a1a;
+    font-size: var(--fs-0);
+    color: var(--text-secondary);
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -2078,7 +2129,7 @@ html, body {
 }
 
 .recommended-value {
-    font-size: 1.5rem;
+    font-size: var(--fs-5);
     font-weight: var(--font-weight-bold);
     color: var(--color-primary);
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
@@ -2108,7 +2159,7 @@ html, body {
     padding: var(--spacing-xs) var(--spacing-sm);
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 0.75rem;
+    font-size: var(--fs-0);
     font-weight: var(--font-weight-medium);
     text-decoration: none;
     cursor: pointer;
@@ -2144,506 +2195,6 @@ html, body {
     color: var(--color-text-inverse);
 }
 
-/* ===== RESPONSIVE DESIGN FOR ODDS CARDS ===== */
-
-/* Mobile First: Base styles for mobile (up to 768px) */
-@media (max-width: 767px) {
-    .odds-card {
-        padding: var(--spacing-md);
-        margin-bottom: var(--spacing-lg);
-    }
-    
-    .odds-card__body {
-        flex-direction: column;
-        gap: var(--spacing-lg);
-    }
-    
-    .odds-card__recommended {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--spacing-xs);
-        text-align: center;
-        align-self: center;
-        padding: var(--spacing-lg);
-    }
-    
-    .recommended-label {
-        font-size: 0.8rem;
-        text-align: center;
-        width: 100%;
-    }
-    
-    .recommended-value {
-        font-size: 2rem;
-        text-align: center;
-        width: 100%;
-    }
-    
-    .detail-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--spacing-xs);
-        text-align: left;
-    }
-    
-    .detail-value {
-        text-align: left;
-        font-size: 1rem;
-        font-weight: var(--font-weight-semibold);
-    }
-    
-    .available-odds-list {
-        flex-direction: column;
-    }
-    
-    .action-buttons {
-        flex-direction: column;
-    }
-    
-    .odds-card__action-btn {
-        justify-content: center;
-        width: 100%;
-    }
-}
-
-/* ===== SPECIFIC MOBILE BREAKPOINT (600px and below) ===== */
-@media (max-width: 600px) {
-    /* Card container adjustments for small screens */
-    .odds-card {
-        padding: var(--spacing-sm) var(--spacing-md);
-        margin-bottom: var(--spacing-md);
-        /* Prevent viewport overflow */
-        max-width: 100%;
-        overflow-x: hidden;
-    }
-    
-    /* Stack content vertically and stretch to full width */
-    .odds-card__body {
-        flex-direction: column;
-        align-items: stretch;
-        gap: var(--spacing-md);
-    }
-    
-    /* Header text size adjustments */
-    .odds-card__title {
-        font-size: 1rem;
-        line-height: 1.4;
-        /* Allow natural wrapping for long titles */
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        hyphens: auto;
-    }
-    
-    .odds-card__subtitle {
-        font-size: 0.85rem;
-        line-height: 1.3;
-        /* Handle long subtitles gracefully */
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-    }
-    
-    /* Recommended odds section - focal point adjustments */
-    .odds-card__recommended {
-        margin-bottom: 1rem;
-        padding: var(--spacing-md);
-        /* Ensure full width utilization when stacked */
-        width: 100%;
-        box-sizing: border-box;
-        /* Center the content within */
-        justify-content: center;
-        text-align: center;
-    }
-    
-    .recommended-label {
-        font-size: 0.75rem;
-        /* Ensure it doesn't break awkwardly */
-        white-space: nowrap;
-    }
-    
-    .recommended-value {
-        font-size: 1.3rem;
-        /* Reduce from desktop size to prevent overflow */
-        line-height: 1.2;
-        /* Prevent text from being cut off */
-        white-space: nowrap;
-    }
-    
-    /* Details section adjustments */
-    .odds-card__details {
-        gap: var(--spacing-xs);
-        /* Ensure full width utilization */
-        width: 100%;
-    }
-    
-    .detail-item {
-        padding: var(--spacing-xs) var(--spacing-sm);
-        /* Stack label and value vertically on very small screens */
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--spacing-xs);
-    }
-    
-    .detail-label {
-        font-size: 0.8rem;
-        width: 100%;
-    }
-    
-    .detail-value {
-        font-size: 0.9rem;
-        text-align: left;
-        width: 100%;
-        font-weight: var(--font-weight-semibold);
-    }
-    
-    /* Available odds adjustments - KEEP HORIZONTAL */
-    .available-odds-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--spacing-xs);
-        justify-content: flex-start;
-    }
-    
-    .odds-item {
-        text-align: center;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        font-size: 0.75rem;
-        /* Prevent horizontal overflow */
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        flex: 0 0 auto;
-        min-width: fit-content;
-    }
-    
-    /* Footer and actions */
-    .odds-card__footer {
-        padding-top: var(--spacing-sm);
-        margin-top: var(--spacing-sm);
-    }
-    
-    .action-buttons {
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-    
-    .odds-card__action-btn {
-        width: 100%;
-        padding: var(--spacing-sm) var(--spacing-md);
-        font-size: 0.85rem;
-        /* Ensure buttons don't overflow */
-        box-sizing: border-box;
-    }
-}
-
-/* ===== VERY SMALL SCREENS (400px and below) ===== */
-@media (max-width: 400px) {
-    .odds-card {
-        padding: var(--spacing-sm);
-        margin-bottom: var(--spacing-sm);
-    }
-    
-    .odds-card__title {
-        font-size: 0.95rem;
-    }
-    
-    .recommended-value {
-        font-size: 1.2rem;
-    }
-    
-    .detail-label,
-    .detail-value {
-        font-size: 0.8rem;
-    }
-    
-    .odds-card__action-btn {
-        font-size: 0.8rem;
-        padding: var(--spacing-xs) var(--spacing-sm);
-    }
-}
-
-/* Tablet devices (768px to 1024px) */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .odds-card__body {
-        gap: var(--spacing-lg);
-    }
-    
-    .recommended-value {
-        font-size: 1.5rem;
-    }
-    
-    .detail-item {
-        padding: var(--spacing-sm);
-    }
-    
-    .available-odds-list {
-        max-width: 100%;
-    }
-}
-
-/* Large devices (1025px and up) */
-@media (min-width: 1025px) {
-    .odds-card {
-        padding: var(--spacing-xl);
-    }
-    
-    .odds-card__body {
-        gap: var(--spacing-xxl);
-    }
-    
-    .odds-card__recommended {
-        min-width: 280px;
-        padding: var(--spacing-lg);
-    }
-    
-    .recommended-value {
-        font-size: 1.75rem;
-    }
-}
-
-/* ===== VERY LARGE SCREENS (1200px and up) - Readability Optimization ===== */
-@media (min-width: 1200px) {
-    .odds-card {
-        /* Prevent cards from becoming too wide for readability */
-        max-width: 600px;
-        /* Center the card if it's in a flexible container */
-        margin-left: auto;
-        margin-right: auto;
-        margin-bottom: var(--spacing-xl);
-    }
-    
-    /* Increase spacing for better visual hierarchy on large screens */
-    .odds-card__body {
-        gap: var(--spacing-xxxl);
-    }
-    
-    .odds-card__recommended {
-        min-width: 320px;
-        padding: var(--spacing-xl);
-    }
-    
-    .recommended-value {
-        font-size: 2rem;
-    }
-    
-    /* Improve typography scaling */
-    .odds-card__title {
-        font-size: 1.4rem;
-    }
-    
-    .detail-item {
-        padding: var(--spacing-md);
-    }
-    
-    .detail-label {
-        font-size: 0.9rem;
-    }
-    
-    .detail-value {
-        font-size: 1rem;
-    }
-}
-
-/* ===== ULTRA-WIDE SCREENS (1600px and up) ===== */
-@media (min-width: 1600px) {
-    .odds-card {
-        /* Maintain readability on ultra-wide screens */
-        max-width: 700px;
-    }
-    
-    .odds-card__recommended {
-        min-width: 360px;
-    }
-    
-    .recommended-value {
-        font-size: 2.2rem;
-    }
-}
-
-/* ===== LANDSCAPE MOBILE ORIENTATION ===== */
-@media (max-width: 767px) and (orientation: landscape) {
-    .odds-card__body {
-        /* On landscape mobile, we can afford horizontal layout */
-        flex-direction: row;
-        align-items: flex-start;
-        gap: var(--spacing-md);
-    }
-    
-    .odds-card__recommended {
-        margin-bottom: 0;
-        margin-right: var(--spacing-md);
-        min-width: 200px;
-        flex-shrink: 0;
-    }
-    
-    .recommended-value {
-        font-size: 1.4rem;
-    }
-    
-    .detail-item {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .detail-value {
-        text-align: right;
-    }
-    
-    .action-buttons {
-        flex-direction: row;
-        gap: var(--spacing-sm);
-    }
-    
-    .odds-card__action-btn {
-        width: auto;
-        flex: 1;
-    }
-}
-
-/* ===== ACCESSIBILITY ENHANCEMENTS FOR ODDS CARDS ===== */
-
-/* Focus states */
-.odds-card:focus-within {
-    outline: 2px solid var(--color-focus-outline);
-    outline-offset: 2px;
-}
-
-.odds-card__action-btn:focus {
-    outline: 2px solid var(--color-focus-outline);
-    outline-offset: 2px;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .odds-card {
-        border: 2px solid var(--color-text-primary);
-    }
-    
-    .recommended-value {
-        color: var(--color-text-primary);
-        -webkit-text-fill-color: var(--color-text-primary);
-    }
-    
-    .detail-item {
-        border: 1px solid var(--color-text-primary);
-    }
-}
-
-/* Reduced motion preference */
-@media (prefers-reduced-motion: reduce) {
-    .odds-card,
-    .odds-card__action-btn,
-    .odds-item {
-        transition: none;
-    }
-    
-    .odds-card:hover {
-        transform: none;
-    }
-    
-    .odds-card__action-btn:hover {
-        transform: none;
-    }
-}
-
-/* Print styles for odds cards */
-@media print {
-    .odds-card {
-        border: 1px solid #000 !important;
-        background: white !important;
-        box-shadow: none !important;
-        page-break-inside: avoid;
-        margin-bottom: var(--spacing-md) !important;
-    }
-    
-    .odds-card__footer,
-    .help-icon,
-    .tooltip {
-        display: none !important;
-    }
-    
-    .recommended-value {
-        color: #000 !important;
-        -webkit-text-fill-color: #000 !important;
-    }
-}
-
-/* ===== OVERRIDE OLD CARD STYLES (if needed) ===== */
-/* 
- * These overrides ensure the new odds cards don't conflict 
- * with any existing bet-card styles
- */
-
-/* Remove any potential conflicts from old bet-card styles */
-.odds-card {
-    /* Ensure our new cards don't inherit problematic styles */
-    position: static !important;
-    display: block !important;
-    grid-template-columns: none !important;
-    grid-template-areas: none !important;
-}
-
-/* ===== END ODDS CARD REDESIGN SECTION ===== */ 
-
-/* ---------- QUICK FIX FOR NARROW COLUMNS ---------- */
-
-/* 1️⃣  Make every card take the available width */
-.odds-card {
-    width: 100%;          /* instead of max-width:720px;  */
-    max-width: 100%;      /* prevents skinny columns inside grid layouts */
-}
-
-/* 2️⃣  Allow the internal columns to wrap when space is tight */
-.odds-card__body {
-    flex-wrap: wrap;      /* <— critical */
-}
-
-/* 3️⃣  Recommended block: keep it sturdy but not force a huge min-width */
-.odds-card__recommended {
-    flex: 0 0 140px;      /* fixed 140 px on desktop … */
-}
-
-@media (max-width: 768px) {
-    /* On mobile just let it fill and stack naturally */
-    .odds-card__recommended {
-        flex: 1 1 auto;     /* we'll stack, so no fixed width */
-        min-width: 0;
-    }
-    .odds-card__details {
-        flex: 1 1 100%;
-    }
-}
-
-/* EV-based Card Styling - Enhanced with New Color System */
-.odds-card.ev-excellent {
-    background: linear-gradient(135deg, var(--color-ev-excellent-bg) 0%, rgba(232, 245, 232, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-excellent);
-    border-color: var(--color-ev-excellent-border);
-}
-
-.odds-card.ev-high {
-    background: linear-gradient(135deg, var(--color-ev-high-bg) 0%, rgba(241, 248, 233, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-high);
-    border-color: var(--color-ev-high-border);
-}
-
-.odds-card.ev-positive {
-    background: linear-gradient(135deg, var(--color-ev-positive-bg) 0%, rgba(255, 248, 225, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-positive);
-    border-color: var(--color-ev-positive-border);
-}
-
-.odds-card.ev-neutral {
-    background: linear-gradient(135deg, var(--color-ev-neutral-bg) 0%, rgba(245, 245, 245, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-neutral);
-    border-color: var(--color-ev-neutral-border);
-}
-
-.odds-card.ev-negative {
-    background: linear-gradient(135deg, var(--color-ev-negative-bg) 0%, rgba(255, 235, 238, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-negative);
-    border-color: var(--color-ev-negative-border);
-}
-
 /* Details Section - Secondary Information */
 .odds-card__details {
     display: flex;
@@ -2664,15 +2215,15 @@ html, body {
 }
 
 .detail-label {
-    font-size: 0.85rem;
-    color: #1a1a1a;
+    font-size: var(--fs-1);
+    color: var(--text-muted);
     font-weight: var(--font-weight-medium);
     flex-shrink: 0;
 }
 
 .detail-value {
-    font-size: 0.9rem;
-    color: #000000;
+    color: var(--text-primary);
+    font-size: var(--fs-1-25);
     font-weight: var(--font-weight-medium);
     text-align: right;
 }
@@ -2711,7 +2262,7 @@ html, body {
 .available-odds-section .detail-label {
     display: block;
     margin-bottom: var(--spacing-xs);
-    font-size: 0.85rem;
+    font-size: var(--fs-0-75);
     color: var(--color-text-secondary);
     font-weight: var(--font-weight-medium);
 }
@@ -2728,80 +2279,42 @@ html, body {
 
 .odds-item {
     background: var(--color-bg-primary);
-}
-
-/* ========= HERO BANNER ========= */
-.hero-ev {
-    --gradStart: #2c5aa0;
-    --gradEnd: #1d4e3f;
-    background: linear-gradient(135deg, var(--gradStart), var(--gradEnd));
-    color: #ffffff !important;
-    position: relative;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    font-size: var(--fs-0-5);
     text-align: center;
-    padding: 2.75rem 1rem 3.5rem;   /* more bottom-pad b/c of wave */
+    white-space: nowrap;
+    transition: all 0.2s ease;
 }
 
-.hero-ev__content {
-    max-width: 820px;
-    margin-inline: auto;
+/* EV-based Card Styling - Enhanced with New Color System */
+.odds-card.ev-excellent {
+    background: linear-gradient(135deg, var(--color-ev-excellent-bg) 0%, rgba(232, 245, 232, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-excellent);
+    border-color: var(--color-ev-excellent-border);
 }
 
-.hero-ev__title {
-    font-size: clamp(1.4rem, 4vw, 2rem);
-    font-weight: 700;
-    margin: 0;
-    line-height: 1.25;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: .5rem;
-    color: #ffffff !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+.odds-card.ev-high {
+    background: linear-gradient(135deg, var(--color-ev-high-bg) 0%, rgba(241, 248, 233, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-high);
+    border-color: var(--color-ev-high-border);
 }
 
-.hero-ev__title .icon {
-    font-family: "Font Awesome 6 Free"; /* or remove if not using FA */
-    font-weight: 900;
-    font-size: 1.25em;
-    color: #ffffff !important;
+.odds-card.ev-positive {
+    background: linear-gradient(135deg, var(--color-ev-positive-bg) 0%, rgba(255, 248, 225, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-positive);
+    border-color: var(--color-ev-positive-border);
 }
 
-.hero-ev__title strong {
-    color: #ffeb3b !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+.odds-card.ev-neutral {
+    background: linear-gradient(135deg, var(--color-ev-neutral-bg) 0%, rgba(245, 245, 245, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-neutral);
+    border-color: var(--color-ev-neutral-border);
 }
 
-.hero-ev__tagline {
-    font-size: clamp(.9rem, 2.3vw, 1.1rem);
-    font-weight: 500;
-    margin: .5rem 0 0;
-    color: rgba(255, 255, 255, 0.95) !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-.hero-ev__subtag {
-    font-size: clamp(.75rem, 1.9vw, .95rem);
-    margin: .25rem 0 0;
-    color: rgba(255, 255, 255, 0.85) !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-/* curved bottom edge */
-.hero-ev__wave {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: auto;
-}
-
-/* ========== DARK MODE (opt) ========== */
-@media (prefers-color-scheme: dark) {
-    .hero-ev { 
-        --gradStart: #012a49; 
-        --gradEnd: #013a2d; 
-    }
-    .hero-ev__wave path { 
-        fill: #0d1117;         /* replace w/ dark bg colour */
-    }
+.odds-card.ev-negative {
+    background: linear-gradient(135deg, var(--color-ev-negative-bg) 0%, rgba(255, 235, 238, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-negative);
+    border-color: var(--color-ev-negative-border);
 }
