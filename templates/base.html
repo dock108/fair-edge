@@ -55,8 +55,8 @@
 
     <!-- Navigation Bar (Updated to use content-wrap) -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="content-wrap">
-            <div class="navbar-nav me-auto">
+        <div class="content-wrap d-flex justify-content-between align-items-center">
+            <div class="navbar-nav">
                 <a class="nav-link active" href="/">
                     <i class="fas fa-home me-1"></i> Dashboard
                 </a>
@@ -76,81 +76,63 @@
                 </a>
                 {% endif %}
             </div>
-            <div class="navbar-nav">
+            <div class="d-flex align-items-center gap-2">
                 <!-- DEBUG: Manual Refresh Button -->
                 {% if settings.debug_mode %}
-                <div class="nav-item me-3">
-                    <button id="manual-refresh-dev-btn" onclick="triggerManualRefreshDev()" class="btn btn-outline-warning btn-sm">
-                        <i class="fas fa-sync-alt me-1"></i> Manual Refresh (Dev)
-                    </button>
-                </div>
+                <button id="manual-refresh-dev-btn" onclick="triggerManualRefreshDev()" class="btn btn-outline-warning btn-sm">
+                    <i class="fas fa-sync-alt me-1"></i> Manual Refresh (Dev)
+                </button>
                 {% endif %}
 
-                <!-- Role Badge -->
-                {% if user and user.role != 'guest' %}
-                <div class="d-flex align-items-center me-3">
-                    <span class="badge
-                        {% if user_role == 'admin' %} bg-danger
-                        {% elif user_role == 'subscriber' %} bg-success
-                        {% else %} bg-secondary
-                        {% endif %} rounded-pill">
-                        {% if user_role == 'admin' %}
-                            <i class="fas fa-shield-alt me-1"></i>Admin
-                        {% elif user_role == 'subscriber' %}
-                            <i class="fas fa-crown me-1"></i>Premium
-                        {% else %}
-                            <i class="fas fa-user me-1"></i>{{ user_role|title }}
-                        {% endif %}
-                    </span>
-                </div>
-                {% endif %}
-                
-                <!-- Manage Billing Button for Subscribers -->
-                {% if user_role == 'subscriber' %}
-                <div class="d-none me-3" id="manage-billing-nav">
-                    <button id="manage" onclick="manageBilling()" class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-credit-card me-1"></i>
-                        Manage billing
-                    </button>
-                </div>
-                {% endif %}
-                
-                <!-- Upgrade CTA for free users -->
-                <div id="upgrade-cta" class="d-none me-3">
-                    <button onclick="goPremium()" class="btn btn-warning btn-sm px-3 py-1 rounded-pill fw-bold" style="box-shadow: 0 2px 4px rgba(255,193,7,0.3);">
-                        <i class="fas fa-star me-1"></i> Upgrade
-                    </button>
-                </div>
-                <!-- Account link for authenticated users -->
-                <div id="account-link" class="d-none me-2">
-                    <a class="nav-link" href="/account">
-                        <i class="fas fa-user me-1"></i> My Account
-                    </a>
-                </div>
                 <!-- Authentication status will be populated by JavaScript -->
                 <div id="auth-status">
                     <a class="nav-link" href="/login">
                         <i class="fas fa-sign-in-alt me-1"></i> Login
                     </a>
                 </div>
+
+                <!-- Admin Badge Only -->
+                {% if user_role == 'admin' %}
+                <span class="badge bg-danger rounded-pill">
+                    <i class="fas fa-shield-alt me-1"></i>Admin
+                </span>
+                {% endif %}
+                
+                <!-- Manage Billing Button for Subscribers -->
+                {% if user_role == 'subscriber' %}
+                <button id="manage" onclick="manageBilling()" class="btn btn-outline-primary btn-sm d-none" id="manage-billing-nav">
+                    <i class="fas fa-credit-card me-1"></i>
+                    Manage billing
+                </button>
+                {% endif %}
+                
+                <!-- Upgrade CTA for free users -->
+                <button onclick="goPremium()" class="btn btn-warning btn-sm px-3 py-1 rounded-pill fw-bold d-none" id="upgrade-cta" style="box-shadow: 0 2px 4px rgba(255,193,7,0.3);">
+                    <i class="fas fa-star me-1"></i> Upgrade
+                </button>
+                
+                <!-- Account link for authenticated users -->
+                <a class="nav-link d-none" href="/account" id="account-link">
+                    <i class="fas fa-user me-1"></i> My Account
+                </a>
             </div>
         </div>
     </nav>
 
-    {% block content %}
-    <!-- Page-specific content will be inserted here -->
-    {% endblock %}
+            {% block content %}
+            <!-- Page-specific content will be inserted here -->
+            {% endblock %}
 
     <!-- Footer (Updated to use content-wrap) -->
     <footer class="footer mt-5 py-3 bg-light">
         <div class="content-wrap">
             <div class="text-center">
-                <small class="text-muted">
-                    Sports Betting +EV Analyzer v2.1.0 | 
-                    <span id="last-updated">Last updated: <span class="fw-bold">Just now</span></span> |
-                    <a href="/education" class="text-muted text-decoration-none" title="Learn about sports betting basics">📚 Learn the Basics</a> |
-                    <a href="/disclaimer" class="text-muted text-decoration-none" title="Important legal disclaimer and risk disclosure">⚠️ Disclaimer</a>
-                </small>
+                    <small class="text-muted">
+                        Sports Betting +EV Analyzer v2.1.0 | 
+                        <span id="last-updated">Last updated: <span class="fw-bold">Just now</span></span> |
+                        <a href="/education" class="text-muted text-decoration-none" title="Learn about sports betting basics">📚 Learn the Basics</a> |
+                        <a href="/disclaimer" class="text-muted text-decoration-none" title="Important legal disclaimer and risk disclosure">⚠️ Disclaimer</a>
+                    </small>
             </div>
         </div>
     </footer>
