@@ -110,77 +110,10 @@
                 <h1 class="top-shell__title">Sports Betting +EV Analyzer</h1>
                 <span class="sr-only">Educational odds analysis and comparison tool for research and educational purposes only</span>
             </div>
-            
-            <!-- Actions: Search, Filters, etc. -->
-            <div class="top-shell__actions">
-                <!-- Search and Filters -->
-                <div class="flex items-center gap-3">
-                    <!-- Search Box -->
-                    <div class="flex items-center gap-2">
-                        <label for="filter-search" class="sr-only">Search teams, events, players</label>
-                        <input 
-                            type="text" 
-                            id="filter-search"
-                            name="search"
-                            placeholder="Search teams, events, players..."
-                            class="search-input"
-                            aria-describedby="search-help"
-                        >
-                        <button class="btn btn-outline-secondary" 
-                                type="button" 
-                                id="clear-search"
-                                aria-label="Clear search">
-                            <i class="fas fa-times" aria-hidden="true"></i>
-                        </button>
-                        <div id="search-help" class="sr-only">
-                            Search through betting opportunities by team names, player names, or event descriptions
-                        </div>
-                    </div>
-                    
-                    <!-- Filter Controls -->
-                    <div class="flex items-center gap-3">
-                        <!-- Sport Filter -->
-                        <div class="filter-group">
-                            <label for="sport-filter" class="sr-only">Filter by sport</label>
-                            <select id="sport-filter" name="sport" class="filter-select" aria-label="Filter by sport">
-                                <option value="">All Sports</option>
-                                {% for sport in sports_supported %}
-                                <option value="{{ sport }}">
-                                    {% if sport == 'americanfootball_nfl' %}NFL Football
-                                    {% elif sport == 'basketball_nba' %}NBA Basketball  
-                                    {% elif sport == 'baseball_mlb' %}MLB Baseball
-                                    {% elif sport == 'icehockey_nhl' %}NHL Hockey
-                                    {% else %}{{ sport|title }}
-                                    {% endif %}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <!-- EV Filter -->
-                        <div class="filter-group">
-                            <label for="ev-filter" class="sr-only">Filter by expected value</label>
-                            <select id="ev-filter" name="ev" class="filter-select" aria-label="Filter by expected value">
-                                <option value="">All EV</option>
-                                <option value="high">High EV (4.5%+)</option>
-                                <option value="positive">Positive EV (0%+)</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Clear Filters -->
-                        <button class="btn btn-sm btn-outline-secondary d-none" 
-                                id="clear-all-filters" 
-                                type="button">
-                            <i class="fas fa-times me-1"></i>
-                            Clear All
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </header>
-
+        
 <!-- Scroll State JavaScript -->
 <script>
 (function() {
@@ -239,6 +172,78 @@
     </div>
     {% endif %}
 
+    <!-- Search and Filter Controls -->
+    <div class="filters-section" style="margin-top: var(--sp-4); margin-bottom: var(--sp-4);">
+        <div class="card">
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <!-- Search Box -->
+                    <div class="col-md-4">
+                        <label for="filter-search" class="sr-only">Search teams, events, players</label>
+                        <div class="input-group">
+                            <input 
+                                type="text" 
+                                id="filter-search"
+                                name="search"
+                                placeholder="Search teams, events, players..."
+                                class="form-control search-input"
+                                aria-describedby="search-help"
+                            >
+                            <button class="btn btn-outline-secondary" 
+                                    type="button" 
+                                    id="clear-search"
+                                    aria-label="Clear search">
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div id="search-help" class="sr-only">
+                            Search through betting opportunities by team names, player names, or event descriptions
+                        </div>
+                    </div>
+                    
+                    <!-- Sport Filter -->
+                    <div class="col-md-3 filter-group">
+                        <label for="sport-filter" class="form-label">Sport</label>
+                        <select id="sport-filter" name="sport" class="form-select filter-select" aria-label="Filter by sport">
+                            <option value="">All Sports</option>
+                            {% for sport in sports_supported %}
+                            <option value="{{ sport }}">
+                                {% if sport == 'americanfootball_nfl' %}NFL Football
+                                {% elif sport == 'basketball_nba' %}NBA Basketball  
+                                {% elif sport == 'baseball_mlb' %}MLB Baseball
+                                {% elif sport == 'icehockey_nhl' %}NHL Hockey
+                                {% else %}{{ sport|title }}
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- EV Filter -->
+                    <div class="col-md-3 filter-group">
+                        <label for="ev-filter" class="form-label">Expected Value</label>
+                        <select id="ev-filter" name="ev" class="form-select filter-select" aria-label="Filter by expected value">
+                            <option value="">All EV</option>
+                            <option value="high">High EV (4.5%+)</option>
+                            <option value="positive">Positive EV (0%+)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Clear Filters -->
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-outline-secondary d-none w-100" 
+                                id="clear-all-filters" 
+                                type="button">
+                            <i class="fas fa-times me-1"></i>
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filter Status -->
     {% if filter_applied %}
     <div class="text-center" role="status" aria-live="polite" style="margin-top: var(--sp-4);">
@@ -249,14 +254,11 @@
             {% if current_sport and current_sport != '' %} - Sport: {{ current_sport|title }}{% endif %}
             {% if current_market and current_market != '' %} - Market: {{ current_market|title }}{% endif %}
         </span>
-    </div>
+                </div>
     {% endif %}
 
-    <!-- Two-Column Grid Layout -->
-    <main class="grid grid-cols-1 grid-dashboard" id="main-content" role="main" style="margin-top: var(--sp-5);">
-        
-        <!-- Stats Drawer (Mobile) / Sidebar (Desktop) -->
-        {% include "partials/stats_drawer.html" with context %}
+    <!-- Single Column Layout -->
+    <main class="grid grid-cols-1" id="main-content" role="main" style="margin-top: var(--sp-5);">
         
         <!-- Main Content Column -->
         <div class="main-content">
@@ -265,70 +267,66 @@
                 <div class="filter-spinner d-none">
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
                         <span class="visually-hidden">Filtering...</span>
-                    </div>
+                </div>
                     <small class="text-muted">Updating results...</small>
-                </div>
-                <div class="filter-results-count">
-                    <small class="text-muted" id="results-count"></small>
-                </div>
             </div>
-
-            <!-- Enhanced Loading Spinner -->
+            </div>
+        
+        <!-- Enhanced Loading Spinner -->
             <div id="table-spinner" class="text-center py-4 d-none">
-                <div class="spinner-border text-primary me-2" role="status" aria-hidden="true"></div>
-                <span class="text-muted">Loading opportunities...</span>
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            
-            {% if error %}
-            <!-- Error State -->
-            <div class="empty-state" role="alert" aria-live="assertive">
-                <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning" aria-hidden="true"></i>
-                <h3>Unable to Load Data</h3>
-                <p>{{ error }}</p>
-                <a href="/" class="btn btn-primary">
-                    <i class="fas fa-refresh me-1" aria-hidden="true"></i>
-                    Try Again
-                </a>
-            </div>
-            
-            {% elif opportunities|length == 0 %}
-            <!-- Empty State -->
-            <div class="empty-state" role="status" aria-live="polite">
-                <i class="fas fa-search fa-3x mb-3 text-muted" aria-hidden="true"></i>
-                <h3>No Opportunities Found</h3>
-                <p>{% if filter_applied %}No betting opportunities match your current filters. Try adjusting your search criteria or clearing filters to see all available opportunities.{% else %}No betting opportunities are currently available. Please check back later.{% endif %}</p>
-                {% if filter_applied %}
-                <a href="/" class="btn btn-secondary">
-                    <i class="fas fa-times me-1" aria-hidden="true"></i>
-                    Clear All Filters
-                </a>
-                {% endif %}
-            </div>
-            
-            {% else %}
-            <!-- Results Summary for Screen Readers -->
-            <div class="sr-only" aria-live="polite" role="status">
-                Showing {{ opportunities|length }} betting opportunities
-                {% if filter_applied %}
-                    {% if current_sport %} for {{ current_sport|title }}{% endif %}
-                    {% if current_market %} in {{ current_market|title }} markets{% endif %}
-                {% endif %}
-            </div>
-            
-            <!-- Opportunities Grid -->
-            <section id="opportunity-grid" class="opportunity-grid" role="list" aria-label="Betting opportunities">
-                <!-- Opportunities will be loaded here by JavaScript -->
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading opportunities...</span>
-                    </div>
-                    <p class="text-muted mt-2">Waiting for updates...</p>
-                </div>
-            </section>
+            <div class="spinner-border text-primary me-2" role="status" aria-hidden="true"></div>
+            <span class="text-muted">Loading opportunities...</span>
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        
+        {% if error %}
+        <!-- Error State -->
+        <div class="empty-state" role="alert" aria-live="assertive">
+            <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning" aria-hidden="true"></i>
+            <h3>Unable to Load Data</h3>
+            <p>{{ error }}</p>
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-refresh me-1" aria-hidden="true"></i>
+                Try Again
+            </a>
+        </div>
+        
+        {% elif opportunities|length == 0 %}
+        <!-- Empty State -->
+        <div class="empty-state" role="status" aria-live="polite">
+            <i class="fas fa-search fa-3x mb-3 text-muted" aria-hidden="true"></i>
+            <h3>No Opportunities Found</h3>
+            <p>{% if filter_applied %}No betting opportunities match your current filters. Try adjusting your search criteria or clearing filters to see all available opportunities.{% else %}No betting opportunities are currently available. Please check back later.{% endif %}</p>
+            {% if filter_applied %}
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-times me-1" aria-hidden="true"></i>
+                Clear All Filters
+            </a>
             {% endif %}
         </div>
-    </main>
+        
+        {% else %}
+        <!-- Results Summary for Screen Readers -->
+        <div class="sr-only" aria-live="polite" role="status">
+            Showing {{ opportunities|length }} betting opportunities
+            {% if filter_applied %}
+                {% if current_sport %} for {{ current_sport|title }}{% endif %}
+                {% if current_market %} in {{ current_market|title }} markets{% endif %}
+            {% endif %}
+        </div>
+        
+        <!-- Opportunities Grid -->
+            <section id="opportunity-grid" class="opportunity-grid" role="list" aria-label="Betting opportunities">
+            <!-- Opportunities will be loaded here by JavaScript -->
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading opportunities...</span>
+                </div>
+            </div>
+            </section>
+        {% endif %}
+    </div>
+</main>
 </div>
 
 <script>
@@ -389,18 +387,20 @@ const filterSpinner = document.querySelector('.filter-spinner');
 
 // Create debounced filter function
 const debouncedFilter = debounce(() => {
+    updateCurrentFilters();
     applyClientSideFilters();
 }, 300);
+
+// Update current filters from form inputs
+function updateCurrentFilters() {
+    if (searchBox) currentFilters.search = searchBox.value;
+    if (sportSelect) currentFilters.sport = sportSelect.value;
+    if (evSelect) currentFilters.ev = evSelect.value;
+}
     
-// Update results count
+// Update results count (disabled)
 function updateResultsCount(count, total) {
-    if (resultsCount) {
-        if (count === total) {
-            resultsCount.textContent = `Showing all ${total} opportunities`;
-        } else {
-            resultsCount.textContent = `Showing ${count} of ${total} opportunities`;
-        }
-    }
+    // Results count display has been removed
 }
 
 // Show/hide clear all button
@@ -504,8 +504,8 @@ function renderOpportunities(opportunities) {
     
     if (opportunities.length === 0) {
         cardsGrid.innerHTML = `
-            <div class="empty-state text-center py-5">
-                <i class="fas fa-search fa-3x mb-3 text-muted"></i>
+                <div class="empty-state text-center py-5">
+                    <i class="fas fa-search fa-3x mb-3 text-muted"></i>
                 <h3>No Opportunities Found</h3>
                 <p class="text-muted">
                     ${currentFilters.search || currentFilters.sport || currentFilters.ev ? 
@@ -782,30 +782,13 @@ function formatTimeSince(isoTimestamp) {
 }
 
 function updateTimestampDisplay() {
-    if (lastUpdateTime) {
-        const timestampDisplay = document.getElementById('last-update-display');
-        if (timestampDisplay) {
-            timestampDisplay.innerHTML = `<i class="fas fa-clock me-1"></i>Updated ${formatTimeSince(lastUpdateTime)}`;
-        }
-    }
+    // Timestamp display disabled - no longer updating UI element
+    return;
 }
 
 function createTimestampDisplay() {
-    // Create timestamp display element if it doesn't exist
-    let timestampDisplay = document.getElementById('last-update-display');
-    if (!timestampDisplay) {
-        timestampDisplay = document.createElement('div');
-        timestampDisplay.id = 'last-update-display';
-        timestampDisplay.className = 'text-muted small text-center mb-3';
-        timestampDisplay.innerHTML = '<i class="fas fa-clock me-1"></i><span>Connecting...</span>';
-        
-        // Insert after the enhanced spinner
-        const spinner = document.getElementById('table-spinner');
-        if (spinner && spinner.parentNode) {
-            spinner.parentNode.insertBefore(timestampDisplay, spinner.nextSibling);
-        }
-    }
-    return timestampDisplay;
+    // Timestamp display disabled - no longer creating UI element
+    return null;
 }
 
 // Helper functions for parsing backend data
@@ -1005,12 +988,11 @@ function connectWebSocket() {
         wsConnection.onopen = function() {
             console.log('WebSocket connected');
             reconnectAttempts = 0;
-            showUpdateNotification('Real-time updates connected', 'success');
             
-            // Update timestamp display
+            // Update timestamp display (disabled)
             const timestampDisplay = document.getElementById('last-update-display');
             if (timestampDisplay) {
-                timestampDisplay.innerHTML = '<i class="fas fa-clock me-1"></i><span>Waiting for updates...</span>';
+                // Timestamp display removed
             }
         };
         
@@ -1023,7 +1005,6 @@ function connectWebSocket() {
         wsConnection.onclose = function() {
             console.log('WebSocket disconnected');
             wsConnection = null;
-            showUpdateNotification('Real-time connection lost, switching to fallback...', 'warning');
             
             // Fallback to SSE
             setTimeout(connectSSE, 1000);
@@ -1031,7 +1012,6 @@ function connectWebSocket() {
         
         wsConnection.onerror = function(error) {
             console.error('WebSocket error:', error);
-            showUpdateNotification('WebSocket connection failed', 'warning');
         };
         
     } catch (error) {
@@ -1050,12 +1030,11 @@ function connectSSE() {
         
         sseConnection.onopen = function() {
             console.log('SSE connected');
-            showUpdateNotification('Real-time updates connected (SSE)', 'info');
             
-            // Update timestamp display
+            // Update timestamp display (disabled)
             const timestampDisplay = document.getElementById('last-update-display');
             if (timestampDisplay) {
-                timestampDisplay.innerHTML = '<i class="fas fa-clock me-1"></i><span>Waiting for updates...</span>';
+                // Timestamp display removed
             }
         };
         
@@ -1083,13 +1062,12 @@ function connectSSE() {
                 console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
                 setTimeout(connectWebSocket, delay);
             } else {
-                showUpdateNotification('Real-time updates unavailable', 'warning');
+                // Max reconnect attempts reached
     }
         };
         
     } catch (error) {
         console.error('Failed to create SSE connection:', error);
-        showUpdateNotification('Real-time updates unavailable', 'warning');
     }
 }
 
@@ -1110,14 +1088,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Load initial data from server
         loadInitialData();
         
-        // Create timestamp display
-        createTimestampDisplay();
-        
         // Connect to real-time updates
         connectWebSocket();
-        
-        // Update timestamp display every 5 seconds
-        setInterval(updateTimestampDisplay, 5000);
     }
     
     // Cleanup connections when page unloads
@@ -1133,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Trigger manual refresh (dev mode only)
 async function triggerManualRefreshDev() {
-    const button = document.getElementById('manual-refresh-btn');
+    const button = document.getElementById('manual-refresh-dev-btn');
     if (!button) return;
     
     // Show loading state

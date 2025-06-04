@@ -139,25 +139,14 @@
         
         if (await isAuthenticated()) {
             const user = await getCurrentUser();
-            const userEmail = user ? user.email : 'Unknown User';
             const userRole = user ? user.role : 'free';
             
-            console.log('User authenticated:', userEmail, 'Role:', userRole);
+            console.log('User authenticated, Role:', userRole);
             
             authStatus.innerHTML = `
-                <div class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user me-1"></i>${userEmail}
-                        <span class="badge bg-${getRoleBadgeColor(userRole)} ms-1">${userRole.toUpperCase()}</span>
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i>Profile</a></li>
-                        <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
-                        ${userRole === 'free' ? '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-warning" href="/pricing"><i class="fas fa-star me-2"></i>Upgrade to Premium</a></li>' : ''}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" id="logout-btn"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                    </ul>
-                </div>
+                <a class="nav-link" href="#" id="logout-btn">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </a>
             `;
             
             // Handle role-based UI elements
