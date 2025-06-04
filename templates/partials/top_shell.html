@@ -1,0 +1,132 @@
+<!-- 
+    Sticky Top Shell - Reusable Header Component
+    Height: 56px mobile, 64px desktop
+    Contains: page title, search, filters, actions
+-->
+<header class="top-shell" id="top-shell">
+    <div class="content-wrap">
+        <div class="top-shell__content">
+            <!-- Page Title -->
+            <div class="flex items-center gap-3">
+                <h1 class="top-shell__title">
+                    {% block page_title %}Sports Betting +EV Analyzer{% endblock %}
+                </h1>
+                
+                <!-- Optional subtitle for context -->
+                {% block page_subtitle %}
+                <span class="sr-only">Educational odds analysis and comparison tool for research and educational purposes only</span>
+                {% endblock %}
+            </div>
+            
+            <!-- Actions: Search, Filters, etc. -->
+            <div class="top-shell__actions">
+                {% block top_shell_actions %}
+                <!-- Default actions - can be overridden per page -->
+                
+                <!-- Search Box (if applicable) -->
+                {% if show_search|default(false) %}
+                <div class="flex items-center gap-2">
+                    <label for="search-box" class="sr-only">Search teams, events, players</label>
+                    <input 
+                        type="text" 
+                        id="search-box"
+                        name="search"
+                        placeholder="Search teams, events, players..."
+                        class="search-input"
+                        value="{{ request.args.get('search', '') }}"
+                        aria-describedby="search-help"
+                    >
+                    <div id="search-help" class="sr-only">
+                        Search through betting opportunities by team names, player names, or event descriptions
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Filter Controls (if applicable) -->
+                {% if show_filters|default(false) %}
+                <div class="flex items-center gap-3">
+                    <!-- Sport Filter -->
+                    <div class="filter-group">
+                        <label for="sport-select" class="sr-only">Filter by sport</label>
+                        <select id="sport-select" name="sport" class="filter-select" aria-label="Filter by sport">
+                            <option value="">All Sports</option>
+                            <option value="baseball" {% if request.args.get('sport') == 'baseball' %}selected{% endif %}>Baseball</option>
+                            <option value="basketball" {% if request.args.get('sport') == 'basketball' %}selected{% endif %}>Basketball</option>
+                            <option value="football" {% if request.args.get('sport') == 'football' %}selected{% endif %}>Football</option>
+                            <option value="hockey" {% if request.args.get('sport') == 'hockey' %}selected{% endif %}>Hockey</option>
+                            <option value="soccer" {% if request.args.get('sport') == 'soccer' %}selected{% endif %}>Soccer</option>
+                        </select>
+                    </div>
+                    
+                    <!-- EV Filter -->
+                    <div class="filter-group">
+                        <label for="ev-select" class="sr-only">Filter by expected value</label>
+                        <select id="ev-select" name="ev" class="filter-select" aria-label="Filter by expected value">
+                            <option value="">All EV</option>
+                            <option value="high" {% if request.args.get('ev') == 'high' %}selected{% endif %}>High EV (4.5%+)</option>
+                            <option value="positive" {% if request.args.get('ev') == 'positive' %}selected{% endif %}>Positive EV</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Clear Filters -->
+                    {% if request.args.get('search') or request.args.get('sport') or request.args.get('ev') %}
+                    <button type="button" class="filter-btn filter-btn-clear" onclick="clearAllFilters()" aria-label="Clear all filters">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                        Clear
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Additional Actions -->
+                {% block additional_actions %}{% endblock %}
+                
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Scroll State JavaScript -->
+<script>
+(function() {
+    'use strict';
+    
+    const topShell = document.getElementById('top-shell');
+    let isScrolled = false;
+    
+    function handleScroll() {
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        const shouldBeScrolled = scrollY > 8;
+        
+        if (shouldBeScrolled !== isScrolled) {
+            isScrolled = shouldBeScrolled;
+            topShell.classList.toggle('top-shell--scrolled', isScrolled);
+            
+            // Update aria-label for screen readers
+            if (isScrolled) {
+                topShell.setAttribute('aria-label', 'Page header - scrolled');
+            } else {
+                topShell.removeAttribute('aria-label');
+            }
+        }
+    }
+    
+    // Throttled scroll handler for performance
+    let ticking = false;
+    function onScroll() {
+        if (!ticking) {
+            requestAnimationFrame(function() {
+                handleScroll();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }
+    
+    window.addEventListener('scroll', onScroll, { passive: true });
+    
+    // Initial check in case page loads scrolled
+    handleScroll();
+})();
+</script> 

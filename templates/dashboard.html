@@ -5,6 +5,8 @@
 {% block head %}
 <meta name="description" content="Educational sports betting analysis tool for research and comparison of odds across multiple sportsbooks. For educational purposes only.">
 <meta name="keywords" content="sports betting, odds comparison, betting analysis, EV calculator, educational tool">
+<!-- Import layout utilities after base styles -->
+<link rel="stylesheet" href="{{ url_for('static', path='/css/_layout.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -21,7 +23,7 @@
 {% if admin_mode %}
 <!-- Admin Mode Debug Panel -->
 <div class="admin-debug-panel">
-    <div class="container-fluid">
+    <div class="content-wrap">
         <div class="debug-header">
             <h2><i class="fas fa-cog me-2"></i>Developer Debug Mode</h2>
             <p class="text-muted">This panel is only visible to administrators and contains diagnostic information.</p>
@@ -32,8 +34,8 @@
                 <i class="fas fa-chart-line me-2"></i>System Metrics & Performance
             </summary>
             <div class="debug-content">
-                <div class="row">
-                    <div class="col-md-6">
+                <div class="grid grid-md-2 gap-4">
+                    <div>
                         <h4>System Information</h4>
                         <div class="debug-data">
                             <strong>App Version:</strong> {{ debug_info.system_metrics.app_version }}<br>
@@ -43,7 +45,7 @@
                             <strong>Timestamp:</strong> {{ debug_info.system_metrics.timestamp }}
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div>
                         <h4>Performance Metrics</h4>
                         <div class="debug-data">
                             <strong>Page Generation:</strong> {{ debug_info.performance.page_generation_time_ms }}ms<br>
@@ -61,8 +63,8 @@
                 <i class="fas fa-database me-2"></i>Data Pipeline Summary
             </summary>
             <div class="debug-content">
-                <div class="row">
-                    <div class="col-md-4">
+                <div class="grid grid-md-3 gap-4">
+                    <div>
                         <h4>Data Flow</h4>
                         <div class="debug-data">
                             <strong>Raw Events:</strong> {{ debug_info.data_summary.raw_events }}<br>
@@ -71,7 +73,7 @@
                             <strong>Processing Time:</strong> {{ debug_info.data_summary.data_processing_time }}s
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div>
                         <h4>EV Distribution</h4>
                         <div class="debug-data">
                             <strong>Excellent (4.5%+):</strong> {{ debug_info.ev_distribution.excellent_count }}<br>
@@ -83,7 +85,7 @@
                             <strong>Avg EV:</strong> {{ debug_info.ev_distribution.avg_ev|round(2) }}%
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div>
                         <h4>Filter State</h4>
                         <div class="debug-data">
                             <strong>Sport Filter:</strong> {{ debug_info.filter_state.sport_filter }}<br>
@@ -99,310 +101,235 @@
 </div>
 {% endif %}
 
-<!-- ▸ Hero Banner  -->
-<section class="hero-ev">
-  <div class="hero-ev__content container">
-    <h1 class="hero-ev__title">
-      <span class="icon">&#xf522;</span>  <!-- remove if you don't use FontAwesome -->
-      Sports Betting <strong>+EV</strong> Analyzer
-    </h1>
-    <p class="hero-ev__tagline">
-      Educational odds analysis and comparison tool
-    </p>
-    <p class="hero-ev__subtag">
-      For research and educational purposes only
-    </p>
-  </div>
-  <svg class="hero-ev__wave" viewBox="0 0 1440 60" aria-hidden="true">
-    <path d="M0,30 C240,60 480,0 720,30 C960,60 1200,0 1440,30 L1440,60 L0,60 Z" fill="#fff"/>
-  </svg>
-</section>
-
-<!-- Metrics Section -->
-<section class="metrics-section" role="region" aria-labelledby="metrics-heading">
-    <div class="container-fluid">
-        <h2 id="metrics-heading" class="sr-only">Dashboard Metrics</h2>
-        {% if filter_applied %}
-        <div class="text-center mb-3" role="status" aria-live="polite">
-            <span class="badge bg-info fs-6">
-                <i class="fas fa-filter me-1" aria-hidden="true"></i>
-                <span class="sr-only">Filters are active:</span>
-                Filters Active
-                {% if current_sport and current_sport != '' %} - Sport: {{ current_sport|title }}{% endif %}
-                {% if current_market and current_market != '' %} - Market: {{ current_market|title }}{% endif %}
-            </span>
-        </div>
-        {% endif %}
-        <div class="row g-4">
-            <div class="col-md-3">
-                <div class="metric-card">
-                    <span class="metric-value" aria-describedby="total-desc">{{ analytics.total_opportunities }}</span>
-                    <div class="metric-label">
-                        <span class="tooltip-container">
-                            Total Opportunities
-                            <button class="help-icon" aria-label="Help" type="button" tabindex="0">?</button>
-                            <div class="tooltip tooltip-large" role="tooltip">
-                                Total number of betting opportunities found across all analyzed markets and sportsbooks
-                            </div>
-                        </span>
-                    </div>
-                    <div id="total-desc" class="sr-only">Total betting opportunities available</div>
-                </div>
+<!-- Sticky Top Shell with Title and Search/Filters -->
+<header class="top-shell" id="top-shell">
+    <div class="content-wrap">
+        <div class="top-shell__content">
+            <!-- Page Title -->
+            <div class="flex items-center gap-3">
+                <h1 class="top-shell__title">Sports Betting +EV Analyzer</h1>
+                <span class="sr-only">Educational odds analysis and comparison tool for research and educational purposes only</span>
             </div>
-            <div class="col-md-3">
-                <div class="metric-card">
-                    <span class="metric-value" aria-describedby="positive-desc">{{ analytics.positive_ev_count }}</span>
-                    <div class="metric-label">
-                        <span class="tooltip-container">
-                            Positive EV Bets
-                            <button class="help-icon" aria-label="Help" type="button" tabindex="0">?</button>
-                            <div class="tooltip tooltip-large" role="tooltip">
-                                Bets with positive expected value - theoretically profitable opportunities based on our fair odds model
-                            </div>
-                        </span>
-                    </div>
-                    <div id="positive-desc" class="sr-only">Number of bets with positive expected value</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="metric-card">
-                    <span class="metric-value" aria-describedby="high-desc">{{ analytics.high_ev_count }}</span>
-                    <div class="metric-label">
-                        <span class="tooltip-container">
-                            High EV (4.5%+)
-                            <button class="help-icon" aria-label="Help" type="button" tabindex="0">?</button>
-                            <div class="tooltip tooltip-large" role="tooltip">
-                                Premium opportunities with 4.5% or higher expected value - our strongest betting recommendations
-                            </div>
-                        </span>
-                    </div>
-                    <div id="high-desc" class="sr-only">High expected value opportunities with 4.5% or greater edge</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="metric-card">
-                    <span class="metric-value" aria-describedby="max-desc">{{ analytics.max_ev_percentage }}%</span>
-                    <div class="metric-label">
-                        <span class="tooltip-container">
-                            Max EV Found
-                            <button class="help-icon" aria-label="Help" type="button" tabindex="0">?</button>
-                            <div class="tooltip tooltip-large" role="tooltip">
-                                The highest expected value percentage found among all current opportunities
-                            </div>
-                        </span>
-                    </div>
-                    <div id="max-desc" class="sr-only">Maximum expected value percentage found</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Enhanced Free Tier Upgrade Banner -->
-{% if user_role == 'free' and role_metadata.truncated %}
-<div class="container-fluid mt-3">
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        <strong><i class="fas fa-star me-1"></i>Upgrade to Premium →</strong> 
-        You're seeing main lines only (moneyline, spreads, totals). 
-        <strong>Upgrade to unlock props, alt lines, and live markets.</strong>
-        <a href="/pricing" class="alert-link">See plans</a>.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close upgrade banner"></button>
-                    </div>
-</div>
-{% endif %}
-
-<!-- Filter Controls Section -->
-<section class="filters-section" role="region" aria-labelledby="filters-heading">
-    <div class="filters-container">
-        <h2 id="filters-heading" class="sr-only">Filter Controls</h2>
-        
-        <!-- Client-Side Filters -->
-        <div class="client-filters mb-3">
-            <div class="row g-3">
-                    <div class="col-md-6">
-                    <!-- Search Box with Icon -->
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="fas fa-search" aria-hidden="true"></i>
-                        </span>
-                        <input id="filter-search" 
-                               class="form-control" 
-                               placeholder="Search teams, events, players..."
-                               aria-label="Search betting opportunities"
-                               type="text">
+            
+            <!-- Actions: Search, Filters, etc. -->
+            <div class="top-shell__actions">
+                <!-- Search and Filters -->
+                <div class="flex items-center gap-3">
+                    <!-- Search Box -->
+                    <div class="flex items-center gap-2">
+                        <label for="filter-search" class="sr-only">Search teams, events, players</label>
+                        <input 
+                            type="text" 
+                            id="filter-search"
+                            name="search"
+                            placeholder="Search teams, events, players..."
+                            class="search-input"
+                            aria-describedby="search-help"
+                        >
                         <button class="btn btn-outline-secondary" 
                                 type="button" 
                                 id="clear-search"
                                 aria-label="Clear search">
                             <i class="fas fa-times" aria-hidden="true"></i>
                         </button>
+                        <div id="search-help" class="sr-only">
+                            Search through betting opportunities by team names, player names, or event descriptions
+                        </div>
                     </div>
-                    <div class="form-text">
-                        <small class="text-muted">
-                            <i class="fas fa-lightbulb me-1"></i>
-                            Try "Lakers", "Over", or player names
-                        </small>
+                    
+                    <!-- Filter Controls -->
+                    <div class="flex items-center gap-3">
+                        <!-- Sport Filter -->
+                        <div class="filter-group">
+                            <label for="sport-filter" class="sr-only">Filter by sport</label>
+                            <select id="sport-filter" name="sport" class="filter-select" aria-label="Filter by sport">
+                                <option value="">All Sports</option>
+                                {% for sport in sports_supported %}
+                                <option value="{{ sport }}">
+                                    {% if sport == 'americanfootball_nfl' %}NFL Football
+                                    {% elif sport == 'basketball_nba' %}NBA Basketball  
+                                    {% elif sport == 'baseball_mlb' %}MLB Baseball
+                                    {% elif sport == 'icehockey_nhl' %}NHL Hockey
+                                    {% else %}{{ sport|title }}
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- EV Filter -->
+                        <div class="filter-group">
+                            <label for="ev-filter" class="sr-only">Filter by expected value</label>
+                            <select id="ev-filter" name="ev" class="filter-select" aria-label="Filter by expected value">
+                                <option value="">All EV</option>
+                                <option value="high">High EV (4.5%+)</option>
+                                <option value="positive">Positive EV (0%+)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Clear Filters -->
+                        <button class="btn btn-sm btn-outline-secondary d-none" 
+                                id="clear-all-filters" 
+                                type="button">
+                            <i class="fas fa-times me-1"></i>
+                            Clear All
+                        </button>
+                    </div>
                 </div>
             </div>
-                
-                <div class="col-md-3">
-                    <!-- Sport Filter -->
-                    <select id="sport-filter" class="form-select" aria-label="Filter by sport">
-                        <option value="">All Sports</option>
-                        {% for sport in sports_supported %}
-                        <option value="{{ sport }}">
-                            {% if sport == 'americanfootball_nfl' %}NFL Football
-                            {% elif sport == 'basketball_nba' %}NBA Basketball  
-                            {% elif sport == 'baseball_mlb' %}MLB Baseball
-                            {% elif sport == 'icehockey_nhl' %}NHL Hockey
-                            {% else %}{{ sport|title }}
-                            {% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-            </div>
-                
-                <div class="col-md-3">
-                    <!-- EV Filter -->
-                    <select id="ev-filter" class="form-select" aria-label="Filter by expected value">
-                        <option value="">All EV</option>
-                        <option value="high">High EV (4.5%+)</option>
-                        <option value="positive">Positive EV (0%+)</option>
-                    </select>
         </div>
     </div>
+</header>
+
+<!-- Scroll State JavaScript -->
+<script>
+(function() {
+    'use strict';
+    
+    const topShell = document.getElementById('top-shell');
+    let isScrolled = false;
+    
+    function handleScroll() {
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        const shouldBeScrolled = scrollY > 8;
+        
+        if (shouldBeScrolled !== isScrolled) {
+            isScrolled = shouldBeScrolled;
+            topShell.classList.toggle('top-shell--scrolled', isScrolled);
             
-            <!-- Filter Status & Clear -->
-            <div class="filter-status mt-2 d-flex justify-content-between align-items-center">
+            // Update aria-label for screen readers
+            if (isScrolled) {
+                topShell.setAttribute('aria-label', 'Page header - scrolled');
+            } else {
+                topShell.removeAttribute('aria-label');
+            }
+        }
+    }
+    
+    // Throttled scroll handler for performance
+    let ticking = false;
+    function onScroll() {
+        if (!ticking) {
+            requestAnimationFrame(function() {
+                handleScroll();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }
+    
+    window.addEventListener('scroll', onScroll, { passive: true });
+    
+    // Initial check in case page loads scrolled
+    handleScroll();
+})();
+</script>
+
+<!-- Main Content Wrapper -->
+<div class="content-wrap">
+    
+    {% if user_role == 'free' and role_metadata.truncated %}
+    <!-- Enhanced Free Tier Upgrade Banner -->
+    <div class="alert alert-info alert-dismissible fade show" role="alert" style="margin-top: var(--sp-4);">
+        <strong><i class="fas fa-star me-1"></i>Upgrade to Premium →</strong> 
+        You're seeing main lines only (moneyline, spreads, totals). 
+        <strong>Upgrade to unlock props, alt lines, and live markets.</strong>
+        <a href="/pricing" class="alert-link">See plans</a>.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close upgrade banner"></button>
+    </div>
+    {% endif %}
+
+    <!-- Filter Status -->
+    {% if filter_applied %}
+    <div class="text-center" role="status" aria-live="polite" style="margin-top: var(--sp-4);">
+        <span class="badge bg-info fs-6">
+            <i class="fas fa-filter me-1" aria-hidden="true"></i>
+            <span class="sr-only">Filters are active:</span>
+            Filters Active
+            {% if current_sport and current_sport != '' %} - Sport: {{ current_sport|title }}{% endif %}
+            {% if current_market and current_market != '' %} - Market: {{ current_market|title }}{% endif %}
+        </span>
+    </div>
+    {% endif %}
+
+    <!-- Two-Column Grid Layout -->
+    <main class="grid grid-cols-1 grid-dashboard" id="main-content" role="main" style="margin-top: var(--sp-5);">
+        
+        <!-- Stats Drawer (Mobile) / Sidebar (Desktop) -->
+        {% include "partials/stats_drawer.html" with context %}
+        
+        <!-- Main Content Column -->
+        <div class="main-content">
+            <!-- Filter Status & Controls -->
+            <div class="filter-status flex justify-between items-center mb-4">
                 <div class="filter-spinner d-none">
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
                         <span class="visually-hidden">Filtering...</span>
-</div>
+                    </div>
                     <small class="text-muted">Updating results...</small>
                 </div>
                 <div class="filter-results-count">
                     <small class="text-muted" id="results-count"></small>
                 </div>
-                <button class="btn btn-sm btn-outline-secondary d-none" 
-                        id="clear-all-filters" 
-                        type="button">
-                    <i class="fas fa-times me-1"></i>
-                    Clear All Filters
-                </button>
             </div>
-        </div>
-        
-        <!-- Server-Side Filters (Legacy/Fallback) -->
-        <details class="server-filters mt-3">
-            <summary class="text-muted small">
-                <i class="fas fa-cog me-1"></i>
-                Advanced Server Filters (for bookmarking)
-            </summary>
-            <form class="filters-form mt-2" method="get" role="search" aria-label="Server-side filter betting opportunities">
-            <div class="filter-row">
-                <div class="filter-group">
-                        <label for="sport-filter-server" class="filter-label">Sport:</label>
-                        <select name="sport" id="sport-filter-server" class="filter-select" aria-describedby="sport-help">
-                        <option value="">All Sports</option>
-                        <option value="basketball_nba" {% if current_sport == 'basketball_nba' %}selected{% endif %}>NBA Basketball</option>
-                        <option value="americanfootball_nfl" {% if current_sport == 'americanfootball_nfl' %}selected{% endif %}>NFL Football</option>
-                        <option value="baseball_mlb" {% if current_sport == 'baseball_mlb' %}selected{% endif %}>MLB Baseball</option>
-                        <option value="icehockey_nhl" {% if current_sport == 'icehockey_nhl' %}selected{% endif %}>NHL Hockey</option>
-                    </select>
-                    <div id="sport-help" class="sr-only">Filter opportunities by specific sport or league</div>
-                </div>
-                
-                <div class="filter-group">
-                        <label for="market-filter-server" class="filter-label">Market:</label>
-                        <select name="market" id="market-filter-server" class="filter-select" aria-describedby="market-help">
-                        <option value="">All Markets</option>
-                        <option value="h2h" {% if current_market == 'h2h' %}selected{% endif %}>Moneyline</option>
-                        <option value="spreads" {% if current_market == 'spreads' %}selected{% endif %}>Point Spread</option>
-                        <option value="totals" {% if current_market == 'totals' %}selected{% endif %}>Over/Under Totals</option>
-                        <option value="player_props" {% if current_market == 'player_props' %}selected{% endif %}>Player Props</option>
-                    </select>
-                    <div id="market-help" class="sr-only">Filter opportunities by betting market type</div>
-                </div>
-                
-                <div class="filter-group filter-actions">
-                    <button type="submit" class="filter-btn filter-btn-apply btn-primary" aria-describedby="apply-help">
-                        <i class="fas fa-search me-1" aria-hidden="true"></i>
-                        Apply Filters
-                    </button>
-                    <a href="/" class="filter-btn filter-btn-clear btn-secondary" aria-describedby="clear-help">
-                        <i class="fas fa-times me-1" aria-hidden="true"></i>
-                        Clear Filters
-                    </a>
-                    <div id="apply-help" class="sr-only">Apply selected filters to update results</div>
-                    <div id="clear-help" class="sr-only">Remove all filters and show all opportunities</div>
-                </div>
-            </div>
-        </form>
-        </details>
-    </div>
-</section>
 
-<!-- Betting Opportunities Section -->
-<main class="opportunities-section" id="main-content" role="main" aria-labelledby="opportunities-heading">
-    <div class="main-container">
-        <h2 id="opportunities-heading" class="sr-only">Betting Opportunities</h2>
-        
-        <!-- Enhanced Loading Spinner -->
-        <div id="table-spinner" class="d-flex justify-content-center my-3 d-none">
-            <div class="spinner-border text-primary me-2" role="status" aria-hidden="true"></div>
-            <span class="text-muted">Loading opportunities...</span>
-            <span class="visually-hidden">Loading...</span>
-        </div>
-        
-        {% if error %}
-        <!-- Error State -->
-        <div class="empty-state" role="alert" aria-live="assertive">
-            <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning" aria-hidden="true"></i>
-            <h3>Unable to Load Data</h3>
-            <p>{{ error }}</p>
-            <a href="/" class="btn btn-primary">
-                <i class="fas fa-refresh me-1" aria-hidden="true"></i>
-                Try Again
-            </a>
-        </div>
-        
-        {% elif opportunities|length == 0 %}
-        <!-- Empty State -->
-        <div class="empty-state" role="status" aria-live="polite">
-            <i class="fas fa-search fa-3x mb-3 text-muted" aria-hidden="true"></i>
-            <h3>No Opportunities Found</h3>
-            <p>{% if filter_applied %}No betting opportunities match your current filters. Try adjusting your search criteria or clearing filters to see all available opportunities.{% else %}No betting opportunities are currently available. Please check back later.{% endif %}</p>
-            {% if filter_applied %}
-            <a href="/" class="btn btn-secondary">
-                <i class="fas fa-times me-1" aria-hidden="true"></i>
-                Clear All Filters
-            </a>
-            {% endif %}
-        </div>
-        
-        {% else %}
-        <!-- Results Summary for Screen Readers -->
-        <div class="sr-only" aria-live="polite" role="status">
-            Showing {{ opportunities|length }} betting opportunities
-            {% if filter_applied %}
-                {% if current_sport %} for {{ current_sport|title }}{% endif %}
-                {% if current_market %} in {{ current_market|title }} markets{% endif %}
-            {% endif %}
-        </div>
-        
-        <!-- Opportunities Grid -->
-        <div class="cards-grid" role="list" aria-label="Betting opportunities">
-            <!-- Opportunities will be loaded here by JavaScript -->
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading opportunities...</span>
-                </div>
-                <p class="mt-2 text-muted">Loading betting opportunities...</p>
+            <!-- Enhanced Loading Spinner -->
+            <div id="table-spinner" class="text-center py-4 d-none">
+                <div class="spinner-border text-primary me-2" role="status" aria-hidden="true"></div>
+                <span class="text-muted">Loading opportunities...</span>
+                <span class="visually-hidden">Loading...</span>
             </div>
+            
+            {% if error %}
+            <!-- Error State -->
+            <div class="empty-state" role="alert" aria-live="assertive">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning" aria-hidden="true"></i>
+                <h3>Unable to Load Data</h3>
+                <p>{{ error }}</p>
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-refresh me-1" aria-hidden="true"></i>
+                    Try Again
+                </a>
+            </div>
+            
+            {% elif opportunities|length == 0 %}
+            <!-- Empty State -->
+            <div class="empty-state" role="status" aria-live="polite">
+                <i class="fas fa-search fa-3x mb-3 text-muted" aria-hidden="true"></i>
+                <h3>No Opportunities Found</h3>
+                <p>{% if filter_applied %}No betting opportunities match your current filters. Try adjusting your search criteria or clearing filters to see all available opportunities.{% else %}No betting opportunities are currently available. Please check back later.{% endif %}</p>
+                {% if filter_applied %}
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-times me-1" aria-hidden="true"></i>
+                    Clear All Filters
+                </a>
+                {% endif %}
+            </div>
+            
+            {% else %}
+            <!-- Results Summary for Screen Readers -->
+            <div class="sr-only" aria-live="polite" role="status">
+                Showing {{ opportunities|length }} betting opportunities
+                {% if filter_applied %}
+                    {% if current_sport %} for {{ current_sport|title }}{% endif %}
+                    {% if current_market %} in {{ current_market|title }} markets{% endif %}
+                {% endif %}
+            </div>
+            
+            <!-- Opportunities Grid -->
+            <section id="opportunity-grid" class="opportunity-grid" role="list" aria-label="Betting opportunities">
+                <!-- Opportunities will be loaded here by JavaScript -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading opportunities...</span>
+                    </div>
+                    <p class="text-muted mt-2">Waiting for updates...</p>
+                </div>
+            </section>
+            {% endif %}
         </div>
-        {% endif %}
-    </div>
-</main>
+    </main>
+</div>
 
 <script>
 // ===========================
@@ -572,21 +499,24 @@ async function fetchFilteredData() {
 
 // Render opportunities in the DOM
 function renderOpportunities(opportunities) {
-    const cardsGrid = document.querySelector('.cards-grid');
+    const cardsGrid = document.querySelector('#opportunity-grid');
     if (!cardsGrid) return;
     
     if (opportunities.length === 0) {
         cardsGrid.innerHTML = `
-            <div class="col-12">
-                <div class="empty-state text-center py-5">
-                    <i class="fas fa-search fa-3x mb-3 text-muted"></i>
-                    <h3>No matches found</h3>
-                    <p class="text-muted">Try adjusting your search terms or filters</p>
-                    <button class="btn btn-outline-primary" onclick="clearAllFilters()">
-                        <i class="fas fa-times me-1"></i>
-                        Clear Filters
-                    </button>
-                </div>
+            <div class="empty-state text-center py-5">
+                <i class="fas fa-search fa-3x mb-3 text-muted"></i>
+                <h3>No Opportunities Found</h3>
+                <p class="text-muted">
+                    ${currentFilters.search || currentFilters.sport || currentFilters.ev ? 
+                        'No opportunities match your current filters. Try adjusting your search criteria.' :
+                        'No betting opportunities are currently available. Please check back later.'
+                    }
+                </p>
+                ${(currentFilters.search || currentFilters.sport || currentFilters.ev) ? 
+                    '<button class="btn btn-secondary" onclick="clearAllFilters()"><i class="fas fa-times me-1"></i>Clear All Filters</button>' : 
+                    ''
+                }
             </div>
         `;
         return;
@@ -735,7 +665,7 @@ function initializeFiltering() {
     if (!searchBox || !sportSelect || !evSelect) return;
     
     // Store original opportunities data
-    const cardsGrid = document.querySelector('.cards-grid');
+    const cardsGrid = document.querySelector('#opportunity-grid');
     if (cardsGrid) {
         // Extract data from existing cards (simplified for now)
         // In production, you'd want to get this from the template context or API
@@ -743,20 +673,11 @@ function initializeFiltering() {
     }
     
     // Event listeners
-    searchBox.addEventListener('input', debounce((e) => {
-        currentFilters.search = e.target.value;
-        applyClientSideFilters();
-    }, 300));
+    searchBox.addEventListener('input', debouncedFilter);
     
-    sportSelect.addEventListener('change', debounce((e) => {
-        currentFilters.sport = e.target.value;
-        applyClientSideFilters();
-    }, 300));
+    sportSelect.addEventListener('change', debouncedFilter);
     
-    evSelect.addEventListener('change', debounce((e) => {
-        currentFilters.ev = e.target.value;
-        applyClientSideFilters();
-    }, 300));
+    evSelect.addEventListener('change', debouncedFilter);
     
     // Clear buttons
     if (clearSearchBtn) {
@@ -779,15 +700,11 @@ function initializeFiltering() {
     const serverMarketSelect = document.getElementById('market-filter-server');
     
     if (serverSportSelect) {
-        serverSportSelect.addEventListener('change', debounce(() => {
-            serverSportSelect.closest('form').submit();
-        }, 300));
+        serverSportSelect.addEventListener('change', debouncedFilter);
     }
     
     if (serverMarketSelect) {
-        serverMarketSelect.addEventListener('change', debounce(() => {
-            serverMarketSelect.closest('form').submit();
-        }, 300));
+        serverMarketSelect.addEventListener('change', debouncedFilter);
     }
     
     console.log('✅ Client-side filtering initialized');
@@ -1013,7 +930,7 @@ async function loadInitialData() {
             console.log(`✅ Loaded ${originalOpportunities.length} initial opportunities`);
         } else {
             // Show empty state
-            const cardsGrid = document.querySelector('.cards-grid');
+            const cardsGrid = document.querySelector('#opportunity-grid');
             if (cardsGrid) {
                 cardsGrid.innerHTML = `
                     <div class="empty-state text-center py-5">
@@ -1029,7 +946,7 @@ async function loadInitialData() {
         console.error('Error loading initial data:', error);
         
         // Show error state
-        const cardsGrid = document.querySelector('.cards-grid');
+        const cardsGrid = document.querySelector('#opportunity-grid');
         if (cardsGrid) {
             cardsGrid.innerHTML = `
                 <div class="empty-state text-center py-5">
@@ -1186,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeFiltering();
     
     // Only connect real-time updates if we're on a page with opportunities
-    const opportunitiesContainer = document.querySelector('.cards-grid');
+    const opportunitiesContainer = document.querySelector('#opportunity-grid');
     if (opportunitiesContainer) {
         console.log('Initializing dashboard...');
         
