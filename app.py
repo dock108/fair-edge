@@ -24,6 +24,10 @@ from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
 from jose import jwt
 
+# Import logging and observability setup
+from core.logging import setup_logging
+from core.observability import setup_observability
+
 # Import the data processing services
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 
@@ -95,6 +99,13 @@ async def lifespan(app: FastAPI):
     """Handle application lifespan events"""
     # Startup
     logger.info("🚀 Application starting up...")
+    
+    # Setup structured logging first
+    setup_logging()
+    
+    # Setup observability after app creation
+    setup_observability(app)
+    
     await cleanup_background_tasks()
     yield
     # Shutdown

@@ -4,15 +4,58 @@ Implements persistent storage for betting opportunities with normalized schema
 """
 from sqlalchemy import (
     Column, String, Text, Float, Boolean, DateTime, JSON, ForeignKey, 
-    Index, func, UniqueConstraint
+    Index, func, UniqueConstraint, Enum as SAEnum
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from enum import Enum
 import hashlib
 import json
 from typing import Dict, Any
 
 Base = declarative_base()
+
+
+# Explicit Enum definitions for better data integrity
+class BookType(str, Enum):
+    """Sportsbook types"""
+    US_BOOK = "us_book"
+    EXCHANGE = "exchange"
+    SHARP = "sharp"
+    OFFSHORE = "offshore"
+
+
+class Region(str, Enum):
+    """Geographic regions"""
+    US = "us"
+    EU = "eu"
+    UK = "uk"
+    AU = "au"
+    GLOBAL = "global"
+
+
+class UserRole(str, Enum):
+    """User role types"""
+    FREE = "free"
+    SUBSCRIBER = "subscriber"
+    ADMIN = "admin"
+
+
+class SubscriptionStatus(str, Enum):
+    """Subscription status types"""
+    NONE = "none"
+    ACTIVE = "active"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+    TRIAL = "trial"
+
+
+class VolumeIndicator(str, Enum):
+    """Volume indicators for bet offers"""
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    UNKNOWN = "unknown"
 
 
 class Sport(Base):
@@ -46,8 +89,14 @@ class Book(Base):
     
     book_id = Column(String(50), primary_key=True)  # e.g., "draftkings", "fanduel"
     name = Column(String(100), nullable=False)  # e.g., "DraftKings"
-    book_type = Column(String(20))  # e.g., "us_book", "exchange", "sharp"
-    region = Column(String(10))  # e.g., "us", "eu"
+    book_type = Column(
+        SAEnum(BookType, name="book_type_enum", create_constraint=True),
+        default=BookType.US_BOOK
+    )
+    region = Column(
+        SAEnum(Region, name="region_enum", create_constraint=True),
+        default=Region.US
+    )
     affiliate_url = Column(Text)
     active = Column(Boolean, default=True)
     
@@ -216,7 +265,10 @@ class BetOffer(Base):
     
     # Quality metrics
     confidence_score = Column(Float)  # Confidence in this data point
-    volume_indicator = Column(String(20))  # e.g., "high", "medium", "low"
+    volume_indicator = Column(
+        SAEnum(VolumeIndicator, name="volume_indicator_enum", create_constraint=True),
+        default=VolumeIndicator.UNKNOWN
+    )
     
     # Additional offer data
     available_limits = Column(JSON)  # Betting limits if available
@@ -259,8 +311,14 @@ class UserProfile(Base):
     
     id = Column(String, primary_key=True)
     email = Column(String, unique=True)
-    role = Column(String, default="free")
-    subscription_status = Column(String, default="none")
+    role = Column(
+        SAEnum(UserRole, name="user_role_enum", create_constraint=True),
+        default=UserRole.FREE
+    )
+    subscription_status = Column(
+        SAEnum(SubscriptionStatus, name="subscription_status_enum", create_constraint=True),
+        default=SubscriptionStatus.NONE
+    )
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     

@@ -14,14 +14,12 @@ from pydantic import BaseModel
 # Import authentication dependencies
 from core.auth import require_role, UserCtx
 from core.session import require_csrf_validation
+from core.rate_limit import limiter
 from db import get_db
 from services.redis_cache import get_ev_data, get_last_update
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
-# Initialize router and rate limiter
+# Initialize router
 router = APIRouter(prefix="/api/admin", tags=["admin"])
-limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
 
 # Pydantic models for request/response

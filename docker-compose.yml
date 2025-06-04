@@ -6,7 +6,6 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
     volumes:
@@ -19,10 +18,20 @@ services:
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - THE_ODDS_API_KEY=${THE_ODDS_API_KEY}
+      - WEB_CONCURRENCY=4  # Override for development (production will auto-calculate)
+      - WAIT_FOR_DEPS=true
+      - RUN_MIGRATIONS=false
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - bet-intel-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Celery Worker
   celery_worker:
@@ -40,20 +49,27 @@ services:
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - THE_ODDS_API_KEY=${THE_ODDS_API_KEY}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - bet-intel-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "services.celery_app.celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Celery Beat Scheduler
   celery_beat:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A services.celery_app.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    command: celery -A services.celery_app.celery_app beat --loglevel=info --schedule=/app/celery-data/beat.db
     volumes:
       - .:/app
-      - celery_beat_data:/tmp
+      - celery_beat_data:/app/celery-data
     environment:
       - REDIS_URL=redis://redis:6379/0
       - REFRESH_INTERVAL_MINUTES=5
@@ -62,7 +78,8 @@ services:
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - THE_ODDS_API_KEY=${THE_ODDS_API_KEY}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - bet-intel-network
     restart: unless-stopped
@@ -80,8 +97,10 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - redis
-      - celery_worker
+      redis:
+        condition: service_healthy
+      celery_worker:
+        condition: service_healthy
     networks:
       - bet-intel-network
     restart: unless-stopped
@@ -97,13 +116,19 @@ services:
     networks:
       - bet-intel-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis CLI (for debugging)
   redis_cli:
     image: redis:7-alpine
     command: redis-cli -h redis
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - bet-intel-network
     profiles:
