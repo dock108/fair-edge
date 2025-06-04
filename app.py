@@ -714,21 +714,36 @@ async def account_page(request: Request):
         raise HTTPException(status_code=500, detail="Unable to load account page")
 
 @app.get("/admin", response_class=HTMLResponse)
-async def admin_page(request: Request, admin_user: UserCtx = Depends(require_role("admin"))):
+async def admin_page(request: Request):
     """
     Admin dashboard page - allows administrators to manage users and view system stats
     Requires admin role for access
     """
     try:
+        # Get user from session cookie
+        from core.session import get_current_user_from_cookie
+        user = get_current_user_from_cookie(request)
+        
+        if not user:
+            # Redirect to login if not authenticated
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url="/login?redirect=/admin", status_code=302)
+        
+        # Check if user has admin role
+        if user.role != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
         context = {
             "request": request,
             "settings": settings,
             "page_title": "Admin Dashboard - Sports Betting +EV Analyzer",
-            "admin_user": admin_user
+            "admin_user": user
         }
         
         return templates.TemplateResponse("admin.html", context)
         
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
         logger.error(f"Admin page error: {e}")
         raise HTTPException(status_code=500, detail="Unable to load admin page")
@@ -1507,7 +1522,19 @@ async def create_session(request: Request, response: Response):
         # Validate the token by attempting to decode it
         try:
             # First try to decode without verification to get the payload for debugging
-            unverified_payload = jwt.decode(access_token, options={"verify_signature": False})
+            # When verify_signature=False, we still need to provide a key (can be dummy)
+            unverified_payload = jwt.decode(
+                access_token, 
+                "dummy_key",  # Dummy key since we're not verifying signature
+                algorithms=["HS256"],
+                options={
+                    "verify_signature": False,
+                    "verify_aud": False,
+                    "verify_iss": False, 
+                    "verify_exp": False,
+                    "verify_iat": False
+                }
+            )
             logger.info(f"Token payload (unverified): {unverified_payload}")
             
             # Try multiple possible JWT secrets
@@ -1524,7 +1551,7 @@ async def create_session(request: Request, response: Response):
                         access_token, 
                         secret, 
                         algorithms=["HS256"],
-                        options={"verify_aud": False, "verify_iss": False}
+                        options={"verify_aud": False, "verify_iss": False}  # Disable both audience and issuer verification
                     )
                     logger.info(f"JWT validated successfully with secret: {secret[:10]}...")
                     break

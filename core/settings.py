@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     supabase_url: AnyUrl
     supabase_anon_key: str
     supabase_service_role_key: str
+    supabase_jwt_secret: str
     db_connection_string: str
     
     # Security Configuration
