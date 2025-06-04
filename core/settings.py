@@ -3,13 +3,19 @@ Configuration settings for bet-intel application
 Centralized Pydantic settings with environment variable loading
 """
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import AnyUrl
 from typing import Optional
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore"
+    )
     
     # Database Configuration
     database_url: str = "CHANGE_ME"  # Will fail fast in production
@@ -49,11 +55,6 @@ class Settings(BaseSettings):
     
     # CORS Configuration
     cors_origins: str = "*"  # Will be parsed into list
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        extra = "ignore"
     
     @property
     def is_debug(self) -> bool:

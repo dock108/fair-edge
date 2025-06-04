@@ -249,4 +249,9 @@ dev_settings.py
 # Environment variables - never commit real credentials
 .env.production
 
+# Celery beat schedule database - keep in Docker volumes
+celerybeat-schedule.db
+celery-data/
+celerybeat-schedule
+
 # Byte-compiled / optimized / DLL files 
