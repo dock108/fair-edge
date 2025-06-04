@@ -7,19 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 import logging
 import stripe
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from core.auth import get_current_user, UserCtx
 from core.stripe import create_checkout_session, construct_webhook_event
 from core.settings import settings
+from core.rate_limit import limiter
 from db import get_db
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 logger = logging.getLogger(__name__)
-
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
 
 def require_subscriber(user: UserCtx = Depends(get_current_user)) -> UserCtx:
     """Require user to be an active subscriber"""
