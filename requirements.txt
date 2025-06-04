@@ -1,57 +1,57 @@
-# FastAPI Web Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-gunicorn==21.2.0
-jinja2==3.1.2
-python-multipart==0.0.6
+# FastAPI Web Framework - UPDATED for security fixes
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+gunicorn==23.0.0
+jinja2==3.1.4
+python-multipart==0.0.12
 
-# Core Dependencies
-requests==2.31.0
+# Core Dependencies - UPDATED
+requests==2.32.3
 
-# Database & Supabase Integration
-asyncpg==0.29.0
-sqlalchemy[asyncio]==2.0.23
-supabase==2.3.4
+# Database & Supabase Integration - UPDATED
+asyncpg==0.30.0
+sqlalchemy[asyncio]==2.0.41
+supabase==2.15.2
 
-# Authentication & JWT
+# Authentication & JWT - UPDATED
 python-jose[cryptography]==3.3.0
 
-# Configuration Management
-pydantic-settings==2.7.1
+# Configuration Management - UPDATED
+pydantic-settings==2.8.0
 
-# Background Tasks & Caching
+# Background Tasks & Caching - UPDATED
 celery[redis]==5.5.3
-redis==5.0.1
+redis==5.2.0
 
-# Payment Processing
-stripe==9.7.0
+# Payment Processing - UPDATED
+stripe==11.1.0
 
-# Development & Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-pytest-xdist==3.3.1
-httpx==0.25.2
-python-dotenv==1.0.0
+# Development & Testing - UPDATED
+pytest==8.3.3
+pytest-asyncio==0.24.0
+pytest-xdist==3.6.0
+httpx==0.27.2
+python-dotenv==1.1.0
 
-# Load Testing & Performance
-locust==2.17.0
-aiohttp==3.11.0b0
+# Load Testing & Performance - UPDATED
+locust==2.32.0
+aiohttp==3.12.7
 
-# Observability & Monitoring
-prometheus-client==0.19.0
-prometheus-fastapi-instrumentator==6.1.0
-sentry-sdk[celery]==1.38.0
-structlog==23.2.0
+# Observability & Monitoring - UPDATED with latest secure versions
+prometheus-client==0.21.0
+prometheus-fastapi-instrumentator==7.0.0
+sentry-sdk[celery]==2.29.1
+structlog==24.4.0
 
-# Optional: Performance monitoring
-psutil==5.9.6
+# Performance monitoring - UPDATED
+psutil==6.1.0
 
-# Rate Limiting
+# Rate Limiting - UPDATED
 slowapi==0.1.9
 
-# Enhanced Logging
-colorlog==6.8.2
+# Enhanced Logging - UPDATED
+colorlog==6.9.0
 
-# Real-time updates support
-sse-starlette==1.6.5
-websockets==12.0
+# Real-time updates support - UPDATED
+sse-starlette==2.1.3
+websockets==13.1
