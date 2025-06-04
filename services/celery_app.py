@@ -15,12 +15,12 @@ logging.basicConfig(level=logging.INFO)
 REFRESH_INTERVAL_MINUTES = int(os.getenv("REFRESH_INTERVAL_MINUTES", "60"))  # Default 1 hour
 REDIS_URL = settings.redis_url
 
-# Create Celery app
+# Create Celery app with Phase 3 task modules
 celery_app = Celery(
     "bet_intel",
     broker=REDIS_URL,
     backend=REDIS_URL,
-    include=["services.tasks"]
+    include=["services.tasks", "tasks.ev"]  # Include both existing and new Phase 3 tasks
 )
 
 # Production-ready Celery configuration
