@@ -6,7 +6,7 @@ Serves the new HTML/CSS UI using Jinja2 templates
 from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -198,30 +198,23 @@ app.include_router(admin_router)
 try:
     from routes.realtime import cleanup_redis_connections
     register_cleanup(cleanup_redis_connections)
-    logger.info("✅ Registered Redis cleanup")
+    logger.info("✅ Registered cleanup_redis_connections cleanup")
 except ImportError as e:
     logger.warning(f"Could not register Redis cleanup: {e}")
 
 try:
     from services.tasks import cleanup_celery
     register_cleanup(cleanup_celery)
-    logger.info("✅ Registered Celery cleanup")
+    logger.info("✅ Registered cleanup_celery cleanup")
 except ImportError as e:
     logger.warning(f"Could not register Celery cleanup: {e}")
-
-# Add shutdown event handler
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Graceful shutdown handler"""
-    logger.info("🛑 Shutdown signal received")
-    await cleanup_background_tasks()
 
 # Register signal handlers for graceful shutdown
 def setup_signal_handlers():
     """Setup signal handlers for graceful shutdown"""
     def signal_handler(signum, frame):
         logger.info(f"📡 Received signal {signum}")
-        # Let FastAPI handle the cleanup through the shutdown event
+        # Let FastAPI handle the cleanup through the lifespan handler
         
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
@@ -829,35 +822,119 @@ async def api_opportunities(
     - sport: Filter by specific sport (americanfootball_nfl, basketball_nba, etc.)
     """
     try:
-        # Use centralized user service
-        from services.user_service import UserContextManager
-        from services.data_service import OpportunityProcessor
+        # Simple user context without external services to avoid circular imports
+        user = None
+        try:
+            from core.session import get_current_user_from_cookie
+            user = get_current_user_from_cookie(request)
+        except Exception:
+            pass
         
-        user_ctx = UserContextManager(request)
-        processor = OpportunityProcessor(user_ctx.role)
+        # If no user, create a guest user context for free tier
+        if not user:
+            from types import SimpleNamespace
+            user = SimpleNamespace(
+                id="guest",
+                email="guest@example.com", 
+                role="free",
+                subscription_status="none"
+            )
         
-        # Process opportunities with filters
-        result = processor.process(search=search, sport=sport)
+        # Get data using existing functions
+        logger.info("Loading betting opportunities from cache...")
+        cached_opportunities = get_ev_data()
+        cached_analytics = get_analytics_data()
+        last_update = get_last_update()
         
-        # Return standardized format for frontend compatibility
-        filtered_response = result["filtered_response"]
-        filtered_response.update({
-            "analytics": result["analytics"],
-            "last_update": result["last_update"],
-            "data_source": result["data_source"],
-            "is_guest": user_ctx.is_guest,
-            "filters_applied": result["filters_applied"]
-        })
+        if cached_opportunities and cached_analytics:
+            opportunities = cached_opportunities
+            analytics = cached_analytics
+            data_source = "cache"
+            logger.info(f"Serving {len(opportunities)} cached opportunities")
+        else:
+            logger.info("Cache empty, fetching live betting opportunities data...")
+            raw_data = fetch_raw_odds_data()
+            opportunities, analytics = process_opportunities(raw_data)
+            data_source = "live"
+            logger.info(f"Serving {len(opportunities)} live opportunities")
         
-        return filtered_response
+        # Process opportunities for UI
+        ui_opportunities = process_opportunities_for_ui(opportunities)
+        
+        # Apply search filter if provided
+        if search:
+            search_term = search.lower()
+            filtered_opps = []
+            for opp in ui_opportunities:
+                searchable_text = " ".join([
+                    opp.get('event', ''),
+                    opp.get('bet_description', ''),
+                    opp.get('bet_type', ''),
+                    opp.get('best_odds_source', '')
+                ]).lower()
+                
+                if search_term in searchable_text:
+                    filtered_opps.append(opp)
+            ui_opportunities = filtered_opps
+        
+        # Apply sport filter if provided
+        if sport:
+            sport_keywords = {
+                'americanfootball_nfl': ['nfl', 'football'],
+                'basketball_nba': ['nba', 'basketball'],
+                'baseball_mlb': ['mlb', 'baseball'],
+                'icehockey_nhl': ['nhl', 'hockey']
+            }
+            keywords = sport_keywords.get(sport, [sport])
+            filtered_opps = []
+            for opp in ui_opportunities:
+                event_text = opp.get('event', '').lower()
+                if any(keyword in event_text for keyword in keywords):
+                    filtered_opps.append(opp)
+            ui_opportunities = filtered_opps
+        
+        # Apply role-based filtering
+        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+        
+        # Update analytics for filtered data
+        filtered_opportunities = filtered_response['opportunities']
+        ui_analytics = {
+            'total_opportunities': len(filtered_opportunities),
+            'positive_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) > 0]),
+            'high_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) >= 4.5]),
+            'max_ev_percentage': round(max([op.get('ev_percentage', 0) for op in filtered_opportunities], default=0), 2)
+        }
+        
+        # Build response
+        response_data = {
+            **filtered_response,
+            "analytics": ui_analytics,
+            "last_update": last_update,
+            "data_source": data_source,
+            "is_guest": user.id == "guest",
+            "filters_applied": {
+                "search": search,
+                "sport": sport,
+                "has_filters": bool(search or sport)
+            }
+        }
+        
+        # Return JSONResponse for proper slowapi compatibility
+        return JSONResponse(content=response_data)
         
     except Exception as e:
         logger.error(f"Error in API route: {e}")
-        # Import ErrorHandler outside the try block to avoid scoping issues
-        from services.response_service import ErrorHandler
-        from services.user_service import UserContextManager
-        user_ctx = UserContextManager(request)
-        return ErrorHandler.handle_data_fetch_error(e, user_ctx.user)
+        error_response = {
+            "status": "error",
+            "error": str(e),
+            "opportunities": [],
+            "analytics": {},
+            "role": "free",
+            "is_guest": True
+        }
+        
+        # Return JSONResponse for proper slowapi compatibility
+        return JSONResponse(content=error_response, status_code=500)
 
 @app.get("/health")
 async def health_check():

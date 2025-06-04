@@ -26,16 +26,16 @@ def load_logging_config() -> Dict[str, Any]:
             'version': 1,
             'disable_existing_loggers': False,
             'formatters': {
-                'json': {
-                    'class': 'structlog.stdlib.ProcessorFormatter',
-                    'processor': 'structlog.processors.JSONRenderer'
+                'simple': {
+                    'class': 'logging.Formatter',
+                    'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
                 }
             },
             'handlers': {
                 'console': {
                     'class': 'logging.StreamHandler',
                     'level': 'INFO',
-                    'formatter': 'json',
+                    'formatter': 'simple',
                     'stream': 'ext://sys.stdout'
                 }
             },
@@ -96,22 +96,38 @@ def setup_structlog():
 
 def setup_logging():
     """Setup complete logging configuration"""
-    # Ensure logs directory exists
-    logs_dir = Path("/app/logs")
-    logs_dir.mkdir(exist_ok=True)
+    # Ensure logs directory exists - use relative path for local development
+    logs_dir = Path("logs")  # Changed from "/app/logs" to "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)  # Added parents=True to create parent dirs
     
-    # Load and apply logging configuration
-    config = load_logging_config()
-    logging.config.dictConfig(config)
+    try:
+        # Load and apply logging configuration
+        config = load_logging_config()
+        logging.config.dictConfig(config)
+        logger = logging.getLogger("app.setup")
+        logger.info("Successfully loaded logging configuration from YAML")
+    except Exception as e:
+        # Fallback to basic logging if configuration fails
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+            handlers=[logging.StreamHandler()]
+        )
+        logger = logging.getLogger("app.setup")
+        logger.warning(f"Failed to load logging config, using basic setup: {e}")
     
-    # Setup structlog
-    setup_structlog()
-    
-    # Create application logger
-    logger = structlog.get_logger("app.setup")
-    logger.info("Logging configuration complete", 
-                config_file=os.getenv("LOG_CONFIG_PATH", "core/log_config.yaml"),
-                production_mode=os.getenv("APP_ENV", "dev") in ("prod", "production"))
+    try:
+        # Setup structlog
+        setup_structlog()
+        logger = structlog.get_logger("app.setup")
+        logger.info("Logging configuration complete", 
+                    production_mode=os.getenv("APP_ENV", "dev") in ("prod", "production"),
+                    logs_directory=str(logs_dir.resolve()))  # Added logs directory info
+    except Exception as e:
+        # If structlog fails, just use basic logging
+        logger = logging.getLogger("app.setup")
+        logger.warning(f"Failed to setup structlog, using basic logging: {e}")
+        logger.info("Basic logging configuration complete")
     
     return logger
 
