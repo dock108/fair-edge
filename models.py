@@ -2,10 +2,12 @@
 Database models for bet-intel application
 Implements persistent storage for betting opportunities with normalized schema
 """
-from sqlalchemy import Column, String, Float, DateTime, JSON, Text, ForeignKey, Index, Boolean
+from sqlalchemy import (
+    Column, String, Text, Float, Boolean, DateTime, JSON, ForeignKey, 
+    Index, func, UniqueConstraint
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 import hashlib
 import json
 from typing import Dict, Any
@@ -80,6 +82,12 @@ class Bet(Base):
     # Outcome side (for one-sided bets)
     outcome_side = Column(String(50))  # e.g., "over", "under", "home", "away"
     
+    # Event timing
+    event_time = Column(DateTime)  # When the event starts/occurs
+    
+    # Deduplication key
+    sha_key = Column(String(64))  # SHA hash for deduplication
+    
     # Metadata
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
@@ -89,12 +97,17 @@ class Bet(Base):
     league_ref = relationship("League", back_populates="bets")
     offers = relationship("BetOffer", back_populates="bet_ref", cascade="all, delete-orphan")
     
-    # Indexes for performance
+    # Indexes for performance and composite unique constraint for deduplication
     __table_args__ = (
         Index('idx_bets_sport_league', 'sport', 'league'),
         Index('idx_bets_bet_type', 'bet_type'),
         Index('idx_bets_teams', 'home_team', 'away_team'),
         Index('idx_bets_created_at', 'created_at'),
+        UniqueConstraint(
+            "sport", "league", "bet_type",
+            "event_time", "sha_key",
+            name="uq_bet_dedup"
+        ),
     )
     
     @staticmethod
