@@ -11,7 +11,7 @@ from sqlalchemy import text
 from typing import Optional
 import logging
 
-from core.config import settings
+from core.settings import settings
 from db import get_db
 
 logger = logging.getLogger(__name__)

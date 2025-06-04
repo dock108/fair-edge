@@ -8,9 +8,9 @@ import hmac
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import HTTPException, Request, Response
-from core.config import settings
+from core.settings import settings
 from core.auth import UserCtx
-import jwt
+from jose import jwt, JWTError
 
 
 class SessionManager:
@@ -162,7 +162,7 @@ def get_current_user_from_cookie(request: Request) -> Optional[UserCtx]:
         # Validate JWT token (same logic as core.auth but from cookie)
         payload = jwt.decode(
             token, 
-            settings.supabase_jwt_secret, 
+            settings.supabase_jwt_secret,
             algorithms=[settings.jwt_algorithm],
             options={"verify_aud": False}  # Disable audience verification as before
         )
@@ -196,7 +196,7 @@ def get_current_user_from_cookie(request: Request) -> Optional[UserCtx]:
             subscription_status=subscription_status
         )
         
-    except jwt.PyJWTError:
+    except JWTError:
         return None
 
 

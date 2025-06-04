@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 import uvicorn
@@ -18,10 +19,10 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 import os
 import time
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
+from jose import jwt
 
 # Import the data processing services
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
@@ -49,7 +50,9 @@ from core.session import (
 )
 
 # Import core settings
-from core.config import settings
+from core.settings import settings
+from core.security import fail_fast_on_unsafe_defaults
+from core.rate_limit import limiter
 
 # Import routes
 from routes.billing import router as billing_router
@@ -59,6 +62,9 @@ from routes.admin import router as admin_router
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Fail fast on unsafe defaults in production
+fail_fast_on_unsafe_defaults()
 
 # Global cleanup registry
 cleanup_functions = []
@@ -89,13 +95,12 @@ async def lifespan(app: FastAPI):
     """Handle application lifespan events"""
     # Startup
     logger.info("🚀 Application starting up...")
+    await cleanup_background_tasks()
     yield
     # Shutdown
     logger.info("🛑 Application shutting down...")
     await cleanup_background_tasks()
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
 
 # Create FastAPI app with lifespan context manager
 app = FastAPI(
@@ -109,10 +114,13 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Add proxy headers middleware for proper IP detection behind load balancers
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
 # Configure CORS based on environment - use new config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,  # Required for cookies
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
@@ -1251,8 +1259,6 @@ async def create_session(request: Request, response: Response):
         
         # Validate the token by attempting to decode it
         try:
-            import jwt
-            
             # First try to decode without verification to get the payload for debugging
             unverified_payload = jwt.decode(access_token, options={"verify_signature": False})
             logger.info(f"Token payload (unverified): {unverified_payload}")
@@ -1275,7 +1281,7 @@ async def create_session(request: Request, response: Response):
                     )
                     logger.info(f"JWT validated successfully with secret: {secret[:10]}...")
                     break
-                except jwt.PyJWTError as e:
+                except jwt.JWTError as e:
                     logger.warning(f"JWT validation failed with secret {secret[:10]}...: {str(e)}")
                     continue
             
