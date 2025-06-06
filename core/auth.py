@@ -47,7 +47,7 @@ async def get_current_user(
         payload = jwt.decode(
             token,
             settings.supabase_jwt_secret,
-            algorithms=[settings.jwt_algorithm],
+            algorithms=[settings.supabase_jwt_algorithm],
             options={"verify_aud": False}  # Disable audience verification
         )
     except JWTError as exc:

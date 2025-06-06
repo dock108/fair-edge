@@ -63,32 +63,13 @@ export interface NavbarProps {
   onLogout?: () => void;
 }
 
-// Auth Context Types
-export interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  refreshUser: () => Promise<void>;
-}
-
 // Hook Return Types
-export interface UseAuthReturn extends AuthContextType {}
 
 export interface UseOpportunitiesReturn {
   opportunities: BettingOpportunity[];
   loading: boolean;
   error: string | null;
-  totalCount: number;
-  showingCount: number;
-  lastUpdate: string | null;
   searchTerm: string;
-  selectedMarkets: string[];
-  selectedSportsbooks: string[];
   setSearchTerm: (term: string) => void;
-  setSelectedMarkets: (markets: string[]) => void;
-  setSelectedSportsbooks: (sportsbooks: string[]) => void;
   refreshOpportunities: () => Promise<void>;
-  connectWebSocket: () => void;
-  disconnectWebSocket: () => void;
 } 

@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     admin_secret: str = "CHANGE_ME"  # Will fail fast in production
     
+    # Supabase JWT Configuration
+    supabase_jwt_algorithm: str = "HS256"  # Supabase uses HS256 with JWT secret
+    
     # Application Configuration
     app_env: str = "dev"
     debug_mode: bool = False

@@ -591,10 +591,27 @@ async def api_opportunities(
                 # Get user context for role-based filtering
                 user = None
                 try:
-                    from core.session import get_current_user_from_cookie
-                    user = get_current_user_from_cookie(request)
-                except Exception:
-                    pass
+                    # Check for Authorization header
+                    auth_header = request.headers.get("Authorization")
+                    if auth_header and auth_header.startswith("Bearer "):
+                        from fastapi.security import HTTPAuthorizationCredentials
+                        from core.auth import get_current_user
+                        from db import get_db
+                        
+                        # Extract token and get user
+                        token = auth_header.replace("Bearer ", "")
+                        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+                        
+                        # Get database session
+                        db_session = await anext(get_db())
+                        
+                        try:
+                            user = await get_current_user(credentials, db_session)
+                            logger.info(f"Batch: Authenticated user: {user.email} (role: {user.role})")
+                        finally:
+                            await db_session.close()
+                except Exception as e:
+                    logger.debug(f"Batch: JWT authentication failed: {e}")
                 
                 if not user:
                     from types import SimpleNamespace
@@ -635,7 +652,18 @@ async def api_opportunities(
                     ]
                 
                 # Apply role-based filtering
+                logger.info(f"Applying role-based filtering for user role: {user.role}")
+                logger.info(f"Total opportunities before filtering: {len(ui_opportunities)}")
+                
+                # Debug: Log some sample market types
+                if ui_opportunities:
+                    sample_markets = [opp.get('_original', {}).get('Market', 'no_market') for opp in ui_opportunities[:5]]
+                    logger.info(f"Sample market types: {sample_markets}")
+                
                 filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+                
+                logger.info(f"Opportunities after role filtering: {filtered_response.get('shown', 0)}/{filtered_response.get('total_available', 0)}")
+                logger.info(f"Truncated: {filtered_response.get('truncated', False)}, Limit: {filtered_response.get('limit', 'none')}")
                 
                 # Build response with batch metadata
                 response_data = {
@@ -684,15 +712,32 @@ async def api_opportunities(
                     )
         
         # Regular flow (non-batch) - existing logic
-        # Simple user context without external services to avoid circular imports
+        # Get user context from JWT token (if present) or default to guest
         user = None
         try:
-            from core.session import get_current_user_from_cookie
-            user = get_current_user_from_cookie(request)
-        except Exception:
-            pass
+            # Check for Authorization header
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                from fastapi.security import HTTPAuthorizationCredentials
+                from core.auth import get_current_user
+                from db import get_db
+                
+                # Extract token and get user
+                token = auth_header.replace("Bearer ", "")
+                credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+                
+                # Get database session
+                db_session = await anext(get_db())
+                
+                try:
+                    user = await get_current_user(credentials, db_session)
+                    logger.info(f"Authenticated user: {user.email} (role: {user.role})")
+                finally:
+                    await db_session.close()
+        except Exception as e:
+            logger.debug(f"JWT authentication failed: {e}")
         
-        # If no user, create a guest user context for free tier
+        # If no authenticated user, create a guest user context for free tier
         if not user:
             from types import SimpleNamespace
             user = SimpleNamespace(
@@ -701,6 +746,7 @@ async def api_opportunities(
                 role="free",
                 subscription_status="none"
             )
+            logger.info("Using guest user context (free tier)")
         
         # Get data using existing functions
         logger.info("Loading betting opportunities from cache...")
@@ -756,7 +802,18 @@ async def api_opportunities(
             ui_opportunities = filtered_opps
         
         # Apply role-based filtering
+        logger.info(f"Applying role-based filtering for user role: {user.role}")
+        logger.info(f"Total opportunities before filtering: {len(ui_opportunities)}")
+        
+        # Debug: Log some sample market types
+        if ui_opportunities:
+            sample_markets = [opp.get('_original', {}).get('Market', 'no_market') for opp in ui_opportunities[:5]]
+            logger.info(f"Sample market types: {sample_markets}")
+        
         filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+        
+        logger.info(f"Opportunities after role filtering: {filtered_response.get('shown', 0)}/{filtered_response.get('total_available', 0)}")
+        logger.info(f"Truncated: {filtered_response.get('truncated', False)}, Limit: {filtered_response.get('limit', 'none')}")
         
         # Update analytics for filtered data
         filtered_opportunities = filtered_response['opportunities']

@@ -1,6 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const PricingPage: React.FC = () => {
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  const toggleFaq = (index: number) => {
+    setOpenFaqIndex(openFaqIndex === index ? null : index);
+  };
+
   return (
     <div className="pricing-page">
       <div className="pricing-container">
@@ -69,8 +75,8 @@ const PricingPage: React.FC = () => {
           <div className="pricing-card premium">
             <div className="popular-badge">Most Popular</div>
             <div className="pricing-card-header">
-              <h3 className="plan-title">Props and Alt Lines</h3>
-              <p className="plan-subtitle">Complete Market Access</p>
+              <h3 className="plan-title">Premium Access</h3>
+              <p className="plan-subtitle">All Markets + Advanced Features</p>
               <div className="price">
                 <span className="price-amount">$4.99</span>
                 <span className="price-period">/month</span>
@@ -79,8 +85,8 @@ const PricingPage: React.FC = () => {
             <div className="pricing-card-body">
               <ul className="features-list">
                 <li className="feature-item">
-                  <i className="fas fa-star feature-icon"></i>
-                  <strong>All markets:</strong> Props, Alt Lines, Live Markets
+                  <i className="fas fa-check feature-icon"></i>
+                  <strong>Main lines:</strong> Moneyline, Spreads, Totals
                 </li>
                 <li className="feature-item">
                   <i className="fas fa-star feature-icon"></i>
@@ -92,7 +98,7 @@ const PricingPage: React.FC = () => {
                 </li>
                 <li className="feature-item">
                   <i className="fas fa-star feature-icon"></i>
-                  5-minute data refresh
+                  <strong>Live markets:</strong> In-game betting opportunities
                 </li>
                 <li className="feature-item">
                   <i className="fas fa-star feature-icon"></i>
@@ -113,7 +119,7 @@ const PricingPage: React.FC = () => {
               </ul>
             </div>
             <div className="pricing-card-footer">
-              <button className="btn btn-primary" onClick={() => alert('Premium upgrade coming soon!')}>
+              <button className="btn btn-primary" onClick={() => alert('Premium upgrade functionality will be available soon. Please contact support for early access.')}>
                 Start Free Trial
               </button>
               <small className="trial-note">7-day free trial • Credit card required • Cancel anytime</small>
@@ -130,7 +136,7 @@ const PricingPage: React.FC = () => {
                 <tr>
                   <th>Feature</th>
                   <th>Free</th>
-                  <th>Props and Alt Lines</th>
+                  <th>Premium Access</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,55 +189,42 @@ const PricingPage: React.FC = () => {
         <div className="faq-section">
           <h3 className="faq-title">Frequently Asked Questions</h3>
           <div className="faq-container">
-            <div className="faq-item">
-              <div className="faq-question">
-                <h4>Can I cancel my subscription anytime?</h4>
-                <i className="fas fa-chevron-down"></i>
+            {[
+              {
+                question: "Can I cancel my subscription anytime?",
+                answer: "Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period."
+              },
+              {
+                question: "Is there a free trial for Premium Access?",
+                answer: "Yes! We offer a 7-day free trial for Premium Access. A credit card is required to start your trial, but you won't be charged until after the trial period ends."
+              },
+              {
+                question: "What's the difference between Free and Premium Access?",
+                answer: "Free users get access to main betting lines (moneyline, spreads, totals). Premium subscribers get access to all markets including player props, alternate lines, and live markets, plus advanced analytics and export features."
+              },
+              {
+                question: "How accurate are the EV calculations?",
+                answer: "Our models are based on comprehensive market analysis and statistical modeling. While we strive for accuracy, all betting involves risk and no system guarantees profits."
+              },
+              {
+                question: "Is this for educational purposes only?",
+                answer: "Yes, our platform is designed for educational and research purposes to help users understand betting markets and EV analysis. Always gamble responsibly."
+              }
+            ].map((faq, index) => (
+              <div key={index} className="faq-item">
+                <div 
+                  className="faq-question" 
+                  onClick={() => toggleFaq(index)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <h4>{faq.question}</h4>
+                  <i className={`fas fa-chevron-${openFaqIndex === index ? 'up' : 'down'}`}></i>
+                </div>
+                <div className="faq-answer" style={{ display: openFaqIndex === index ? 'block' : 'none' }}>
+                  <p>{faq.answer}</p>
+                </div>
               </div>
-              <div className="faq-answer">
-                <p>Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period.</p>
-              </div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-question">
-                <h4>Is there a free trial for Props and Alt Lines?</h4>
-                <i className="fas fa-chevron-down"></i>
-              </div>
-              <div className="faq-answer">
-                <p>Yes! We offer a 7-day free trial for Props and Alt Lines. A credit card is required to start your trial, but you won't be charged until after the trial period ends.</p>
-              </div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-question">
-                <h4>What's the difference between Free and Props and Alt Lines?</h4>
-                <i className="fas fa-chevron-down"></i>
-              </div>
-              <div className="faq-answer">
-                <p>Free users get access to main betting lines (moneyline, spreads, totals). Props and Alt Lines subscribers get access to all markets including player props, alternate lines, and live markets, plus advanced analytics and export features.</p>
-              </div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-question">
-                <h4>How accurate are the EV calculations?</h4>
-                <i className="fas fa-chevron-down"></i>
-              </div>
-              <div className="faq-answer">
-                <p>Our models are based on comprehensive market analysis and statistical modeling. While we strive for accuracy, all betting involves risk and no system guarantees profits.</p>
-              </div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-question">
-                <h4>Is this for educational purposes only?</h4>
-                <i className="fas fa-chevron-down"></i>
-              </div>
-              <div className="faq-answer">
-                <p>Yes, our platform is designed for educational and research purposes to help users understand betting markets and EV analysis. Always gamble responsibly.</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>

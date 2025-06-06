@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import type { ApiResponse } from '../types';
+import { supabase } from '../lib/supabase';
 
 class ApiService {
   private api: AxiosInstance;
@@ -12,7 +13,6 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-      withCredentials: true, // Include cookies for session management
     });
 
     this.setupInterceptors();
@@ -21,9 +21,19 @@ class ApiService {
   private setupInterceptors() {
     // Request interceptor
     this.api.interceptors.request.use(
-      (config) => {
-        // Add any auth tokens or headers here if needed
+      async (config) => {
         console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+        
+        // Add authentication token if available
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            config.headers.Authorization = `Bearer ${session.access_token}`;
+          }
+        } catch (error) {
+          console.warn('Failed to get auth session for API request:', error);
+        }
+        
         return config;
       },
       (error) => {
@@ -43,13 +53,10 @@ class ApiService {
         
         // Handle specific error cases
         if (error.response?.status === 401) {
-          // Unauthorized - could trigger logout
           console.warn('🔒 Unauthorized request - user may need to login');
         } else if (error.response?.status === 403) {
-          // Forbidden - insufficient permissions
           console.warn('🚫 Forbidden request - insufficient permissions');
         } else if (error.response?.status && error.response.status >= 500) {
-          // Server error
           console.error('🔥 Server error - backend may be down');
         }
         
@@ -117,7 +124,7 @@ class ApiService {
 
   async getOpportunities(params?: Record<string, string>) {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
-    return this.get(`/api/opportunities/ui${queryString}`);
+    return this.get(`/api/opportunities${queryString}`);
   }
 
   async refreshOpportunities() {

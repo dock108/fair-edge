@@ -5,15 +5,16 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
   // State for collapsible odds
   const [showOdds, setShowOdds] = useState(false);
 
-  // Get EV classification class
-  const getEvClass = (classification: string) => {
-    switch (classification) {
-      case 'positive': return 'ev-positive';
-      case 'high': return 'ev-high';
-      case 'excellent': return 'ev-excellent';
-      default: return 'ev-neutral';
-    }
+  // Dynamic EV classification based on percentage
+  const getEvClass = (evPercentage: number) => {
+    if (evPercentage >= 4.5) return 'excellent';
+    if (evPercentage >= 2) return 'high';
+    if (evPercentage >= 0) return 'positive';
+    if (evPercentage >= -2) return 'neutral';
+    return 'negative';
   };
+
+  const evClass = getEvClass(opportunity.ev_percentage || 0);
 
   // Calculate fee-adjusted odds for P2P platforms (2% fee)
   const calculateFeeAdjustedOdds = (odds: string): string => {
@@ -83,15 +84,62 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
     return 0;
   }) : [];
 
+  // Get best available odds directly from backend (already formatted)
+  const getBestAvailableDisplay = () => {
+    return opportunity.best_available_odds || null;
+  };
+
+  // Extract and clean up event title and game date/time
+  const getCleanEventAndDateTime = () => {
+    const event = opportunity.event || '';
+    
+    // Check for patterns like "Today 08:10PM EST" or "Tomorrow 07:46PM EST"
+    const dateMatch = event.match(/(Today|Tomorrow|\d{1,2}\/\d{1,2})\s+(\d{1,2}:\d{2}[AP]M)\s+(EST|PST|CST|MST)/i);
+    if (dateMatch) {
+      let cleanEvent = event.replace(dateMatch[0], '').replace(/\s+/g, ' ').trim();
+      // Remove trailing dot and bullet points
+      cleanEvent = cleanEvent.replace(/[\.\•]$/, '');
+      const dateTime = `${dateMatch[1]} ${dateMatch[2]} ${dateMatch[3]}`;
+      return { cleanEvent, dateTime };
+    }
+    
+    // Check for just time patterns
+    const timeMatch = event.match(/(\d{1,2}:\d{2}[AP]M\s+[A-Z]{3})/i);
+    if (timeMatch) {
+      let cleanEvent = event.replace(timeMatch[0], '').replace(/\s+/g, ' ').trim();
+      // Remove trailing dot and bullet points
+      cleanEvent = cleanEvent.replace(/[\.\•]$/, '');
+      const dateTime = timeMatch[1];
+      return { cleanEvent, dateTime };
+    }
+    
+    // Remove trailing dot and bullet points from event even if no date/time pattern
+    const cleanEvent = event.replace(/[\.\•]$/, '');
+    return { cleanEvent, dateTime: null };
+  };
+
+  const bestAvailable = getBestAvailableDisplay();
+  const { cleanEvent, dateTime } = getCleanEventAndDateTime();
+
   const recommendedP2P = getRecommendedP2P();
   const p2pPostLink = recommendedP2P === 'ProphetX' 
     ? 'https://prophetx.com/exchange' 
     : 'https://novig.com/exchange';
 
   return (
-    <div className={`odds-card ${getEvClass(opportunity.ev_classification)}`} id={`card-${index}`}>
+    <div 
+      className="odds-card" 
+      style={{'--ev-color': `var(--ev-${evClass})`} as React.CSSProperties}
+      id={`card-${index}`}
+    >
       <div className="odds-card__header">
-        <h2 className="odds-card__event">{opportunity.event}</h2>
+        <h2 className="odds-card__event">{cleanEvent}</h2>
+        {dateTime && (
+          <div className="game-datetime">
+            <i className="fas fa-clock"></i>
+            {dateTime}
+          </div>
+        )}
         <span className="odds-card__description">{opportunity.bet_description}</span>
       </div>
 
@@ -104,37 +152,37 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
           </div>
         )}
 
-        {opportunity.best_available_odds && (
+        {bestAvailable && (
           <div className="detail-row">
             <span className="detail-label">Best Available:</span>
-            <span className="detail-value">{opportunity.best_available_odds}</span>
+            <span className="detail-value">{bestAvailable}</span>
           </div>
         )}
 
         {opportunity.ev_percentage !== undefined && (
           <div className="detail-row">
             <span className="detail-label">Expected Value:</span>
-            <span className={`detail-value ev-value ${getEvClass(opportunity.ev_classification)}`}>
+            <span className={`detail-value ev-value ev-${evClass}`}>
               {opportunity.ev_percentage > 0 ? '+' : ''}{opportunity.ev_percentage.toFixed(2)}%
             </span>
           </div>
         )}
       </div>
 
-      {/* Recommended P2P Posting Section - moved below EV */}
+      {/* Recommended P2P Posting Section */}
       {opportunity.recommended_posting_odds && (
         <div className="odds-card__recommended" id={`card-${index}-recommended`}>
           <div className="recommended-title">
-            <i className="fas fa-star me-1"></i>
-            Recommended Posting Price on P2P
+            <i className="fas fa-star"></i>
+            Recommended Odds
           </div>
-          <div className="recommended-row">
+          <div className="recommended-content">
             <div className="recommended-odds">
               <span className="odds-value">
                 {opportunity.recommended_posting_odds}
               </span>
-              <span className="odds-book">
-                on {recommendedP2P}
+              <span className="odds-platform">
+                {recommendedP2P}
               </span>
             </div>
             <div className="odds-card__action">
@@ -142,9 +190,8 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
                 href={p2pPostLink}
                 target="_blank"
                 rel="noopener noreferrer" 
-                className="btn btn-warning btn-sm"
+                className="btn btn-primary"
               >
-                <i className="fas fa-plus-circle me-1"></i>
                 Post Bet
               </a>
             </div>
