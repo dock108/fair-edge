@@ -4,9 +4,9 @@ Serves the new HTML/CSS UI using Jinja2 templates
 """
 
 from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter, Response
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+# Jinja2Templates removed - React app handles all templating
+# StaticFiles removed - React app serves its own assets
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +32,7 @@ from core.observability import setup_observability
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 
 # Import background task services
-from services.tasks import refresh_odds_data, health_check as celery_health_check, SPORTS_SUPPORTED
+from services.tasks import refresh_odds_data, health_check as celery_health_check
 from services.redis_cache import get_ev_data, get_analytics_data, get_last_update, clear_cache, health_check as redis_health_check
 
 # Import database connections
@@ -139,10 +139,10 @@ app.add_middleware(
 )
 
 # Configure static files (CSS, JS, images)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Static file mounting removed - React app serves its own assets
 
 # Configure Jinja2 templates
-templates = Jinja2Templates(directory="templates")
+# Templates removed - React app handles all rendering
 
 # Create auth router
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
@@ -402,6 +402,7 @@ def process_opportunities_for_ui(opportunities: List[Dict[str, Any]]) -> List[Di
             'best_available_odds': opp.get('Best Available Odds', 'N/A'),
             'best_odds_source': opp.get('Best_Odds_Source', ''),
             'recommended_posting_odds': opp.get('Proposed Posting Odds', 'N/A'),
+            'recommended_book': available_odds[0]['bookmaker'] if available_odds else opp.get('Best_Odds_Source', 'N/A'),
             'action_link': _extract_action_link(opp.get('Links', '')),
             # Keep original fields for debugging
             '_original': opp
@@ -457,296 +458,45 @@ def _extract_action_link(links_str: str) -> str:
     return links_str.strip() if links_str.strip() != 'N/A' else None
 
 
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request, admin: Optional[str] = None):
+@app.get("/")
+async def root():
     """
-    Home page - shows free-tier dashboard for everyone, with upgrade prompts for premium features
-    No authentication required - this showcases the product value
+    Root endpoint - FastAPI backend is now pure API only
+    Frontend is handled by React SPA deployed separately
     """
-    try:
-        # Try to get current user if logged in, but don't require it
-        user = None
-        try:
-            from core.session import get_current_user_from_cookie
-            user = get_current_user_from_cookie(request)
-        except Exception:
-            # User not authenticated, that's fine - show free tier
-            pass
-        
-        # If no user, create a guest user context for free tier
-        if not user:
-            from types import SimpleNamespace
-            user = SimpleNamespace(
-                id="guest",
-                email="guest@example.com",
-                role="free",
-                subscription_status="none"
-            )
-        
-        # Get debug metrics if needed
-        debug_metrics = get_debug_metrics() if is_admin_mode_enabled(request, admin) else None
-        
-        # Try to get cached data first for better performance
-        logger.info("Loading betting opportunities from cache...")
-        cached_opportunities = get_ev_data()
-        cached_analytics = get_analytics_data()
-        last_update = get_last_update()
-        
-        if cached_opportunities and cached_analytics:
-            # Use cached data
-            opportunities = cached_opportunities
-            analytics = cached_analytics
-            data_source = "cache"
-            logger.info(f"Serving {len(opportunities)} cached opportunities")
-        else:
-            # Fallback to live data if cache is empty
-            logger.info("Cache empty, fetching live betting opportunities data...")
-            raw_data = fetch_raw_odds_data()
-            opportunities, analytics = process_opportunities(raw_data)
-            data_source = "live"
-            logger.info(f"Serving {len(opportunities)} live opportunities")
-        
-        # Process opportunities for UI
-        ui_opportunities = process_opportunities_for_ui(opportunities)
-        
-        # Apply role-based filtering (free tier for guests, full access for subscribers)
-        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
-        
-        # Apply filters from query parameters
-        sport_filter = request.query_params.get('sport', '').strip()
-        market_filter = request.query_params.get('market', '').strip()
-        
-        if sport_filter:
-            filtered_response['opportunities'] = [
-                op for op in filtered_response['opportunities'] 
-                if sport_filter.lower() in op.get('sport', '').lower()
-            ]
-        
-        if market_filter:
-            filtered_response['opportunities'] = [
-                op for op in filtered_response['opportunities'] 
-                if market_filter.lower() in op.get('market', '').lower()
-            ]
-        
-        # Update analytics based on filtered data
-        filtered_opportunities = filtered_response['opportunities']
-        ui_analytics = {
-            'total_opportunities': len(filtered_opportunities),
-            'positive_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) > 0]),
-            'high_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) >= 4.5]),
-            'max_ev_percentage': round(max([op.get('ev_percentage', 0) for op in filtered_opportunities], default=0), 2)
+    return {
+        "message": "Sports Betting +EV Analyzer API",
+        "status": "operational", 
+        "version": "2.0",
+        "migration": "completed",
+        "frontend_url": {
+            "development": "http://localhost:5173",
+            "note": "React SPA now handles all UI rendering"
+        },
+        "api_endpoints": {
+            "opportunities": "/api/opportunities/ui",
+            "health": "/health",
+            "session": "/api/session/user",
+            "docs": "/docs"
         }
-        
-        # Prepare template context
-        context = {
-            "request": request,
-            "settings": settings,
-            "user": user,  # Pass user object to template (could be guest)
-            "user_role": user.role,  # Pass role explicitly for easy access
-            "is_guest": user.id == "guest",  # Flag to show login prompts
-            "opportunities": filtered_opportunities,
-            "analytics": ui_analytics,
-            "admin_mode": is_admin_mode_enabled(request, admin),
-            "filter_applied": bool(sport_filter or market_filter),
-            "current_sport": sport_filter,
-            "current_market": market_filter,
-            "page_title": "Live Betting Dashboard - Sports +EV Analysis",
-            # Role-based metadata
-            "role_metadata": {
-                "truncated": filtered_response.get('truncated', False),
-                "limit": filtered_response.get('limit'),
-                "total_available": filtered_response.get('total_available', 0),
-                "shown": filtered_response.get('shown', 0),
-                "features": filtered_response.get('features', {})
-            },
-            "sports_supported": SPORTS_SUPPORTED
-        }
-        
-        if is_admin_mode_enabled(request, admin):
-            performance_start = debug_metrics["performance"]["page_generation_start"]
-            
-            # Add detailed EV breakdown for first few opportunities
-            debug_opportunities = []
-            for i, opp in enumerate(filtered_opportunities[:5]):  # First 5 opportunities
-                debug_opp = opp.copy()
-                debug_opp['_debug'] = calculate_ev_breakdown(opp)
-                debug_opportunities.append(debug_opp)
-            
-            context.update({
-                "debug_opportunities": debug_opportunities,
-                "performance_metrics": get_performance_metrics(performance_start),
-                "cache_status": {
-                    "data_source": data_source,
-                    "total_cached": len(cached_opportunities) if cached_opportunities else 0,
-                    "last_update": last_update
-                }
-            })
-        
-        # Create template response with SEO-friendly cache headers
-        response = templates.TemplateResponse("dashboard.html", context)
-        # Align cache timing with noscript meta refresh for consistency
-        response.headers["Cache-Control"] = "max-age=60, stale-while-revalidate=30"
-        return response
-        
-    except Exception as e:
-        logger.error(f"Home page error: {e}")
-        return HTMLResponse(
-            content=f"<h1>Error</h1><p>Unable to load page: {str(e)}</p>",
-            status_code=500
-        )
+    }
 
 
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_redirect(request: Request, admin: Optional[str] = None):
-    """
-    Dashboard redirect - just redirect to home page now that home shows the dashboard
-    """
-    from fastapi.responses import RedirectResponse
-    query_params = str(request.query_params)
-    redirect_url = "/" + ("?" + query_params if query_params else "")
-    return RedirectResponse(url=redirect_url, status_code=302)
+# /dashboard route removed - React app handles all routing
 
-@app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    """Login page"""
-    return templates.TemplateResponse("login.html", {
-        "request": request,
-        "settings": settings,
-        "page_title": "Login - Sports Betting +EV Analyzer"
-    })
+# /login route removed - React app handles authentication UI
 
 @app.post("/api/logout")
 async def logout_api():
     """API endpoint for logout (for completeness - main logout is handled client-side)"""
     return {"status": "success", "message": "Logged out successfully"}
 
-@app.get("/disclaimer", response_class=HTMLResponse)
-async def disclaimer(request: Request):
-    """
-    Disclaimer page route - serves the legal disclaimer and risk disclosure
-    """
-    try:
-        context = {
-            "request": request,
-            "current_date": datetime.now().strftime('%B %d, %Y')
-        }
-        
-        response = templates.TemplateResponse("disclaimer.html", context)
-        response.headers["Cache-Control"] = "max-age=3600, stale-while-revalidate=1800"  # Longer cache for static content
-        return response
-        
-    except Exception as e:
-        logger.error(f"Disclaimer page error: {e}")
-        raise HTTPException(status_code=500, detail="Unable to load disclaimer page")
+# /disclaimer route removed - React app handles static pages
 
-@app.get("/education", response_class=HTMLResponse)
-async def education(request: Request):
-    """
-    Education page route - serves the sports betting education content
-    """
-    try:
-        context = {
-            "request": request
-        }
-        
-        response = templates.TemplateResponse("education.html", context)
-        response.headers["Cache-Control"] = "max-age=3600, stale-while-revalidate=1800"  # Longer cache for static content
-        return response
-        
-    except Exception as e:
-        logger.error(f"Education page error: {e}")
-        raise HTTPException(status_code=500, detail="Unable to load education page")
+# /education route removed - React app handles static pages
 
-@app.get("/pricing", response_class=HTMLResponse)
-async def pricing_page(request: Request):
-    """
-    Pricing page route - serves the pricing and plan comparison
-    """
-    try:
-        context = {
-            "request": request,
-            "settings": settings,
-            "page_title": "Pricing - Sports Betting +EV Analyzer"
-        }
-        
-        response = templates.TemplateResponse("pricing.html", context)
-        response.headers["Cache-Control"] = "max-age=3600, stale-while-revalidate=1800"  # Longer cache for static content
-        return response
-        
-    except Exception as e:
-        logger.error(f"Pricing page error: {e}")
-        raise HTTPException(status_code=500, detail="Unable to load pricing page")
-
-@app.get("/upgrade/success", response_class=HTMLResponse)
-async def upgrade_success_page(request: Request):
-    """
-    Upgrade success page route - serves the post-checkout success page
-    """
-    try:
-        context = {
-            "request": request,
-            "settings": settings,
-            "page_title": "Upgrade Successful - Sports Betting +EV Analyzer"
-        }
-        
-        return templates.TemplateResponse("upgrade_success.html", context)
-        
-    except Exception as e:
-        logger.error(f"Upgrade success page error: {e}")
-        raise HTTPException(status_code=500, detail="Unable to load upgrade success page")
-
-@app.get("/account", response_class=HTMLResponse)
-async def account_page(request: Request):
-    """
-    Account management page - allows users to view and manage their subscription
-    """
-    try:
-        context = {
-            "request": request,
-            "settings": settings,
-            "page_title": "My Account - Sports Betting +EV Analyzer"
-        }
-        
-        return templates.TemplateResponse("account.html", context)
-        
-    except Exception as e:
-        logger.error(f"Account page error: {e}")
-        raise HTTPException(status_code=500, detail="Unable to load account page")
-
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_page(request: Request):
-    """
-    Admin dashboard page - allows administrators to manage users and view system stats
-    Requires admin role for access
-    """
-    try:
-        # Get user from session cookie
-        from core.session import get_current_user_from_cookie
-        user = get_current_user_from_cookie(request)
-        
-        if not user:
-            # Redirect to login if not authenticated
-            from fastapi.responses import RedirectResponse
-            return RedirectResponse(url="/login?redirect=/admin", status_code=302)
-        
-        # Check if user has admin role
-        if user.role != "admin":
-            raise HTTPException(status_code=403, detail="Admin access required")
-        
-        context = {
-            "request": request,
-            "settings": settings,
-            "page_title": "Admin Dashboard - Sports Betting +EV Analyzer",
-            "admin_user": user
-        }
-        
-        return templates.TemplateResponse("admin.html", context)
-        
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions as-is
-    except Exception as e:
-        logger.error(f"Admin page error: {e}")
-        raise HTTPException(status_code=500, detail="Unable to load admin page")
+# All static page routes removed - React app handles:
+# /pricing, /upgrade/success, /account, /admin
 
 # Define main line markets that free users can access
 MAIN_LINES = {"h2h", "spreads", "totals"}  # moneyline, game spreads, game totals
@@ -799,25 +549,95 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
         "opportunities": filtered_opportunities
     }
 
-@app.get("/dashboard/premium", response_class=HTMLResponse)
-async def premium_dashboard(request: Request, admin: Optional[str] = None, user: UserCtx = Depends(get_current_user)):
+# /dashboard/premium route removed - React app handles premium features
+
+@app.get("/api/opportunities/ui")
+@limiter.limit("60/minute")
+async def api_opportunities_ui(
+    request: Request, 
+    search: Optional[str] = None,
+    sport: Optional[str] = None,
+    batch_id: Optional[str] = None
+):
     """
-    Premium dashboard endpoint - requires authentication and shows full features
-    This is where authenticated users get redirected for premium features
+    UI-optimized opportunities endpoint - returns processed data ready for frontend display
+    This endpoint does all the backend processing that Jinja templates were getting
     """
     try:
-        # Redirect to home with user context - the home page will show full features for authenticated users
-        from fastapi.responses import RedirectResponse
-        query_params = str(request.query_params)
-        redirect_url = "/" + ("?" + query_params if query_params else "")
-        return RedirectResponse(url=redirect_url, status_code=302)
+        # Try to get current user if logged in, but don't require it
+        user = None
+        try:
+            from core.session import get_current_user_from_cookie
+            user = get_current_user_from_cookie(request)
+        except Exception:
+            # User not authenticated, that's fine - show free tier
+            pass
+        
+        # If no user, create a guest user context for free tier
+        if not user:
+            from types import SimpleNamespace
+            user = SimpleNamespace(
+                id="guest",
+                email="guest@example.com",
+                role="free",
+                subscription_status="none"
+            )
+        
+        # Get cached data
+        logger.info("Loading betting opportunities from cache...")
+        cached_opportunities = get_ev_data()
+        cached_analytics = get_analytics_data()
+        
+        if cached_opportunities and cached_analytics:
+            opportunities = cached_opportunities
+            analytics = cached_analytics
+            logger.info(f"Serving {len(opportunities)} cached opportunities")
+        else:
+            # Fallback to live data if cache is empty
+            logger.info("Cache empty, fetching live betting opportunities data...")
+            raw_data = fetch_raw_odds_data()
+            opportunities, analytics = process_opportunities(raw_data)
+            logger.info(f"Serving {len(opportunities)} live opportunities")
+        
+        # Process opportunities for UI (same as Jinja templates)
+        ui_opportunities = process_opportunities_for_ui(opportunities)
+        
+        # Apply role-based filtering
+        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
+        
+        # Apply search and sport filters
+        if search:
+            search_lower = search.lower()
+            filtered_response['opportunities'] = [
+                op for op in filtered_response['opportunities'] 
+                if (search_lower in op.get('event', '').lower() or 
+                    search_lower in op.get('bet_description', '').lower())
+            ]
+        
+        if sport:
+            sport_lower = sport.lower()
+            filtered_response['opportunities'] = [
+                op for op in filtered_response['opportunities'] 
+                if sport_lower in op.get('sport', '').lower()
+            ]
+        
+        # Update the response structure to match what React expects
+        return {
+            "opportunities": filtered_response['opportunities'],
+            "total_count": filtered_response.get('total_available', 0),
+            "showing_count": filtered_response.get('shown', 0),
+            "last_updated": get_last_update(),
+            "role": user.role,
+            "truncated": filtered_response.get('truncated', False),
+            "limit": filtered_response.get('limit'),
+            "features": filtered_response.get('features', {}),
+            "analytics": analytics
+        }
         
     except Exception as e:
-        logger.error(f"Premium dashboard error: {e}")
-        return HTMLResponse(
-            content=f"<h1>Error</h1><p>Unable to load premium dashboard: {str(e)}</p>",
-            status_code=500
-        )
+        logger.error(f"Error in UI opportunities endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load opportunities: {str(e)}")
+
 
 @app.get("/api/opportunities")
 @limiter.limit("60/minute")

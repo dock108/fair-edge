@@ -1,0 +1,2320 @@
+/* ===========================
+   Sports Betting Dashboard CSS - Phase 5 Polish
+   Professional styling with accessibility compliance
+   
+   NOTE: All colors must reference /static/css/_tokens.css
+   =========================== */
+
+/* ===== LEGACY COLOR MAPPINGS ===== */
+:root {
+    /* Map existing color variables to design tokens */
+    --color-primary: var(--brand-blue-600);
+    --color-primary-light: var(--brand-blue-400);
+    --color-primary-dark: var(--brand-blue-900);
+    --color-secondary: var(--brand-green-600);
+    --color-secondary-light: var(--brand-green-400);
+    --color-secondary-dark: var(--brand-green-900);
+    
+    /* EV Classification Colors - Now reference tokens */
+    --color-ev-excellent: var(--ev-excellent);
+    --color-ev-excellent-bg: var(--ev-excellent-bg);
+    --color-ev-excellent-border: var(--ev-excellent-border);
+    
+    --color-ev-high: var(--ev-high);
+    --color-ev-high-bg: var(--ev-high-bg);
+    --color-ev-high-border: var(--ev-high-border);
+    
+    --color-ev-positive: var(--ev-positive);
+    --color-ev-positive-bg: var(--ev-positive-bg);
+    --color-ev-positive-border: var(--ev-positive-border);
+    
+    --color-ev-neutral: var(--ev-neutral);
+    --color-ev-neutral-bg: var(--ev-neutral-bg);
+    --color-ev-neutral-border: var(--ev-neutral-border);
+    
+    --color-ev-negative: var(--ev-negative);
+    --color-ev-negative-bg: var(--ev-negative-bg);
+    --color-ev-negative-border: var(--ev-negative-border);
+    
+    /* UI Colors - Map to tokens */
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-muted: var(--text-muted);
+    --color-text-inverse: var(--text-inverse);
+    
+    --color-bg-primary: var(--surface-0);
+    --color-bg-secondary: var(--grey-50);
+    --color-bg-tertiary: var(--grey-100);
+    
+    --color-border: var(--border-primary);
+    --color-border-light: var(--border-light);
+    --color-border-focus: var(--border-focus);
+    
+    --color-shadow: rgba(0, 0, 0, 0.12);
+    --color-shadow-hover: rgba(0, 0, 0, 0.16);
+    --color-shadow-focus: rgba(44, 90, 160, 0.25);
+    
+    /* Interactive States */
+    --color-hover-bg: var(--bg-hover);
+    --color-active-bg: var(--bg-active);
+    --color-focus-outline: var(--border-focus);
+    
+    /* Status Colors */
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-error: var(--error);
+    --color-info: var(--info);
+    
+    /* Typography - Use tokens */
+    --font-family-primary: var(--font-sans);
+    --font-family-mono: var(--font-mono);
+    
+    --font-weight-light: var(--fw-light);
+    --font-weight-regular: var(--fw-regular);
+    --font-weight-medium: var(--fw-medium);
+    --font-weight-semibold: var(--fw-semibold);
+    --font-weight-bold: var(--fw-bold);
+    
+    /* Spacing System - Use tokens */
+    --spacing-xs: var(--sp-1);
+    --spacing-sm: var(--sp-2);
+    --spacing-md: var(--sp-4);
+    --spacing-lg: var(--sp-6);
+    --spacing-xl: var(--sp-8);
+    --spacing-xxl: var(--sp-12);
+    --spacing-xxxl: var(--sp-16);
+    
+    /* Container System - Use tokens */
+    --container-sm: var(--container-sm);
+    --container-md: var(--container-md);
+    --container-lg: var(--container-lg);
+    --container-xl: var(--container-xl);
+    --container-xxl: var(--container-xxl);
+    
+    /* Grid System - Use tokens */
+    --grid-gap-xs: var(--grid-gap-xs);
+    --grid-gap-sm: var(--grid-gap-sm);
+    --grid-gap-md: var(--grid-gap-md);
+    --grid-gap-lg: var(--grid-gap-lg);
+    --grid-gap-xl: var(--grid-gap-xl);
+    
+    /* Border Radius - Use tokens */
+    --radius-sm: var(--radius-s);
+    --radius-md: var(--radius-m);
+    --radius-lg: var(--radius-l);
+    --radius-xl: var(--radius-xl);
+    
+    /* Transitions - Use tokens */
+    --transition-fast: var(--transition-fast);
+    --transition-base: var(--transition-base);
+    --transition-slow: var(--transition-slow);
+    
+    /* Z-index Scale - Use tokens */
+    --z-dropdown: var(--z-dropdown);
+    --z-sticky: var(--z-sticky);
+    --z-fixed: var(--z-fixed);
+    --z-modal: var(--z-modal);
+    --z-popover: var(--z-popover);
+    --z-tooltip: var(--z-tooltip);
+}
+
+body {
+    font-family: var(--font-family-primary);
+    font-weight: var(--font-weight-regular);
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enhanced Typography System */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-family-primary);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    line-height: var(--lh-tight);
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+h1 { font-size: var(--fs-7); }  /* 40px */
+h2 { font-size: var(--fs-6); }  /* 32px */
+h3 { font-size: var(--fs-5); }  /* 24px */
+h4 { font-size: var(--fs-4); }  /* 20px */
+h5 { font-size: var(--fs-3); }  /* 18px */
+h6 { font-size: var(--fs-2); }  /* 16px */
+
+p {
+    margin: 0 0 var(--spacing-md) 0;
+    line-height: var(--lh-relaxed);
+}
+
+/* Focus Management for Accessibility */
+*:focus {
+    outline: 2px solid var(--color-focus-outline);
+    outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--color-focus-outline);
+    outline-offset: 2px;
+}
+
+/* Skip Link for Screen Readers - DISABLED */
+.skip-link {
+    display: none !important;
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ===== RESPONSIVE CONTAINER SYSTEM ===== */
+.container-fluid {
+    width: 100%;
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Responsive Container Sizes */
+@media (min-width: 576px) {
+    .container-fluid {
+        max-width: var(--container-sm);
+        padding-left: var(--spacing-lg);
+        padding-right: var(--spacing-lg);
+    }
+}
+
+@media (min-width: 768px) {
+    .container-fluid {
+        max-width: var(--container-md);
+    }
+}
+
+@media (min-width: 992px) {
+    .container-fluid {
+        max-width: var(--container-lg);
+    }
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: var(--container-xl);
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: var(--container-xxl);
+    }
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-container {
+    min-height: auto;
+    padding: var(--spacing-xl) var(--spacing-sm);
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ===== DASHBOARD METRICS ===== */
+.metrics-section {
+    background: white;
+    border-radius: 0;
+    padding: var(--spacing-xl) 0;
+    margin-bottom: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.metric-card {
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    text-align: center;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-s);
+}
+
+.metric-card:hover {
+    background: linear-gradient(135deg, var(--surface-0) 0%, var(--surface-2) 100%);
+    box-shadow: var(--shadow-m);
+    transform: translateY(-2px);
+}
+
+.metric-value {
+    font-size: var(--fs-6);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.metric-label {
+    font-size: var(--fs-1);
+    color: var(--text-muted);
+    margin: 0;
+    font-weight: var(--font-weight-medium);
+}
+
+/* ===== BETTING CARDS - ENHANCED RESPONSIVE GRID ===== */
+.opportunities-section {
+    margin-top: var(--spacing-xxl);
+    padding: var(--spacing-xl) 0;
+    background: var(--grey-50);
+    border-radius: var(--radius-lg);
+}
+
+/* Enhanced Grid Container with Responsive Design */
+.cards-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--grid-gap-md);
+    margin-top: var(--spacing-lg);
+    width: 100%;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Individual Betting Card - Enhanced for Horizontal Layout */
+.bet-card {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-s);
+    position: relative;
+    overflow: hidden;
+    
+    /* Horizontal layout */
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    grid-template-areas: 
+        "header ev-metric odds-section action-section ev-badge";
+    align-items: start;
+    gap: var(--spacing-lg);
+    min-height: 120px;
+    
+    /* Overflow handling */
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.bet-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-l);
+    border-color: var(--color-border-focus);
+}
+
+/* EV-based Card Styling - Enhanced with New Color System */
+.bet-card.ev-excellent {
+    background: linear-gradient(135deg, var(--color-ev-excellent-bg) 0%, rgba(232, 245, 232, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-excellent);
+    border-color: var(--color-ev-excellent-border);
+}
+
+.bet-card.ev-high {
+    background: linear-gradient(135deg, var(--color-ev-high-bg) 0%, rgba(241, 248, 233, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-high);
+    border-color: var(--color-ev-high-border);
+}
+
+.bet-card.ev-positive {
+    background: linear-gradient(135deg, var(--color-ev-positive-bg) 0%, rgba(255, 248, 225, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-positive);
+    border-color: var(--color-ev-positive-border);
+}
+
+.bet-card.ev-neutral {
+    background: linear-gradient(135deg, var(--color-ev-neutral-bg) 0%, rgba(245, 245, 245, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-neutral);
+    border-color: var(--color-ev-neutral-border);
+}
+
+.bet-card.ev-negative {
+    background: linear-gradient(135deg, var(--color-ev-negative-bg) 0%, rgba(255, 235, 238, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-negative);
+    border-color: var(--color-ev-negative-border);
+}
+
+/* Card Header - Now takes first grid area */
+.card-header {
+    grid-area: header;
+    margin-bottom: 0;
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.event-title {
+    font-size: var(--fs-3);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-sm) 0;
+    line-height: var(--lh-tight);
+}
+
+.bet-description {
+    font-size: var(--fs-2);
+    font-weight: var(--font-weight-regular);
+    color: var(--text-secondary);
+    margin: 0 0 var(--spacing-sm) 0;
+    line-height: var(--lh-base);
+}
+
+.bet-type {
+    font-size: var(--fs-1);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.05em;
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+/* EV Badge - Enhanced Accessibility and Visual Design */
+.ev-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-m);
+    font-size: var(--fs-1);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border: 1px solid transparent;
+}
+
+.ev-badge.excellent {
+    background: var(--color-ev-excellent);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-excellent-border);
+    box-shadow: 0 2px 8px rgba(15, 123, 15, 0.2);
+}
+
+.ev-badge.high {
+    background: var(--color-ev-high);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-high-border);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+}
+
+.ev-badge.positive {
+    background: var(--color-ev-positive);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-positive-border);
+    box-shadow: 0 2px 8px rgba(245, 124, 0, 0.2);
+}
+
+.ev-badge.neutral {
+    background: var(--color-ev-neutral);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-neutral-border);
+    box-shadow: 0 2px 8px rgba(66, 66, 66, 0.2);
+}
+
+.ev-badge.negative {
+    background: var(--color-ev-negative);
+    color: var(--color-text-inverse);
+    border-color: var(--color-ev-negative-border);
+    box-shadow: 0 2px 8px rgba(198, 40, 40, 0.2);
+}
+
+/* EV Badge Icons with Accessible Labels */
+.ev-badge .ev-icon {
+    font-size: var(--fs-1);
+    margin-right: var(--spacing-xs);
+}
+
+.ev-badge .ev-icon[aria-label]::before {
+    content: attr(aria-label);
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.ev-percentage {
+    font-weight: var(--font-weight-bold);
+    font-size: var(--fs-0-5);
+}
+
+/* EV Metric Section - Second grid area */
+.ev-metric {
+    grid-area: ev-metric;
+    text-align: center;
+    margin: 0;
+    padding: var(--spacing-md);
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    align-self: start;
+}
+
+.ev-metric-label {
+    font-size: var(--fs-0-75);
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ev-metric-value {
+    font-size: var(--fs-4);
+    font-weight: 700;
+    margin: 0;
+}
+
+.ev-metric-value.high { color: var(--color-ev-high); }
+.ev-metric-value.positive { color: var(--color-ev-positive); }
+.ev-metric-value.neutral { color: var(--color-ev-neutral); }
+
+/* Odds Section - Third grid area */
+.odds-section {
+    grid-area: odds-section;
+    margin: 0;
+    align-self: start;
+}
+
+.odds-title {
+    font-size: var(--fs-1-25);
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.odds-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+}
+
+.odds-item {
+    background: white;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    font-size: var(--fs-0-5);
+    text-align: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.odds-item.best {
+    background: var(--success);
+    color: var(--text-inverse);
+    border-radius: var(--radius-s);
+}
+
+.odds-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--color-shadow);
+}
+
+/* Fair and Best Odds - Part of odds section */
+.fair-best-section {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xs);
+    margin: var(--spacing-sm) 0 0 0;
+    padding: var(--spacing-sm);
+    background: rgba(248, 249, 250, 0.5);
+    border-radius: 6px;
+}
+
+.fair-odds, .best-odds {
+    text-align: center;
+}
+
+.fair-odds {
+    color: var(--text-disabled);
+}
+
+.best-odds {
+    font-weight: 600;
+    color: var(--color-ev-high);
+}
+
+.odds-label {
+    font-size: var(--fs-0-5);
+    color: var(--text-disabled);
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.odds-value {
+    font-size: var(--fs-2);
+    font-weight: 600;
+}
+
+/* Action Section - Fourth grid area */
+.action-section {
+    grid-area: action-section;
+    margin: 0;
+    padding: 0;
+    border: none;
+    align-self: start;
+}
+
+.recommendation {
+    font-size: var(--fs-0-75);
+    font-weight: 500;
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: rgba(0, 123, 255, 0.1);
+    border-radius: 4px;
+    border-left: 3px solid var(--info);
+    padding-left: var(--spacing-sm);
+}
+
+.posting-suggestion {
+    font-size: var(--fs-0-75);
+    color: var(--text-disabled);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: var(--fs-0-5);
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    justify-content: center;
+    min-width: 100px;
+}
+
+.action-btn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn.take {
+    background: linear-gradient(135deg, var(--ev-high) 0%, var(--success) 100%);
+    color: var(--text-inverse);
+    border: none;
+}
+
+.action-btn.take:hover {
+    background: linear-gradient(135deg, var(--success) 0%, var(--brand-green-600) 100%);
+}
+
+.action-btn.post {
+    background: linear-gradient(135deg, var(--info) 0%, var(--brand-blue-900) 100%);
+    color: var(--text-inverse);
+    border: none;
+}
+
+.action-btn.post:hover {
+    background: linear-gradient(135deg, var(--brand-blue-900) 0%, var(--brand-blue-900) 100%);
+}
+
+/* ===== RESPONSIVE DESIGN - ENHANCED BREAKPOINTS ===== */
+
+/* Mobile First: Base styles for mobile */
+.main-container {
+    padding: 0 var(--spacing-sm);
+}
+
+.cards-grid {
+    gap: var(--grid-gap-sm);
+}
+
+.bet-card {
+    min-height: 320px;
+}
+
+.ev-badge {
+    position: static;
+    margin-bottom: var(--spacing-sm);
+    align-self: flex-start;
+    width: fit-content;
+}
+
+.odds-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xs);
+}
+
+.fair-best-section {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+}
+
+.action-buttons {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.metric-value {
+    font-size: var(--fs-6);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.ev-metric-value {
+    font-size: var(--fs-4);
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) {
+    .main-container {
+        padding: 0 var(--spacing-md);
+    }
+    
+    .cards-grid {
+        gap: var(--grid-gap-md);
+    }
+    
+    .bet-card {
+        min-height: 340px;
+    }
+    
+    .metric-value {
+        font-size: var(--fs-5-5);
+    }
+    
+    .ev-metric-value {
+        font-size: var(--fs-4);
+    }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    .main-container {
+        padding: 0 var(--spacing-lg);
+    }
+    
+    .cards-grid {
+        gap: var(--grid-gap-lg);
+    }
+    
+    .bet-card {
+        min-height: 360px;
+        padding: var(--spacing-lg);
+    }
+    
+    .ev-badge {
+        position: absolute;
+        top: var(--spacing-md);
+        right: var(--spacing-md);
+        margin-bottom: 0;
+    }
+    
+    .odds-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: var(--spacing-sm);
+    }
+    
+    .fair-best-section {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-md);
+    }
+    
+    .action-buttons {
+        flex-direction: row;
+        gap: var(--spacing-md);
+    }
+    
+    .metric-value {
+        font-size: var(--fs-6);
+    }
+    
+    .ev-metric-value {
+        font-size: var(--fs-5);
+    }
+    
+    .header-title {
+        font-size: var(--fs-7);
+    }
+    
+    .header-subtitle {
+        font-size: var(--fs-3-5);
+    }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    .cards-grid {
+        gap: var(--grid-gap-xl);
+    }
+    
+    .bet-card {
+        min-height: 380px;
+    }
+    
+    .odds-grid {
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    .bet-card {
+        min-height: 400px;
+    }
+}
+
+/* Extra extra large devices (larger desktops, 1400px and up) */
+@media (min-width: 1400px) {
+    .bet-card {
+        min-height: 420px;
+    }
+    
+    .cards-grid {
+        gap: var(--grid-gap-xl);
+    }
+}
+
+/* ===== OVERFLOW AND TEXT HANDLING ===== */
+.bet-card * {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Ensure no horizontal scrolling */
+html, body {
+    overflow-x: hidden;
+}
+
+.cards-grid {
+    overflow: visible;
+}
+
+/* Long text handling */
+.long-text {
+    hyphens: auto;
+    word-break: break-word;
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-center { text-align: center; }
+.fw-bold { font-weight: 700; }
+.fw-semibold { font-weight: 600; }
+.text-muted { color: var(--text-disabled); }
+.mb-0 { margin-bottom: 0; }
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+
+/* ===== LOADING AND EMPTY STATES ===== */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxl);
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+    color: var(--text-disabled);
+    border-radius: var(--radius-lg);
+    margin: var(--spacing-xl) 0;
+}
+
+.empty-state h3 {
+    color: var(--grey-600);
+}
+
+.empty-state p {
+    font-size: var(--fs-2-25);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.empty-state .btn {
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.empty-state .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== FILTER CONTROLS SECTION ===== */
+.filters-section {
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--spacing-lg) 0;
+}
+
+.filters-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+}
+
+.filters-form {
+    background: white;
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--color-border);
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-width: 200px;
+}
+
+.filter-group.filter-actions {
+    margin-left: auto;
+    min-width: auto;
+    gap: var(--spacing-sm);
+}
+
+.filter-label {
+    font-size: var(--fs-1-25);
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    margin-bottom: 0;
+}
+
+.filter-select {
+    background: var(--surface-0);
+    border: 2px solid var(--surface-3);
+    border-radius: 8px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--fs-1-25);
+    color: var(--grey-600);
+    min-width: 150px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-select:hover {
+    border-color: var(--grey-400);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(31, 119, 180, 0.1);
+}
+
+.filter-btn {
+    background: white;
+    border: 2px solid var(--surface-3);
+    border-radius: 8px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--fs-1-25);
+    font-weight: 500;
+    color: var(--grey-600);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    text-decoration: none;
+}
+
+.filter-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+}
+
+.filter-btn-clear {
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.filter-btn-clear:hover {
+    background: var(--error);
+    color: var(--text-inverse);
+}
+
+.filter-btn-apply {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.filter-btn-apply:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+/* Filter Active Badge */
+.badge.bg-info {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--success) 100%) !important;
+    color: var(--text-inverse) !important;
+    border: none !important;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* ===== RESPONSIVE FILTER DESIGN ===== */
+
+/* Large devices - all filters in one row */
+@media (min-width: 992px) {
+    .filter-row {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+    }
+    
+    .filter-group {
+        flex: 0 0 auto;
+    }
+    
+    .filter-group.filter-actions {
+        margin-left: auto;
+        flex: 0 0 auto;
+    }
+}
+
+/* Medium devices - filters may wrap */
+@media (min-width: 768px) and (max-width: 991px) {
+    .filter-row {
+        justify-content: center;
+    }
+    
+    .filter-group {
+        min-width: 180px;
+    }
+    
+    .filter-group.filter-actions {
+        margin-left: 0;
+        order: 3;
+        flex-basis: 100%;
+        justify-content: center;
+        margin-top: var(--spacing-md);
+    }
+}
+
+/* Small devices - stack vertically */
+@media (max-width: 767px) {
+    .filters-container {
+        padding: 0 var(--spacing-sm);
+    }
+    
+    .filters-form {
+        padding: var(--spacing-md);
+    }
+    
+    .filter-row {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .filter-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .filter-group.filter-actions {
+        flex-direction: row;
+        justify-content: center;
+        margin-left: 0;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-sm);
+    }
+    
+    .filter-label {
+        align-self: flex-start;
+    }
+    
+    .filter-select {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .filter-btn {
+        flex: 1;
+        justify-content: center;
+        min-width: 100px;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 576px) {
+    .filter-group.filter-actions {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    .filter-btn {
+        width: 100%;
+    }
+}
+
+/* ===== LOADING STATES ===== */
+.loading-container {
+    text-align: center;
+    padding: var(--spacing-xxl);
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+    border-radius: 12px;
+    border: 2px dashed var(--color-border);
+    margin: var(--spacing-xl) 0;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--color-border);
+    border-top: 4px solid var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto var(--spacing-md);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 768px) {
+    .header-title {
+        font-size: var(--fs-6);
+    }
+    
+    .header-subtitle {
+        font-size: var(--fs-2-25);
+    }
+    
+    .header-tagline {
+        font-size: var(--fs-1-25);
+    }
+    
+    .metric-value {
+        font-size: var(--fs-5);
+    }
+    
+    .metric-label {
+        font-size: var(--fs-0-5);
+    }
+    
+    .metrics-section {
+        padding: var(--spacing-lg) 0;
+    }
+    
+    .metric-card {
+        padding: var(--spacing-md);
+    }
+    
+    /* Mobile card layout - stack vertically */
+    .bet-card {
+        grid-template-columns: 1fr;
+        grid-template-areas: 
+            "header"
+            "ev-badge" 
+            "ev-metric"
+            "odds-section"
+            "action-section";
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+    }
+    
+    .ev-badge {
+        justify-self: center;
+        align-self: center;
+    }
+    
+    .ev-metric {
+        text-align: center;
+    }
+    
+    .odds-section {
+        text-align: center;
+    }
+    
+    .action-section {
+        text-align: center;
+    }
+    
+    .action-buttons {
+        flex-direction: row;
+        justify-content: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .action-btn {
+        flex: 1;
+        min-width: auto;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .bet-card {
+        grid-template-columns: 2fr 1fr 1fr;
+        grid-template-areas: 
+            "header ev-badge ev-badge"
+            "ev-metric odds-section action-section";
+        gap: var(--spacing-lg);
+    }
+    
+    .ev-badge {
+        justify-self: flex-end;
+    }
+}
+
+/* ===== TOOLTIP SYSTEM FOR ACCESSIBILITY ===== */
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip-trigger {
+    border-bottom: 1px dotted var(--color-text-muted);
+    cursor: help;
+    color: var(--color-info);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.tooltip-trigger:hover,
+.tooltip-trigger:focus {
+    color: var(--color-primary-dark);
+    border-bottom-color: var(--color-primary);
+    text-decoration: none;
+}
+
+.tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-text-primary);
+    color: var(--color-text-inverse);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-1);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.4;
+    white-space: nowrap;
+    z-index: var(--z-tooltip);
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-base);
+    box-shadow: 0 4px 12px var(--color-shadow);
+    pointer-events: none;
+    margin-bottom: var(--spacing-xs);
+    max-width: 280px;
+    white-space: normal;
+    text-align: center;
+}
+
+.tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--color-text-primary);
+}
+
+.tooltip-container:hover .tooltip,
+.tooltip-container:focus-within .tooltip,
+.tooltip-trigger:focus + .tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
+}
+
+/* Tooltip Variants */
+.tooltip.tooltip-large {
+    max-width: 320px;
+    white-space: normal;
+    line-height: 1.5;
+}
+
+.tooltip.tooltip-left {
+    left: 0;
+    transform: translateX(0);
+}
+
+.tooltip.tooltip-right {
+    left: auto;
+    right: 0;
+    transform: translateX(0);
+}
+
+/* Help Icon Styling */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-info);
+    color: var(--color-text-inverse);
+    font-size: var(--fs-0);
+    font-weight: var(--font-weight-bold);
+    margin-left: var(--spacing-xs);
+    cursor: help;
+    transition: all var(--transition-fast);
+    border: none;
+    padding: 0;
+}
+
+.help-icon:hover,
+.help-icon:focus {
+    background: var(--color-primary-dark);
+    transform: scale(1.1);
+}
+
+/* Accessible Help Text */
+.help-text {
+    font-size: var(--fs-0-5);
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-top: var(--spacing-xs);
+    display: none;
+}
+
+.help-text.visible {
+    display: block;
+    animation: fadeIn var(--transition-base) ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== ENHANCED INTERACTIVE ELEMENTS ===== */
+
+/* Button Base Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family-primary);
+    font-size: var(--fs-1);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:focus {
+    outline: 2px solid var(--color-focus-outline);
+    outline-offset: 2px;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Button Variants */
+.btn-primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--color-shadow-hover);
+}
+
+.btn-secondary {
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--color-hover-bg);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-ev-high) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-success);
+}
+
+.btn-success:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-ev-high) 0%, var(--color-success) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-ev-positive) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-warning);
+}
+
+.btn-warning:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-ev-positive) 0%, var(--color-warning) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 124, 0, 0.3);
+}
+
+/* ===== CARD LOADING ANIMATIONS ===== */
+.card-loading {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all var(--transition-slow) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.card-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Staggered animation for cards */
+.bet-card:nth-child(1) { animation-delay: 0.1s; }
+.bet-card:nth-child(2) { animation-delay: 0.2s; }
+.bet-card:nth-child(3) { animation-delay: 0.3s; }
+.bet-card:nth-child(4) { animation-delay: 0.4s; }
+.bet-card:nth-child(5) { animation-delay: 0.5s; }
+
+/* ===== KEYBOARD FOCUS ENHANCEMENTS ===== */
+.using-keyboard *:focus {
+    outline: 3px solid var(--color-focus-outline) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 6px var(--color-shadow-focus) !important;
+}
+
+.using-keyboard .bet-card:focus {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px var(--color-shadow-hover);
+}
+
+.using-keyboard .filter-select:focus,
+.using-keyboard .btn:focus {
+    border-color: var(--color-focus-outline);
+    box-shadow: 0 0 0 3px var(--color-shadow-focus);
+}
+
+/* ===== IMPROVED EV METRIC STYLES ===== */
+.ev-metric-value.excellent { 
+    color: var(--color-ev-excellent); 
+    text-shadow: 0 1px 2px rgba(15, 123, 15, 0.2);
+}
+.ev-metric-value.high { 
+    color: var(--color-ev-high); 
+    text-shadow: 0 1px 2px rgba(46, 125, 50, 0.2);
+}
+.ev-metric-value.positive { 
+    color: var(--color-ev-positive); 
+    text-shadow: 0 1px 2px rgba(245, 124, 0, 0.2);
+}
+.ev-metric-value.neutral { 
+    color: var(--color-ev-neutral); 
+    text-shadow: 0 1px 2px rgba(66, 66, 66, 0.2);
+}
+.ev-metric-value.negative { 
+    color: var(--color-ev-negative); 
+    text-shadow: 0 1px 2px rgba(198, 40, 40, 0.2);
+}
+
+/* ===== ENHANCED ACTION BUTTONS ===== */
+.action-btn.take {
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-ev-high) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-success);
+}
+
+.action-btn.take:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-ev-high) 0%, var(--color-success) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.action-btn.post {
+    background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-ev-positive) 100%);
+    color: var(--color-text-inverse);
+    border-color: var(--color-warning);
+}
+
+.action-btn.post:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-ev-positive) 0%, var(--color-warning) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 124, 0, 0.3);
+}
+
+/* ===== LOADING STATES ===== */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* ===== ENHANCED EMPTY STATES ===== */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxxl) var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--color-border);
+    margin: var(--spacing-xl) 0;
+    background: linear-gradient(135deg, var(--color-bg-tertiary) 0%, var(--color-bg-secondary) 100%);
+    color: var(--color-text-muted);
+    transition: all var(--transition-base);
+}
+
+.empty-state:hover {
+    border-color: var(--color-primary);
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-tertiary) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--color-shadow);
+}
+
+.empty-state h3 {
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+    font-weight: var(--font-weight-semibold);
+}
+
+.empty-state p {
+    font-size: var(--fs-2-25);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.empty-state .btn {
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-weight: var(--font-weight-medium);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+}
+
+.empty-state .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.fw-light { font-weight: var(--font-weight-light); }
+.fw-regular { font-weight: var(--font-weight-regular); }
+.fw-medium { font-weight: var(--font-weight-medium); }
+.fw-semibold { font-weight: var(--font-weight-semibold); }
+.fw-bold { font-weight: var(--font-weight-bold); }
+
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--text-disabled); }
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-error { color: var(--color-error); }
+
+.bg-primary { background-color: var(--color-primary); }
+.bg-secondary { background-color: var(--color-bg-secondary); }
+.bg-tertiary { background-color: var(--color-bg-tertiary); }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+.mb-4 { margin-bottom: var(--spacing-lg); }
+.mb-5 { margin-bottom: var(--spacing-xl); }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mt-4 { margin-top: var(--spacing-lg); }
+.mt-5 { margin-top: var(--spacing-xl); }
+
+.p-0 { padding: 0; }
+.p-1 { padding: var(--spacing-xs); }
+.p-2 { padding: var(--spacing-sm); }
+.p-3 { padding: var(--spacing-md); }
+.p-4 { padding: var(--spacing-lg); }
+.p-5 { padding: var(--spacing-xl); }
+
+.border-radius-sm { border-radius: var(--radius-sm); }
+.border-radius-md { border-radius: var(--radius-md); }
+.border-radius-lg { border-radius: var(--radius-lg); }
+.border-radius-xl { border-radius: var(--radius-xl); }
+
+.shadow-sm { box-shadow: 0 1px 3px var(--color-shadow); }
+.shadow-md { box-shadow: 0 2px 8px var(--color-shadow); }
+.shadow-lg { box-shadow: 0 4px 16px var(--color-shadow-hover); }
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .skip-link,
+    .filters-section,
+    .action-buttons,
+    .help-icon,
+    .tooltip {
+        display: none !important;
+    }
+
+    .bet-card {
+        border: 1px solid var(--text-primary) !important;
+        background: var(--surface-0) !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        margin-bottom: var(--spacing-md) !important;
+    }
+
+    .header-section {
+        background: var(--surface-0) !important;
+        color: var(--text-primary) !important;
+        border-bottom: 2px solid var(--text-primary);
+    }
+
+    body {
+        background: var(--surface-0) !important;
+        color: var(--text-primary) !important;
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+}
+
+/* ===== ADMIN DEBUG MODE STYLES ===== */
+
+/* Global Admin Debug Panel */
+.admin-debug-panel {
+    background: linear-gradient(135deg, var(--grey-900) 0%, var(--grey-800) 100%);
+    color: var(--text-inverse);
+    border-bottom: 3px solid var(--warning);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+}
+
+.debug-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.debug-header h2 {
+    color: var(--warning);
+    font-size: var(--fs-5);
+}
+
+.debug-header p {
+    color: var(--grey-200);
+    font-size: var(--fs-1);
+}
+
+/* Debug Sections */
+.debug-section {
+    border: 1px solid var(--warning);
+    border-radius: var(--radius-m);
+    margin-bottom: var(--spacing-md);
+}
+
+.debug-section:hover {
+    border-color: var(--warning);
+}
+
+.debug-section[open] {
+    border-color: var(--warning);
+}
+
+.debug-summary {
+    color: var(--warning);
+    background: transparent;
+    border: none;
+    padding: var(--spacing-md);
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-inverse);
+}
+
+.debug-summary:hover {
+    color: var(--warning);
+}
+
+.debug-content h4 {
+    color: var(--warning);
+    font-size: var(--fs-2);
+}
+
+.debug-data {
+    color: var(--grey-300);
+    border-left: 3px solid var(--warning);
+    padding-left: var(--spacing-md);
+}
+
+.debug-data strong {
+    color: var(--text-inverse);
+}
+
+/* Per-Card Debug Information */
+.card-debug-section {
+    margin-top: var(--spacing-md);
+    border-top: 2px dashed rgba(255, 107, 53, 0.3);
+    padding-top: var(--spacing-md);
+}
+
+.card-debug {
+    background: linear-gradient(135deg, var(--surface-0) 0%, var(--surface-2) 100%);
+    border: 2px solid var(--warning);
+    border-radius: var(--radius-m);
+    transition: all var(--transition-base);
+}
+
+.card-debug:hover {
+    background: linear-gradient(135deg, var(--surface-0) 0%, var(--surface-2) 100%);
+}
+
+.card-debug[open] {
+    background: linear-gradient(135deg, var(--surface-0) 0%, var(--surface-2) 100%);
+    box-shadow: 0 6px 20px rgba(245, 124, 0, 0.15);
+}
+
+.card-debug-summary {
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+    color: var(--warning);
+    background: rgba(245, 124, 0, 0.1);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+    user-select: none;
+    list-style: none;
+    border-bottom: 1px solid rgba(245, 124, 0, 0.2);
+}
+
+.card-debug-summary:hover {
+    background: rgba(245, 124, 0, 0.15);
+    color: var(--ev-positive);
+}
+
+.card-debug-summary::marker {
+    display: none;
+}
+
+.card-debug-summary::before {
+    content: '🐛';
+    display: inline-block;
+    margin-right: var(--spacing-xs);
+}
+
+.card-debug-content {
+    padding: var(--spacing-md);
+    color: var(--color-text-primary);
+}
+
+.card-debug-content h5 {
+    color: var(--warning);
+    font-size: var(--fs-1-5);
+    margin-bottom: var(--spacing-sm);
+    font-weight: var(--font-weight-semibold);
+    border-bottom: 1px solid rgba(245, 124, 0, 0.3);
+    padding-bottom: var(--spacing-xs);
+}
+
+.debug-calc, .debug-sources {
+    font-family: var(--font-family-mono);
+    font-size: var(--fs-0-5);
+    line-height: 1.5;
+    background: rgba(245, 124, 0, 0.05);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--warning);
+    color: var(--color-text-primary);
+}
+
+.debug-calc strong, .debug-sources strong {
+    color: var(--ev-positive);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Raw Data Dumps */
+.raw-data-dump, .ui-data-dump {
+    margin-top: var(--spacing-sm);
+}
+
+.raw-data-dump summary, .ui-data-dump summary {
+    cursor: pointer;
+    font-weight: var(--font-weight-medium);
+    color: var(--warning);
+    padding: var(--spacing-xs) 0;
+    border-bottom: 1px dotted rgba(245, 124, 0, 0.4);
+    transition: color var(--transition-base);
+    font-size: var(--fs-0);
+}
+
+.raw-data-dump summary:hover, .ui-data-dump summary:hover {
+    color: var(--ev-positive);
+}
+
+.raw-data, .ui-data {
+    font-family: var(--font-family-mono);
+    font-size: var(--fs-0);
+    line-height: 1.4;
+    background: var(--grey-800);
+    color: var(--grey-200);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--warning);
+    margin-top: var(--spacing-xs);
+}
+
+.raw-data code, .ui-data code {
+    color: inherit;
+    background: none;
+    padding: 0;
+    font-size: inherit;
+}
+
+/* Debug Mode Indicator */
+.debug-mode-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: var(--warning);
+    color: var(--text-inverse);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-xl);
+    font-size: var(--fs-0);
+    font-weight: var(--font-weight-bold);
+    z-index: var(--z-tooltip);
+    animation: pulse 2s infinite;
+    box-shadow: 0 2px 8px rgba(245, 124, 0, 0.4);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Responsive Debug Styles */
+@media (max-width: 768px) {
+    .admin-debug-panel {
+        padding: var(--spacing-md) 0;
+    }
+    
+    .debug-header h2 {
+        font-size: var(--fs-3-75);
+    }
+    
+    .debug-content .row {
+        flex-direction: column;
+    }
+    
+    .debug-content .col-md-6,
+    .debug-content .col-md-4 {
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .debug-data, .debug-calc, .debug-sources {
+        font-size: var(--fs-0-5);
+    }
+    
+    .raw-data, .ui-data {
+        font-size: var(--fs-minus-1);
+        max-height: 200px;
+    }
+    
+    .card-debug-content {
+        padding: var(--spacing-sm);
+    }
+}
+
+/* Landscape mobile orientation */
+@media (max-width: 767px) and (orientation: landscape) {
+    .odds-card__body {
+        /* On landscape mobile, we can afford horizontal layout */
+        flex-direction: row;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+    
+    .odds-card__recommended {
+        margin-bottom: 0;
+        margin-right: var(--spacing-md);
+        min-width: 200px;
+        flex-shrink: 0;
+    }
+    
+    .recommended-value {
+        font-size: var(--fs-4-25);
+    }
+    
+    .detail-item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .detail-value {
+        text-align: right;
+    }
+    
+    .action-buttons {
+        flex-direction: row;
+        gap: var(--spacing-sm);
+    }
+    
+    .odds-card__action-btn {
+        width: auto;
+        flex: 1;
+    }
+}
+
+/* Very large screens readability */
+@media (min-width: 1200px) {
+    .odds-card {
+        /* Prevent cards from becoming too wide for readability */
+        max-width: 600px;
+        /* Center the card if it's in a flexible container */
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    /* Increase spacing for better visual hierarchy on large screens */
+    .odds-card__body {
+        gap: var(--spacing-xxxl);
+    }
+    
+    .odds-card__recommended {
+        min-width: 320px;
+        padding: var(--spacing-xl);
+    }
+    
+    .recommended-value {
+        font-size: var(--fs-6);
+    }
+    
+    /* Improve typography scaling */
+    .odds-card__title {
+        font-size: var(--fs-4-25);
+    }
+    
+    .detail-item {
+        padding: var(--spacing-md);
+    }
+    
+    .detail-label {
+        font-size: var(--fs-1-25);
+    }
+    
+    .detail-value {
+        font-size: var(--fs-2);
+    }
+}
+
+/* Ultra-wide screens */
+@media (min-width: 1600px) {
+    .odds-card {
+        /* Maintain readability on ultra-wide screens */
+        max-width: 700px;
+    }
+    
+    .odds-card__recommended {
+        min-width: 360px;
+    }
+    
+    .recommended-value {
+        font-size: var(--fs-6-25);
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .odds-card {
+        border: 2px solid var(--color-text-primary);
+    }
+    
+    .recommended-value {
+        color: var(--color-text-primary);
+        -webkit-text-fill-color: var(--color-text-primary);
+    }
+    
+    .detail-item {
+        border: 1px solid var(--color-text-primary);
+    }
+}
+
+/* Accessibility Enhancements for Debug Mode */
+.debug-summary:focus,
+.card-debug-summary:focus,
+.raw-data-dump summary:focus,
+.ui-data-dump summary:focus {
+    outline: 3px solid var(--warning);
+    outline-offset: 2px;
+}
+
+/* ===== ODDS CARD REDESIGN - NEW SEMANTIC STRUCTURE ===== */
+/* 
+ * This section contains styles for the redesigned betting cards
+ * following the PRD requirements with recommended posting odds as focal point
+ */
+
+/* Main Odds Card Container */
+.odds-card {
+    display: block;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: 0 2px 8px var(--color-shadow);
+    transition: all var(--transition-base);
+    position: relative;
+    
+    /* Overflow handling */
+    overflow: hidden;
+    word-wrap: break-word;
+    word-break: break-word;
+    
+    /* Responsive width handling */
+    width: 100%;
+    max-width: 100%;
+}
+
+.odds-card:hover {
+    box-shadow: 0 4px 12px var(--color-shadow-hover);
+    transform: translateY(-2px);
+}
+
+/* Card Header */
+.odds-card__header {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.odds-card__title {
+    font-size: var(--fs-3);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-xs) 0;
+}
+
+.odds-card__subtitle {
+    font-size: var(--fs-1);
+    color: var(--text-secondary);
+}
+
+/* Card Body - Flex Container */
+.odds-card__body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+    margin-bottom: 0;
+    flex-wrap: wrap;
+}
+
+/* Recommended Posting Odds - PRIMARY FOCAL POINT */
+.odds-card__recommended {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: var(--radius-md);
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 2px 8px rgba(44, 90, 160, 0.15);
+    min-width: 200px;
+    max-width: 380px;
+    text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    flex: 0 0 220px;
+}
+
+.recommended-label {
+    font-size: var(--fs-0);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: normal;
+    line-height: 1.3;
+    text-align: center;
+    width: 100%;
+}
+
+.recommended-value {
+    font-size: var(--fs-5);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 1px 2px rgba(44, 90, 160, 0.2);
+    line-height: 1;
+    text-align: center;
+    width: 100%;
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Action Buttons under Recommended Odds */
+.odds-card__recommended .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    width: 100%;
+}
+
+.odds-card__recommended .odds-card__action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-0);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.odds-card__recommended .odds-card__action-btn.take {
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-ev-high) 100%);
+    color: var(--color-text-inverse);
+}
+
+.odds-card__recommended .odds-card__action-btn.take:hover {
+    background: linear-gradient(135deg, var(--color-ev-high) 0%, var(--color-success) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.3);
+    text-decoration: none;
+    color: var(--color-text-inverse);
+}
+
+.odds-card__recommended .odds-card__action-btn.post {
+    background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-ev-positive) 100%);
+    color: var(--color-text-inverse);
+}
+
+.odds-card__recommended .odds-card__action-btn.post:hover {
+    background: linear-gradient(135deg, var(--color-ev-positive) 0%, var(--color-warning) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(245, 124, 0, 0.3);
+    text-decoration: none;
+    color: var(--color-text-inverse);
+}
+
+/* Details Section - Secondary Information */
+.odds-card__details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    flex: 1;
+    min-width: 0; /* Allow shrinking */
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(248, 249, 250, 0.6);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-light);
+}
+
+.detail-label {
+    font-size: var(--fs-1);
+    color: var(--text-muted);
+    font-weight: var(--font-weight-medium);
+    flex-shrink: 0;
+}
+
+.detail-value {
+    color: var(--text-primary);
+    font-size: var(--fs-1-25);
+    font-weight: var(--font-weight-medium);
+    text-align: right;
+}
+
+/* EV Value Special Styling */
+.ev-value.excellent { 
+    color: var(--color-ev-excellent); 
+    font-weight: var(--font-weight-bold);
+}
+.ev-value.high { 
+    color: var(--color-ev-high); 
+    font-weight: var(--font-weight-bold);
+}
+.ev-value.positive { 
+    color: var(--color-ev-positive); 
+    font-weight: var(--font-weight-bold);
+}
+.ev-value.neutral { 
+    color: var(--color-ev-neutral); 
+}
+
+/* Best Odds Highlighting */
+.best-odds {
+    color: var(--color-ev-high);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Override for Available Odds - Make it different from other detail items */
+.detail-item.available-odds-section {
+    display: block !important;
+    align-items: unset !important;
+    justify-content: unset !important;
+    padding: var(--spacing-sm);
+}
+
+.available-odds-section .detail-label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--fs-0-75);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+
+.available-odds-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    width: 100%;
+    justify-content: flex-start;
+    margin: 0;
+    padding: 0;
+}
+
+.odds-item {
+    background: var(--color-bg-primary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    font-size: var(--fs-0-5);
+    text-align: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+/* EV-based Card Styling - Enhanced with New Color System */
+.odds-card.ev-excellent {
+    background: linear-gradient(135deg, var(--color-ev-excellent-bg) 0%, rgba(232, 245, 232, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-excellent);
+    border-color: var(--color-ev-excellent-border);
+}
+
+.odds-card.ev-high {
+    background: linear-gradient(135deg, var(--color-ev-high-bg) 0%, rgba(241, 248, 233, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-high);
+    border-color: var(--color-ev-high-border);
+}
+
+.odds-card.ev-positive {
+    background: linear-gradient(135deg, var(--color-ev-positive-bg) 0%, rgba(255, 248, 225, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-positive);
+    border-color: var(--color-ev-positive-border);
+}
+
+.odds-card.ev-neutral {
+    background: linear-gradient(135deg, var(--color-ev-neutral-bg) 0%, rgba(245, 245, 245, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-neutral);
+    border-color: var(--color-ev-neutral-border);
+}
+
+.odds-card.ev-negative {
+    background: linear-gradient(135deg, var(--color-ev-negative-bg) 0%, rgba(255, 235, 238, 0.6) 100%);
+    border-left: 4px solid var(--color-ev-negative);
+    border-color: var(--color-ev-negative-border);
+}
