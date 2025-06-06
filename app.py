@@ -469,6 +469,7 @@ async def root():
         "status": "operational", 
         "version": "2.0",
         "migration": "completed",
+        "debug": "code_updated_successfully",
         "frontend_url": {
             "development": "http://localhost:5173",
             "note": "React SPA now handles all UI rendering"
@@ -551,92 +552,7 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
 
 # /dashboard/premium route removed - React app handles premium features
 
-@app.get("/api/opportunities/ui")
-@limiter.limit("60/minute")
-async def api_opportunities_ui(
-    request: Request, 
-    search: Optional[str] = None,
-    sport: Optional[str] = None,
-    batch_id: Optional[str] = None
-):
-    """
-    UI-optimized opportunities endpoint - returns processed data ready for frontend display
-    This endpoint does all the backend processing that Jinja templates were getting
-    """
-    try:
-        # Try to get current user if logged in, but don't require it
-        user = None
-        try:
-            from core.session import get_current_user_from_cookie
-            user = get_current_user_from_cookie(request)
-        except Exception:
-            # User not authenticated, that's fine - show free tier
-            pass
-        
-        # If no user, create a guest user context for free tier
-        if not user:
-            from types import SimpleNamespace
-            user = SimpleNamespace(
-                id="guest",
-                email="guest@example.com",
-                role="free",
-                subscription_status="none"
-            )
-        
-        # Get cached data
-        logger.info("Loading betting opportunities from cache...")
-        cached_opportunities = get_ev_data()
-        cached_analytics = get_analytics_data()
-        
-        if cached_opportunities and cached_analytics:
-            opportunities = cached_opportunities
-            analytics = cached_analytics
-            logger.info(f"Serving {len(opportunities)} cached opportunities")
-        else:
-            # Fallback to live data if cache is empty
-            logger.info("Cache empty, fetching live betting opportunities data...")
-            raw_data = fetch_raw_odds_data()
-            opportunities, analytics = process_opportunities(raw_data)
-            logger.info(f"Serving {len(opportunities)} live opportunities")
-        
-        # Process opportunities for UI (same as Jinja templates)
-        ui_opportunities = process_opportunities_for_ui(opportunities)
-        
-        # Apply role-based filtering
-        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
-        
-        # Apply search and sport filters
-        if search:
-            search_lower = search.lower()
-            filtered_response['opportunities'] = [
-                op for op in filtered_response['opportunities'] 
-                if (search_lower in op.get('event', '').lower() or 
-                    search_lower in op.get('bet_description', '').lower())
-            ]
-        
-        if sport:
-            sport_lower = sport.lower()
-            filtered_response['opportunities'] = [
-                op for op in filtered_response['opportunities'] 
-                if sport_lower in op.get('sport', '').lower()
-            ]
-        
-        # Update the response structure to match what React expects
-        return {
-            "opportunities": filtered_response['opportunities'],
-            "total_count": filtered_response.get('total_available', 0),
-            "showing_count": filtered_response.get('shown', 0),
-            "last_updated": get_last_update(),
-            "role": user.role,
-            "truncated": filtered_response.get('truncated', False),
-            "limit": filtered_response.get('limit'),
-            "features": filtered_response.get('features', {}),
-            "analytics": analytics
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in UI opportunities endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to load opportunities: {str(e)}")
+# /api/opportunities/ui endpoint removed - using main /api/opportunities endpoint instead
 
 
 @app.get("/api/opportunities")

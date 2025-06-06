@@ -185,53 +185,12 @@ p {
 }
 
 /* ===== RESPONSIVE CONTAINER SYSTEM ===== */
-.container-fluid {
-    width: 100%;
-    padding-left: var(--spacing-md);
-    padding-right: var(--spacing-md);
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* Responsive Container Sizes */
-@media (min-width: 576px) {
-    .container-fluid {
-        max-width: var(--container-sm);
-        padding-left: var(--spacing-lg);
-        padding-right: var(--spacing-lg);
-    }
-}
-
-@media (min-width: 768px) {
-    .container-fluid {
-        max-width: var(--container-md);
-    }
-}
-
-@media (min-width: 992px) {
-    .container-fluid {
-        max-width: var(--container-lg);
-    }
-}
-
-@media (min-width: 1200px) {
-    .container-fluid {
-        max-width: var(--container-xl);
-    }
-}
-
-@media (min-width: 1400px) {
-    .container-fluid {
-        max-width: var(--container-xxl);
-    }
-}
+/* Removed custom container constraints to preserve Bootstrap's container-xxl behavior */
 
 /* ===== MAIN CONTENT ===== */
 .main-container {
     min-height: auto;
     padding: var(--spacing-xl) var(--spacing-sm);
-    max-width: 1400px;
-    margin: 0 auto;
 }
 
 /* ===== DASHBOARD METRICS ===== */
@@ -289,9 +248,6 @@ p {
     gap: var(--grid-gap-md);
     margin-top: var(--spacing-lg);
     width: 100%;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 /* Individual Betting Card - Enhanced for Horizontal Layout */
@@ -2040,281 +1996,1354 @@ html, body {
  * following the PRD requirements with recommended posting odds as focal point
  */
 
-/* Main Odds Card Container */
+/* Modern Dashboard Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Reset and Base Styles */
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Modern Betting Opportunity Cards */
 .odds-card {
-    display: block;
-    background: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-    box-shadow: 0 2px 8px var(--color-shadow);
-    transition: all var(--transition-base);
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: 1.5rem;
+  padding: 0;
+  box-shadow: 
+    0 1px 3px 0 rgba(0, 0, 0, 0.1), 
+    0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
     position: relative;
-    
-    /* Overflow handling */
-    overflow: hidden;
-    word-wrap: break-word;
-    word-break: break-word;
-    
-    /* Responsive width handling */
-    width: 100%;
-    max-width: 100%;
+  backdrop-filter: blur(10px);
 }
 
 .odds-card:hover {
-    box-shadow: 0 4px 12px var(--color-shadow-hover);
-    transform: translateY(-2px);
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Modern EV Classification with Top Accent */
+.odds-card.ev-high::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #059669 0%, #10b981 50%, #34d399 100%);
+  z-index: 1;
+}
+
+.odds-card.ev-positive::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%);
+  z-index: 1;
+}
+
+.odds-card.ev-neutral::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%);
+  z-index: 1;
 }
 
 /* Card Header */
 .odds-card__header {
-    margin-bottom: var(--spacing-md);
-    padding-bottom: var(--spacing-xs);
-    border-bottom: 1px solid var(--color-border-light);
+  padding: 1.5rem 1.5rem 0 1.5rem;
+  background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+  position: relative;
+  z-index: 2;
 }
 
-.odds-card__title {
-    font-size: var(--fs-3);
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    margin: 0 0 var(--spacing-xs) 0;
+.odds-card__event {
+  color: #111827;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  margin-top: 0;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
 }
 
-.odds-card__subtitle {
-    font-size: var(--fs-1);
-    color: var(--text-secondary);
+.odds-card__description {
+  color: #111827;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
 }
 
-/* Card Body - Flex Container */
-.odds-card__body {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--spacing-lg);
-    margin-bottom: 0;
-    flex-wrap: wrap;
-}
-
-/* Recommended Posting Odds - PRIMARY FOCAL POINT */
+/* Recommended P2P Section - Modern Design */
 .odds-card__recommended {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%);
+  margin: 0 1.5rem 1.5rem 1.5rem;
+  padding: 1.25rem 1.25rem 1rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.odds-card__recommended::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%);
+  pointer-events: none;
+}
+
+.recommended-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 1rem;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-sm);
-    flex-shrink: 0;
-    padding: var(--spacing-lg);
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: var(--radius-md);
-    border: 2px solid var(--color-primary);
-    box-shadow: 0 2px 8px rgba(44, 90, 160, 0.15);
-    min-width: 200px;
-    max-width: 380px;
-    text-align: center;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    flex: 0 0 220px;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 1;
 }
 
-.recommended-label {
-    font-size: var(--fs-0);
-    color: var(--text-secondary);
-    font-weight: var(--font-weight-medium);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: normal;
-    line-height: 1.3;
-    text-align: center;
-    width: 100%;
+.recommended-title i {
+  color: #f59e0b;
+  margin-right: 0.5rem;
 }
 
-.recommended-value {
-    font-size: var(--fs-5);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-primary);
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 1px 2px rgba(44, 90, 160, 0.2);
-    line-height: 1;
-    text-align: center;
-    width: 100%;
-    margin-bottom: var(--spacing-sm);
-}
-
-/* Action Buttons under Recommended Odds */
-.odds-card__recommended .action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    width: 100%;
-}
-
-.odds-card__recommended .odds-card__action-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: var(--fs-0);
-    font-weight: var(--font-weight-medium);
-    text-decoration: none;
-    cursor: pointer;
-    transition: all var(--transition-base);
-    white-space: nowrap;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.odds-card__recommended .odds-card__action-btn.take {
-    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-ev-high) 100%);
-    color: var(--color-text-inverse);
-}
-
-.odds-card__recommended .odds-card__action-btn.take:hover {
-    background: linear-gradient(135deg, var(--color-ev-high) 0%, var(--color-success) 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.3);
-    text-decoration: none;
-    color: var(--color-text-inverse);
-}
-
-.odds-card__recommended .odds-card__action-btn.post {
-    background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-ev-positive) 100%);
-    color: var(--color-text-inverse);
-}
-
-.odds-card__recommended .odds-card__action-btn.post:hover {
-    background: linear-gradient(135deg, var(--color-ev-positive) 0%, var(--color-warning) 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(245, 124, 0, 0.3);
-    text-decoration: none;
-    color: var(--color-text-inverse);
-}
-
-/* Details Section - Secondary Information */
-.odds-card__details {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    flex: 1;
-    min-width: 0; /* Allow shrinking */
-}
-
-.detail-item {
-    display: flex;
-    align-items: center;
+.recommended-row {
+  display: flex;
     justify-content: space-between;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: rgba(248, 249, 250, 0.6);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border-light);
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.recommended-odds {
+    display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.odds-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #92400e;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: -0.05em;
+}
+
+.odds-book {
+  color: #a16207;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Details Section */
+.odds-card__details {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+    align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(249, 250, 251, 0.8);
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
 }
 
 .detail-label {
-    font-size: var(--fs-1);
-    color: var(--text-muted);
-    font-weight: var(--font-weight-medium);
-    flex-shrink: 0;
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .detail-value {
-    color: var(--text-primary);
-    font-size: var(--fs-1-25);
-    font-weight: var(--font-weight-medium);
-    text-align: right;
+  color: #111827;
+  font-weight: 600;
+  font-size: 0.875rem;
 }
 
-/* EV Value Special Styling */
-.ev-value.excellent { 
-    color: var(--color-ev-excellent); 
-    font-weight: var(--font-weight-bold);
-}
-.ev-value.high { 
-    color: var(--color-ev-high); 
-    font-weight: var(--font-weight-bold);
-}
-.ev-value.positive { 
-    color: var(--color-ev-positive); 
-    font-weight: var(--font-weight-bold);
-}
-.ev-value.neutral { 
-    color: var(--color-ev-neutral); 
+/* EV Value Styling */
+.ev-value.ev-high {
+  color: #059669;
+  font-weight: 700;
 }
 
-/* Best Odds Highlighting */
-.best-odds {
-    color: var(--color-ev-high);
-    font-weight: var(--font-weight-semibold);
+.ev-value.ev-positive {
+  color: #d97706;
+  font-weight: 700;
 }
 
-/* Override for Available Odds - Make it different from other detail items */
-.detail-item.available-odds-section {
-    display: block !important;
-    align-items: unset !important;
-    justify-content: unset !important;
-    padding: var(--spacing-sm);
+.ev-value.ev-neutral {
+  color: #6b7280;
+  font-weight: 600;
 }
 
-.available-odds-section .detail-label {
-    display: block;
-    margin-bottom: var(--spacing-xs);
-    font-size: var(--fs-0-75);
-    color: var(--color-text-secondary);
-    font-weight: var(--font-weight-medium);
+/* Odds Comparison */
+.odds-comparison {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+  margin-top: 0;
 }
 
-.available-odds-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-xs);
+.odds-comparison .comparison-title {
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  color: #9ca3af !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.comparison-title-button {
+  border: none !important;
+  background: none !important;
+  text-decoration: none !important;
+  color: #374151 !important;
     width: 100%;
-    justify-content: flex-start;
-    margin: 0;
-    padding: 0;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: rgba(249, 250, 251, 0.6) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease;
 }
 
-.odds-item {
-    background: var(--color-bg-primary);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: 6px;
-    border: 1px solid var(--color-border);
-    font-size: var(--fs-0-5);
+.comparison-title-button:hover {
+  color: #111827 !important;
+  background: rgba(243, 244, 246, 0.8) !important;
+  text-decoration: none !important;
+}
+
+.comparison-title-button:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  outline: none !important;
+}
+
+.comparison-list {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.comparison-item {
+  display: flex;
+  justify-content: space-between;
+    align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background-color 0.2s ease;
+}
+
+.comparison-item:last-child {
+  border-bottom: none;
+}
+
+.comparison-item:hover {
+  background: rgba(249, 250, 251, 0.5);
+}
+
+.sportsbook-name {
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.sportsbook-odds {
+  font-weight: 600;
+  color: #4b5563;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 1rem;
+}
+
+/* Action Buttons */
+.odds-card__action {
+  position: relative;
+  z-index: 1;
+}
+
+.recommended-row .odds-card__action {
+  text-align: right;
+}
+
+.odds-card__action .btn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.odds-card__action .btn-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3);
+}
+
+.odds-card__action .btn-warning:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-1px);
+  box-shadow: 0 6px 8px -1px rgba(245, 158, 11, 0.4);
+  color: #ffffff;
+}
+
+.odds-card__action .btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+.odds-card__action .btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-1px);
+  box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.4);
+  color: #ffffff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .odds-card {
+        margin-bottom: 1rem;
+        border-radius: 16px;
+    }
+    
+         .odds-card__header {
+         padding: 1.25rem 1.25rem 0 1.25rem;
+     }
+    
+    .odds-card__event {
+        font-size: 1rem;
+    }
+    
+         .odds-card__recommended {
+         margin: 0 1.25rem 1.25rem 1.25rem;
+         padding: 1rem 1rem 0.75rem 1rem;
+     }
+     
+.odds-card__details {
+         padding: 0 1.25rem 1.25rem 1.25rem;
+     }
+     
+     .odds-comparison {
+         padding: 0 1.25rem 1.25rem 1.25rem;
+         margin-top: 0;
+     }
+    
+    .comparison-item {
+        padding: 0.875rem 1rem;
+    }
+}
+
+/* Loading and Animation States */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.odds-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Additional Polish */
+.odds-card__recommended {
+  box-shadow: 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+    0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.detail-row {
+  backdrop-filter: blur(5px);
+}
+
+.comparison-list {
+  backdrop-filter: blur(10px);
+}
+
+/* Desktop-specific improvements for modern card layout */
+@media (min-width: 769px) {
+    .odds-card {
+        margin-bottom: 2rem;
+    }
+    
+    .odds-card__recommended {
+        padding: 1.5rem 1.5rem 1.25rem 1.5rem;
+        margin: 0 2rem 1.75rem 2rem;
+    }
+    
+    .odds-card__details {
+        padding: 0 2rem 1.75rem 2rem;
+    }
+    
+    .odds-comparison {
+        padding: 0 2rem 1.75rem 2rem;
+        margin-top: 0;
+    }
+    
+    .detail-row {
+        padding: 1rem 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .recommended-title {
+        margin-bottom: 1.25rem;
+    }
+    
+    .recommended-row {
+        padding: 0.25rem 0;
+    }
+    
+    .comparison-item {
+        padding: 1rem 1.25rem;
+    }
+}
+
+/* ===========================
+   EDUCATION PAGE STYLES
+   =========================== */
+
+.education-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+}
+
+.education-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(255, 255, 255, 0.3) inset;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+}
+
+.education-header {
     text-align: center;
-    white-space: nowrap;
-    transition: all 0.2s ease;
+    padding: 3rem 2rem 2rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
 }
 
-/* EV-based Card Styling - Enhanced with New Color System */
-.odds-card.ev-excellent {
-    background: linear-gradient(135deg, var(--color-ev-excellent-bg) 0%, rgba(232, 245, 232, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-excellent);
-    border-color: var(--color-ev-excellent-border);
+.education-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="0.5" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
 }
 
-.odds-card.ev-high {
-    background: linear-gradient(135deg, var(--color-ev-high-bg) 0%, rgba(241, 248, 233, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-high);
-    border-color: var(--color-ev-high-border);
+.education-title {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+    letter-spacing: -0.02em;
 }
 
-.odds-card.ev-positive {
-    background: linear-gradient(135deg, var(--color-ev-positive-bg) 0%, rgba(255, 248, 225, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-positive);
-    border-color: var(--color-ev-positive-border);
+.education-subtitle {
+    font-size: 1.25rem;
+    font-weight: 400;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
 }
 
-.odds-card.ev-neutral {
-    background: linear-gradient(135deg, var(--color-ev-neutral-bg) 0%, rgba(245, 245, 245, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-neutral);
-    border-color: var(--color-ev-neutral-border);
+.education-section {
+    padding: 2.5rem 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.odds-card.ev-negative {
-    background: linear-gradient(135deg, var(--color-ev-negative-bg) 0%, rgba(255, 235, 238, 0.6) 100%);
-    border-left: 4px solid var(--color-ev-negative);
-    border-color: var(--color-ev-negative-border);
+.education-section:last-of-type {
+    border-bottom: none;
+}
+
+.section-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.education-content {
+    line-height: 1.75;
+    color: #374151;
+    font-size: 1.1rem;
+}
+
+.education-content p {
+    margin-bottom: 1.5rem;
+}
+
+.strategy-box {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid #a7f3d0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    border-left: 5px solid #10b981;
+    position: relative;
+    overflow: hidden;
+}
+
+.strategy-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%);
+}
+
+.strategy-title {
+    font-weight: 700;
+    color: #047857;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.example-box {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    border-left: 5px solid #3b82f6;
+    position: relative;
+    overflow: hidden;
+}
+
+.example-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, transparent 100%);
+}
+
+.example-title {
+    font-weight: 700;
+    color: #1d4ed8;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.math-box {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+    font-size: 0.95rem;
+    border: 1px solid #fbbf24;
+    position: relative;
+    overflow: hidden;
+}
+
+.math-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, transparent 100%);
+}
+
+.concept-list {
+    background: rgba(248, 250, 252, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    border: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.concept-list ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.concept-list li {
+    margin-bottom: 1rem;
+    color: #374151;
+    line-height: 1.6;
+}
+
+.warning-note {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #f59e0b;
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin: 1.5rem 0;
+    border-left: 5px solid #d97706;
+    font-size: 0.95rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.warning-note::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.05) 0%, transparent 100%);
+}
+
+.key-term {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+}
+
+.navigation-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.nav-link {
+    display: inline-block;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 14px 28px;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-link:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px -1px rgba(59, 130, 246, 0.4);
+    text-decoration: none;
+    color: white;
+}
+
+.nav-link.secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    box-shadow: 0 4px 6px -1px rgba(107, 114, 128, 0.3);
+}
+
+.nav-link.secondary:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    box-shadow: 0 8px 12px -1px rgba(107, 114, 128, 0.4);
+    color: white;
+}
+
+.footer-note {
+    text-align: center;
+    padding: 2rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    color: #6b7280;
+    font-size: 0.9rem;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.footer-note p {
+    margin-bottom: 0.5rem;
+}
+
+/* ===========================
+   PRICING PAGE STYLES
+   =========================== */
+
+.pricing-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+}
+
+.pricing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.pricing-header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.pricing-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+}
+
+.pricing-subtitle {
+    font-size: 1.25rem;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.pricing-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 5rem;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.pricing-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(255, 255, 255, 0.3) inset;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.pricing-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 
+        0 32px 64px rgba(0, 0, 0, 0.15),
+        0 1px 0 rgba(255, 255, 255, 0.3) inset;
+}
+
+.pricing-card.premium {
+    border: 2px solid #f59e0b;
+    box-shadow: 
+        0 20px 40px rgba(245, 158, 11, 0.2),
+        0 1px 0 rgba(255, 255, 255, 0.3) inset;
+}
+
+.pricing-card.premium:hover {
+    box-shadow: 
+        0 32px 64px rgba(245, 158, 11, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.3) inset;
+}
+
+.popular-badge {
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 0 0 12px 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    z-index: 10;
+    box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);
+}
+
+.pricing-card-header {
+    padding: 2rem 2rem 1rem;
+    text-align: center;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.pricing-card.premium .pricing-card-header {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.plan-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.plan-subtitle {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+}
+
+.price {
+    margin-bottom: 1rem;
+}
+
+.price-amount {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.price-period {
+    color: #6b7280;
+    font-size: 1.125rem;
+    margin-left: 0.5rem;
+}
+
+.pricing-card-body {
+    padding: 2rem;
+}
+
+.features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feature-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 0.75rem;
+}
+
+.feature-item.disabled {
+    opacity: 0.6;
+}
+
+.feature-icon {
+    margin-top: 0.125rem;
+    flex-shrink: 0;
+}
+
+.feature-item .fas.fa-check {
+    color: #10b981;
+}
+
+.feature-item .fas.fa-star {
+    color: #f59e0b;
+}
+
+.feature-item .fas.fa-times {
+    color: #9ca3af;
+}
+
+.pricing-card-footer {
+    padding: 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.pricing-page .btn {
+    display: inline-block;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: none;
+    font-size: 1rem;
+    width: 100%;
+    text-align: center;
+}
+
+.pricing-page .btn-outline {
+    background: transparent;
+    color: #374151;
+    border: 2px solid #d1d5db;
+}
+
+.pricing-page .btn-outline:hover {
+    background: #374151;
+    color: white;
+    border-color: #374151;
+    text-decoration: none;
+}
+
+.pricing-page .btn-primary {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3);
+}
+
+.pricing-page .btn-primary:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px -1px rgba(245, 158, 11, 0.4);
+    color: white;
+}
+
+.trial-note {
+    display: block;
+    margin-top: 1rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.feature-comparison {
+    margin-bottom: 4rem;
+}
+
+.comparison-title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 2rem;
+}
+
+.comparison-table-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(255, 255, 255, 0.3) inset;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.comparison-table th {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-weight: 600;
+}
+
+.comparison-table th:first-child {
+    text-align: left;
+}
+
+.comparison-table th:not(:first-child) {
+    text-align: center;
+}
+
+.comparison-table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    text-align: left;
+}
+
+.comparison-table td:not(:first-child) {
+    text-align: center;
+}
+
+.comparison-table tr:nth-child(even) {
+    background: rgba(248, 250, 252, 0.5);
+}
+
+.comparison-table .text-success {
+    color: #10b981;
+}
+
+.comparison-table .text-muted {
+    color: #9ca3af;
+}
+
+.faq-section {
+    margin-bottom: 3rem;
+}
+
+.faq-title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 2rem;
+}
+
+.faq-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: 
+        0 4px 6px rgba(0, 0, 0, 0.05),
+        0 1px 0 rgba(255, 255, 255, 0.3) inset;
+    border: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.faq-question {
+    padding: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s ease;
+}
+
+.faq-question:hover {
+    background: rgba(248, 250, 252, 0.8);
+}
+
+.faq-question h4 {
+    margin: 0;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.faq-question i {
+    color: #6b7280;
+    transition: transform 0.3s ease;
+}
+
+.faq-answer {
+    padding: 0 1.5rem 1.5rem;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+/* ===========================
+   DISCLAIMER PAGE STYLES
+   =========================== */
+
+.disclaimer-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+}
+
+.disclaimer-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(255, 255, 255, 0.3) inset;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+}
+
+.disclaimer-header {
+    text-align: center;
+    padding: 3rem 2rem 2rem;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.disclaimer-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="0.5" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+}
+
+.disclaimer-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+    letter-spacing: -0.02em;
+}
+
+.disclaimer-subtitle {
+    font-size: 1.1rem;
+    font-weight: 400;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+}
+
+.disclaimer-section {
+    padding: 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.disclaimer-section:last-of-type {
+    border-bottom: none;
+}
+
+.disclaimer-content {
+    line-height: 1.75;
+    color: #374151;
+    font-size: 1rem;
+}
+
+.disclaimer-content p {
+    margin-bottom: 1.5rem;
+}
+
+.warning-box {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #f59e0b;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 2rem;
+    border-left: 5px solid #dc2626;
+    position: relative;
+    overflow: hidden;
+}
+
+.warning-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, transparent 100%);
+}
+
+.warning-title {
+    font-weight: 700;
+    color: #dc2626;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.risk-list {
+    background: rgba(248, 250, 252, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    border: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.risk-list ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.risk-list li {
+    margin-bottom: 0.75rem;
+    color: #374151;
+    line-height: 1.6;
+}
+
+.legal-text {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-style: italic;
+    background: rgba(249, 250, 251, 0.8);
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.contact-info {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    border: 1px solid #a7f3d0;
+    position: relative;
+    overflow: hidden;
+}
+
+.contact-info::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, transparent 100%);
+}
+
+.contact-info a {
+    color: #059669;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.contact-info a:hover {
+    text-decoration: underline;
+}
+
+.highlight {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+}
+
+.disclaimer-footer {
+    text-align: center;
+    padding: 2rem;
+}
+
+.back-link {
+    display: inline-block;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 14px 28px;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+.back-link:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px -1px rgba(59, 130, 246, 0.4);
+    text-decoration: none;
+    color: white;
+}
+
+.legal-footer {
+    text-align: center;
+    padding: 2rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    color: #6b7280;
+    font-size: 0.9rem;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.legal-footer p {
+    margin-bottom: 0.5rem;
+}
+
+/* Mobile Responsive Styles for Content Pages */
+@media (max-width: 768px) {
+    .education-page .education-title, 
+    .pricing-page .pricing-title, 
+    .disclaimer-page .disclaimer-title {
+        font-size: 2rem;
+    }
+    
+    .education-page .education-container, 
+    .disclaimer-page .disclaimer-container {
+        margin: 1rem;
+        border-radius: 16px;
+    }
+    
+    .education-page .education-section, 
+    .disclaimer-page .disclaimer-section {
+        padding: 1.5rem;
+    }
+    
+    .pricing-page .pricing-cards {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+    
+    .pricing-page .pricing-card {
+        border-radius: 16px;
+    }
+    
+    .education-page .strategy-box, 
+    .education-page .example-box, 
+    .education-page .math-box, 
+    .education-page .concept-list, 
+    .education-page .warning-note, 
+    .disclaimer-page .warning-box, 
+    .disclaimer-page .risk-list, 
+    .disclaimer-page .contact-info {
+        margin: 1rem 0;
+        padding: 1rem;
+        border-radius: 12px;
+    }
+    
+    .education-page .navigation-links,
+    .pricing-page .navigation-links,
+    .disclaimer-page .navigation-links {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .education-page .nav-link, 
+    .pricing-page .nav-link,
+    .disclaimer-page .back-link {
+        padding: 12px 24px;
+        border-radius: 10px;
+    }
+    
+    .pricing-page .comparison-table-container {
+        overflow-x: auto;
+        border-radius: 16px;
+    }
+    
+    .pricing-page .comparison-table th,
+    .pricing-page .comparison-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
 }

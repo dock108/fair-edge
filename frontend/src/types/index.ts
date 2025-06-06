@@ -10,9 +10,8 @@ export interface User {
 
 // Odds Comparison Types
 export interface OddsComparison {
-  sportsbook: string;
+  bookmaker: string;
   odds: string;
-  link?: string;
 }
 
 // Betting Opportunity Types (matches processed UI data from backend)
@@ -38,11 +37,12 @@ export interface OpportunitiesResponse {
   opportunities: BettingOpportunity[];
   total_available: number;
   shown: number;
-  last_updated: string;
+  last_updated?: string;
   role: string;
   truncated: boolean;
   limit?: string;
   features?: Record<string, any>;
+  analytics?: Record<string, any>;
 }
 
 export interface ApiResponse<T = any> {

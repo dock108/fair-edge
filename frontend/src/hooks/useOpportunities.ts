@@ -50,7 +50,7 @@ export const useOpportunities = (): UseOpportunitiesReturn => {
       }
 
       const queryString = params.toString();
-      const url = queryString ? `/opportunities/ui?${queryString}` : '/opportunities/ui';
+      const url = queryString ? `/api/opportunities?${queryString}` : '/api/opportunities';
       
       const response = await apiService.get<OpportunitiesResponse>(url);
       
@@ -132,14 +132,14 @@ export const useOpportunities = (): UseOpportunitiesReturn => {
     return () => clearInterval(interval);
   }, [fetchOpportunities]);
 
-  // Connect WebSocket on mount
-  useEffect(() => {
-    connectWebSocket();
-    
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [connectWebSocket, disconnectWebSocket]);
+  // Connect WebSocket on mount (disabled for now)
+  // useEffect(() => {
+  //   connectWebSocket();
+  //   
+  //   return () => {
+  //     disconnectWebSocket();
+  //   };
+  // }, [connectWebSocket, disconnectWebSocket]);
 
   return {
     opportunities,
