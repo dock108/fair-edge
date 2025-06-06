@@ -3,10 +3,11 @@ import React from 'react';
 const EducationPage: React.FC = () => {
   return (
     <div className="education-page">
-      <div className="education-container">
+      <div className="main-container">
+        <div className="education-container">
         {/* Header */}
         <header className="education-header">
-          <h1 className="education-title">🧮 How Our Analysis Works</h1>
+          <h1 className="education-title" style={{color: 'white'}}>🧮 How Our Analysis Works</h1>
           <p className="education-subtitle">The math and strategy behind our recommended odds</p>
         </header>
 
@@ -18,7 +19,7 @@ const EducationPage: React.FC = () => {
             
             <div className="strategy-box">
               <div className="strategy-title">💡 Our Core Strategy</div>
-              <p>We use <strong>Pinnacle as our "anchor book"</strong> because they have the sharpest lines and lowest margins. Then we look for other books offering significantly different odds on the same outcome. When we find big differences, there might be value.</p>
+              <p>We identify <strong>the best valued sportsbook</strong> (not P2P exchange) for each bet - often Pinnacle due to their sharp lines and low margins, but could be DraftKings, FanDuel, or others. Then we look for other books offering significantly different odds on the same outcome. When we find big differences, there might be value.</p>
             </div>
             
             <p>The goal is to post odds on betting exchanges that give us a mathematical edge - similar to how a casino has an edge on every game.</p>
@@ -146,7 +147,16 @@ const EducationPage: React.FC = () => {
         <section className="education-section">
           <h2 className="section-title">🎲 The Exchange Strategy</h2>
           <div className="education-content">
-            <p>The key insight is using <strong>betting exchanges</strong> (like ProphetX or Novig) to post bets like market orders or eBay "best offers":</p>
+            <p>The key insight is using <strong>betting exchanges</strong> to post bets like market orders or eBay "best offers":</p>
+            
+            <div className="concept-list">
+              <ul>
+                <li><strong>ProphetX:</strong> A peer-to-peer betting exchange where you can post odds and wait for other users to accept your bets. Charges ~2% commission on winnings.</li>
+                <li><strong>Novig:</strong> Another P2P exchange platform that allows you to set your own odds and act as the "house" for other bettors. Also charges ~2% commission.</li>
+              </ul>
+            </div>
+            
+            <p>These platforms let you post odds instead of just taking what sportsbooks offer:</p>
             
             <div className="example-box">
               <div className="example-title">🔄 How It Actually Works</div>
@@ -219,6 +229,7 @@ const EducationPage: React.FC = () => {
         <div className="footer-note">
           <p>Sports Betting +EV Analyzer - Educational Tool</p>
           <p>Remember: This is for learning purposes only. Past results don't guarantee future performance.</p>
+        </div>
         </div>
       </div>
     </div>

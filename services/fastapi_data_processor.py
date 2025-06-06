@@ -379,11 +379,10 @@ def _analyze_single_market(event_display: str, market_key: str, market_odds: Dic
                     exchange_data = best_market['exchange_data']
                     original_american = exchange_data['original_american']
                     adjusted_american = exchange_data['adjusted_american']
-                    commission_rate = exchange_data['commission_rate']
                     
-                    best_odds_str = f"{original_american:+d} → {adjusted_american:+d} ({bookmaker_display}, -{commission_rate*100:.0f}% fee)"
+                    best_odds_str = f"{original_american:+d}({adjusted_american:+d}) {bookmaker_display}"
                 else:
-                    best_odds_str = f"{best_market['american']:+d} ({bookmaker_display})"
+                    best_odds_str = f"{best_market['american']:+d} {bookmaker_display}"
             
             # Format EV percentage with exchange fee info
             ev_percentage = ev_data['ev_percentage']

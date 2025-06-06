@@ -46,6 +46,9 @@ if DB_CONNECTION_STRING:
             future=True,
             pool_pre_ping=True,  # Verify connections before use
             pool_recycle=300,    # Recycle connections every 5 minutes
+            pool_size=10,        # Number of connections to maintain
+            max_overflow=20,     # Additional connections when pool is full
+            pool_timeout=30,     # Timeout when getting connection from pool
         )
         AsyncSessionLocal = async_sessionmaker(
             engine, 
@@ -87,15 +90,19 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     if not AsyncSessionLocal:
         raise RuntimeError("Database not properly configured. Check DB_CONNECTION_STRING environment variable.")
     
-    async with AsyncSessionLocal() as session:
+    session = AsyncSessionLocal()
+    try:
+        yield session
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Database session error: {e}")
+        raise
+    finally:
         try:
-            yield session
-        except Exception as e:
-            await session.rollback()
-            logger.error(f"Database session error: {e}")
-            raise
-        finally:
             await session.close()
+        except Exception as close_error:
+            logger.warning(f"Error closing database session: {close_error}")
+            pass  # Don't let close errors propagate
 
 
 async def get_async_session() -> AsyncSession:

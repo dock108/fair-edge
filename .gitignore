@@ -34,13 +34,32 @@ pip-env/
 # Environment Variables & Secrets
 .env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
+
+# Vite environment files (frontend)
+frontend/.env
+frontend/.env.local
+frontend/.env.development
+frontend/.env.development.local
+frontend/.env.test
+frontend/.env.test.local
+frontend/.env.production
+frontend/.env.production.local
+
+# Other sensitive files
 *.key
 *.pem
 secrets.txt
 config.local.*
+
+# Supabase specific (extra safety)
+*supabase*key*
+*SUPABASE*KEY*
 
 # IDE & Editor Files
 .vscode/
