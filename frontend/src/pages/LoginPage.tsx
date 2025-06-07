@@ -11,8 +11,10 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get the return URL from location state, default to dashboard
-  const from = (location.state as any)?.from?.pathname || '/';
+  // Get the return URL from location state or search params, default to dashboard
+  const searchParams = new URLSearchParams(location.search);
+  const redirectTo = searchParams.get('redirect');
+  const from = (location.state as any)?.from?.pathname || (redirectTo ? `/${redirectTo}` : '/');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

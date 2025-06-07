@@ -5,6 +5,7 @@ Handles checkout sessions, webhooks, and subscription updates
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+from pydantic import BaseModel
 import logging
 import stripe
 
@@ -26,8 +27,12 @@ def require_subscriber(user: UserCtx = Depends(get_current_user)) -> UserCtx:
         )
     return user
 
+class CheckoutRequest(BaseModel):
+    plan: str = "premium"  # Default to premium for backward compatibility
+
 @router.post("/create-checkout-session")
 async def create_stripe_checkout(
+    request: CheckoutRequest,
     user: UserCtx = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -52,8 +57,29 @@ async def create_stripe_checkout(
                 detail="User is already an active subscriber"
             )
         
+        # Determine price ID based on plan
+        if request.plan == "basic":
+            if not settings.stripe_basic_price:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Basic plan is not configured. Please contact support."
+                )
+            price_id = settings.stripe_basic_price
+        elif request.plan == "premium":
+            if not settings.stripe_premium_price:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Premium plan is not configured. Please contact support."
+                )
+            price_id = settings.stripe_premium_price
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid plan. Must be 'basic' or 'premium'."
+            )
+        
         # Create checkout session
-        checkout_url = create_checkout_session(user, settings.stripe_premium_price)
+        checkout_url = create_checkout_session(user, price_id)
         
         logger.info(f"Created checkout session for user {user.id}")
         return {"checkout_url": checkout_url}
@@ -128,7 +154,7 @@ async def stripe_webhook(
 async def _handle_checkout_complete(session: dict, db: AsyncSession):
     """
     Handle successful checkout completion.
-    Updates user role to subscriber and stores Stripe IDs.
+    Updates user role based on the subscription plan and stores Stripe IDs.
     """
     try:
         customer_email = session.get("customer_email")
@@ -138,6 +164,20 @@ async def _handle_checkout_complete(session: dict, db: AsyncSession):
         if not all([customer_email, subscription_id, customer_id]):
             logger.error("Missing required data in checkout session")
             return
+        
+        # Get subscription details to determine plan
+        subscription = stripe.Subscription.retrieve(subscription_id)
+        price_id = subscription.items.data[0].price.id
+        
+        # Determine user role based on price ID
+        if price_id == settings.stripe_basic_price:
+            user_role = "basic"
+        elif price_id == settings.stripe_premium_price:
+            user_role = "premium"
+        else:
+            # Default to premium for unknown prices (backward compatibility)
+            user_role = "premium"
+            logger.warning(f"Unknown price ID {price_id}, defaulting to premium role")
         
         # Find user by email
         user_id = await _lookup_user_by_email(customer_email, db)
@@ -149,7 +189,7 @@ async def _handle_checkout_complete(session: dict, db: AsyncSession):
         await db.execute(
             text("""
                 UPDATE profiles 
-                SET role = 'subscriber',
+                SET role = :role,
                     subscription_status = 'active',
                     stripe_customer_id = :customer_id,
                     stripe_subscription_id = :subscription_id,
@@ -157,6 +197,7 @@ async def _handle_checkout_complete(session: dict, db: AsyncSession):
                 WHERE id = :user_id
             """),
             {
+                "role": user_role,
                 "customer_id": customer_id,
                 "subscription_id": subscription_id,
                 "user_id": user_id
@@ -164,7 +205,7 @@ async def _handle_checkout_complete(session: dict, db: AsyncSession):
         )
         await db.commit()
         
-        logger.info(f"Successfully upgraded user {user_id} to subscriber")
+        logger.info(f"Successfully upgraded user {user_id} to {user_role}")
         
     except Exception as e:
         logger.error(f"Error handling checkout completion: {e}")

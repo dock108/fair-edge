@@ -48,7 +48,8 @@ class Settings(BaseSettings):
     stripe_publishable_key: Optional[str] = None
     stripe_secret_key: Optional[str] = None
     stripe_webhook_secret: Optional[str] = None
-    stripe_premium_price: Optional[str] = None
+    stripe_basic_price: Optional[str] = None  # $3.99/month Basic plan
+    stripe_premium_price: Optional[str] = None  # $9.99/month Premium plan
     checkout_success_url: str = "http://localhost:8000/upgrade/success"
     checkout_cancel_url: str = "http://localhost:8000/pricing"
     
@@ -84,6 +85,7 @@ class Settings(BaseSettings):
         return all([
             self.stripe_secret_key,
             self.stripe_webhook_secret,
+            self.stripe_basic_price,
             self.stripe_premium_price
         ])
 

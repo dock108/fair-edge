@@ -475,18 +475,19 @@ MAIN_LINES = {"h2h", "spreads", "totals"}  # moneyline, game spreads, game total
 def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role: str) -> Dict[str, Any]:
     """
     Filter opportunities based on user role
-    Free users: Only main lines (moneyline, spreads, totals)
-    Subscribers/Admins: All markets
+    Free users: Only main lines with -2% EV or worse, max 10 deterministic opportunities
+    Basic users: All main lines (all EV values)
+    Premium/Subscribers/Admins: All markets
     """
     total_available = len(opportunities)
     
-    if user_role in ("subscriber", "admin"):
-        # Full access for paid users and admins
+    if user_role in ("premium", "subscriber", "admin"):
+        # Full access for premium users and admins
         filtered_opportunities = opportunities
         truncated = False
         limit = None
-    else:
-        # Free users: filter by market type only (no quantity limit)
+    elif user_role == "basic":
+        # Basic users: all main lines (all EV values)
         filtered_opportunities = []
         for opp in opportunities:
             # Get the original market key from the _original data
@@ -494,7 +495,7 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
             
             # Check if this is a main line market
             if original_market in MAIN_LINES:
-                # Mask advanced fields for free users
+                # Mask advanced fields for basic users
                 from core.config import feature_config
                 filtered_opp = opp.copy()
                 for field in feature_config.MASK_FIELDS_FOR_FREE:
@@ -506,6 +507,39 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
         
         truncated = len(filtered_opportunities) < total_available
         limit = "main lines only"
+    else:
+        # Free users: main lines with -2% EV or worse, max 10 deterministic
+        filtered_opportunities = []
+        for opp in opportunities:
+            # Get the original market key from the _original data
+            original_market = opp.get('_original', {}).get('Market', '')
+            
+            # Check if this is a main line market with negative EV
+            if original_market in MAIN_LINES:
+                ev_percentage = opp.get('ev_percentage', 0)
+                if ev_percentage <= -2.0:  # Only show -2% EV or worse
+                    # Mask advanced fields for free users
+                    from core.config import feature_config
+                    filtered_opp = opp.copy()
+                    for field in feature_config.MASK_FIELDS_FOR_FREE:
+                        filtered_opp.pop(field, None)
+                        # Also remove from _original if it exists
+                        if '_original' in filtered_opp:
+                            filtered_opp['_original'].pop(field, None)
+                    filtered_opportunities.append(filtered_opp)
+        
+        # Sort by EV percentage (worst first for consistency) and take first 10
+        filtered_opportunities.sort(key=lambda x: x.get('ev_percentage', 0))
+        
+        # Make it deterministic by also sorting by event name as secondary key
+        # This ensures all free users see the same 10 opportunities
+        filtered_opportunities.sort(key=lambda x: (x.get('ev_percentage', 0), x.get('event', '')))
+        
+        # Limit to 10 opportunities for free users
+        filtered_opportunities = filtered_opportunities[:10]
+        
+        truncated = len(filtered_opportunities) < total_available
+        limit = "10 worst EV opportunities only"
     
     from core.config import feature_config
     role_config = feature_config.get_user_features(user_role)

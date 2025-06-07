@@ -9,9 +9,23 @@ export const permissions = {
     // Admin users have access to everything
     if (user.user_metadata?.role === 'admin') return true;
     
-    // Subscribers with active subscription
-    if (user.user_metadata?.role === 'subscriber') {
-      // You might want to check subscription_status here too
+    // Premium subscribers have access to all features
+    if (user.user_metadata?.role === 'premium' || user.user_metadata?.role === 'subscriber') {
+      return true;
+    }
+    
+    return false;
+  },
+
+  // Check if user can access basic features (positive EV main lines)
+  canAccessBasicFeatures(user: User | null): boolean {
+    if (!user) return false;
+    
+    // Admin users have access to everything
+    if (user.user_metadata?.role === 'admin') return true;
+    
+    // Basic and premium subscribers have access to positive EV
+    if (user.user_metadata?.role === 'basic' || user.user_metadata?.role === 'premium' || user.user_metadata?.role === 'subscriber') {
       return true;
     }
     
@@ -38,8 +52,11 @@ export const permissions = {
     switch (role) {
       case 'admin':
         return 'Admin';
-      case 'subscriber':
+      case 'premium':
+      case 'subscriber': // backward compatibility
         return 'Premium';
+      case 'basic':
+        return 'Basic';
       case 'free':
       default:
         return 'Free';
@@ -57,8 +74,31 @@ export const permissions = {
       );
     }
     
+    // Basic users can see all main lines
+    if (user?.user_metadata?.role === 'basic') {
+      return mainLines.some(mainLine => 
+        betType.toLowerCase().includes(mainLine)
+      );
+    }
+    
     // Premium and admin users can see everything
     return this.canAccessPremiumFeatures(user);
+  },
+
+  // Check if user can see positive EV opportunities
+  canSeePositiveEV(user: User | null): boolean {
+    return this.canAccessBasicFeatures(user);
+  },
+
+  // Check EV threshold for filtering opportunities
+  getEVThreshold(user: User | null): number {
+    // Free users only see -2% EV or worse
+    if (this.isFreeTier(user)) {
+      return -2.0;
+    }
+    
+    // Paid users see all EV values
+    return -Infinity;
   }
 };
 
