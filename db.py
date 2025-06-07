@@ -49,6 +49,7 @@ if DB_CONNECTION_STRING:
             pool_size=10,        # Number of connections to maintain
             max_overflow=20,     # Additional connections when pool is full
             pool_timeout=30,     # Timeout when getting connection from pool
+            connect_args={"statement_cache_size": 0}  # Disable statement caching for pgbouncer compatibility
         )
         AsyncSessionLocal = async_sessionmaker(
             engine, 

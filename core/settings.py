@@ -1,5 +1,5 @@
 """
-Configuration settings for bet-intel application
+Configuration settings for FairEdge application
 Centralized Pydantic settings with environment variable loading
 """
 from functools import lru_cache
@@ -66,8 +66,8 @@ class Settings(BaseSettings):
         """Get CORS origins as list based on environment"""
         if self.app_env == "prod":
             return [
-                "https://app.betintel.com",
-                "https://betintel.com"
+                "https://app.fairedge.com",
+                "https://fairedge.com"
             ]
         else:
             return [

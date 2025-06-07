@@ -4,12 +4,26 @@
    =========================== */
 
 :root {
-  /* ===== BRAND COLORS ===== */
-  --brand-50:  #eff6ff;
-  --brand-100: #dbeafe;
-  --brand-500: #3b82f6;
-  --brand-600: #2563eb;
-  --brand-700: #1d4ed8;
+  /* ===== FAIREDGE BRAND COLORS ===== */
+  --color-primary: #0C2C55;      /* Navy - trust and stability */
+  --color-accent: #6FCF00;       /* Lime - growth and success */
+  --color-accent-2: #029672;     /* Teal - professional confidence */
+  
+  /* Legacy brand colors (for migration) */
+  --brand-50:  rgba(111, 207, 0, 0.1);  /* Light lime tint */
+  --brand-100: rgba(111, 207, 0, 0.2);  /* Slightly stronger lime tint */
+  --brand-500: var(--color-primary);  /* Point to new primary */
+  --brand-600: var(--color-primary);
+  --brand-700: #081c3a;               /* Darker navy for hover states */
+  
+  /* New extended brand palette */
+  --brand-navy:     var(--color-primary);
+  --brand-lime:     var(--color-accent);
+  --brand-teal:     var(--color-accent-2);
+  --brand-navy-light: #1a4a7e;        /* Lighter navy for backgrounds */
+  --brand-navy-dark:  #081c3a;        /* Darker navy for hover states */
+  --brand-lime-light: #8fd433;        /* Lighter lime for subtle accents */
+  --brand-teal-light: #33b897;        /* Lighter teal for gradients */
 
   /* ===== GREYS ===== */
   --grey-50:  #f8fafc;
@@ -34,7 +48,7 @@
   --success:  #16a34a;
   --warning:  #f59e0b;
   --error:    #ef4444;
-  --info:     #3b82f6;
+  --info:     var(--color-primary);  /* Use navy for info states */
 
   /* ===== SEMANTIC COLORS ===== */
   --surface-primary:   #ffffff;
@@ -48,7 +62,12 @@
 
   --border-light:   var(--grey-200);
   --border-medium:  var(--grey-300);
-  --border-focus:   var(--brand-500);
+  --border-focus:   var(--color-accent);  /* Lime focus outline for accessibility */
+  
+  /* ===== GRADIENTS ===== */
+  --gradient-primary: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
+  --gradient-primary-hover: linear-gradient(135deg, var(--brand-lime-light) 0%, var(--brand-teal-light) 100%);
+  --gradient-surface: linear-gradient(180deg, var(--surface-primary) 0%, var(--surface-secondary) 100%);
 
   /* ===== TYPOGRAPHY ===== */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;

@@ -23,14 +23,39 @@ class FeatureConfig:
     # Premium features by role
     ROLE_FEATURES: Dict[str, Dict[str, Any]] = {
         "free": {
+            "markets": "main_lines_only",  # h2h, spreads, totals only, ≤ -2% EV
+            "analytics_depth": "basic",
+            "refresh_rate_minutes": 5,  # Same refresh rate for all users
+            "export_enabled": False,
+            "alert_notifications": False,
+            "custom_filters": False,  # No search/sport filtering for free users
+            "api_rate_limit": "30/minute",
+            "max_opportunities": 10,  # Limited to 10 sample opportunities
+            "ev_threshold": -2.0  # Only show -2% EV or worse
+        },
+        "basic": {
             "markets": "main_lines_only",  # h2h, spreads, totals only
             "analytics_depth": "basic",
-            "refresh_rate_minutes": 30,
+            "refresh_rate_minutes": 5,
             "export_enabled": False,
             "alert_notifications": False,
             "custom_filters": True,  # Allow search/sport filtering
-            "api_rate_limit": "30/minute"
+            "api_rate_limit": "60/minute",
+            "max_opportunities": None,  # Unlimited main line opportunities
+            "ev_threshold": -999.0  # All EV values (using large negative number instead of -inf)
         },
+        "premium": {
+            "markets": "all",  # All markets available
+            "analytics_depth": "advanced", 
+            "refresh_rate_minutes": 5,
+            "export_enabled": True,
+            "alert_notifications": True,
+            "custom_filters": True,
+            "api_rate_limit": "120/minute",
+            "max_opportunities": None,  # Unlimited opportunities
+            "ev_threshold": -999.0  # All EV values (using large negative number instead of -inf)
+        },
+        # Keep subscriber for backward compatibility, map to premium
         "subscriber": {
             "markets": "all",  # All markets available
             "analytics_depth": "advanced", 
@@ -38,7 +63,9 @@ class FeatureConfig:
             "export_enabled": True,
             "alert_notifications": True,
             "custom_filters": True,
-            "api_rate_limit": "120/minute"
+            "api_rate_limit": "120/minute",
+            "max_opportunities": None,  # Unlimited opportunities
+            "ev_threshold": -999.0  # All EV values (using large negative number instead of -inf)
         },
         "admin": {
             "markets": "all",  # All markets available
@@ -47,7 +74,9 @@ class FeatureConfig:
             "export_enabled": True,
             "alert_notifications": True,
             "custom_filters": True,
-            "api_rate_limit": "unlimited"
+            "api_rate_limit": "unlimited",
+            "max_opportunities": None,  # Unlimited opportunities
+            "ev_threshold": -999.0  # All EV values (using large negative number instead of -inf)
         }
     }
 
@@ -67,6 +96,6 @@ class FeatureConfig:
     
     def should_mask_field(self, field_name: str, role: str) -> bool:
         """Check if a field should be masked for a specific role"""
-        if role in ["subscriber", "admin"]:
+        if role in ["basic", "premium", "subscriber", "admin"]:
             return False
         return field_name in self.MASK_FIELDS_FOR_FREE 

@@ -25,7 +25,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - bet-intel-network
+      - fairedge-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -52,7 +52,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - bet-intel-network
+      - fairedge-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "celery", "-A", "services.celery_app.celery_app", "inspect", "ping"]
@@ -81,7 +81,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - bet-intel-network
+      - fairedge-network
     restart: unless-stopped
 
   # Celery Flower (Optional monitoring)
@@ -102,7 +102,7 @@ services:
       celery_worker:
         condition: service_healthy
     networks:
-      - bet-intel-network
+      - fairedge-network
     restart: unless-stopped
 
   # Redis Cache & Broker
@@ -114,7 +114,7 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     networks:
-      - bet-intel-network
+      - fairedge-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -130,7 +130,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - bet-intel-network
+      - fairedge-network
     profiles:
       - debug
 
@@ -141,7 +141,7 @@ volumes:
     driver: local
 
 networks:
-  bet-intel-network:
+  fairedge-network:
     driver: bridge
 
 # Development override (docker-compose.override.yml)

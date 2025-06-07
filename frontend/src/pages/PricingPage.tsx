@@ -9,7 +9,6 @@ const PricingPage: React.FC = () => {
   const userRole = user?.user_metadata?.role;
   const isBasicSubscriber = userRole === 'basic';
   const isPremiumSubscriber = userRole === 'premium' || userRole === 'subscriber';
-  const hasAnySubscription = isBasicSubscriber || isPremiumSubscriber;
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -301,7 +300,7 @@ const PricingPage: React.FC = () => {
                         Start 7-Day Free Trial
                       </>
                     )}
-                  </button>
+              </button>
                   <small className="trial-note">No commitment • Cancel anytime</small>
                 </>
               )}

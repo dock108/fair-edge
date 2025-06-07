@@ -71,6 +71,16 @@ button {
   transition: all var(--transition-fast);
 }
 
+/* Accessibility: Focus styles */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus,
+a:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 /* Improved typography */
 h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
@@ -81,6 +91,23 @@ h1, h2, h3, h4, h5, h6 {
 p {
   margin: 0 0 var(--space-4) 0;
   line-height: var(--leading-normal);
-} 
+}
+
+/* ===== UTILITY CLASSES ===== */
+/* Brand colors */
+.text-brand { color: var(--color-primary); }
+.text-accent { color: var(--color-accent); }
+.text-teal { color: var(--color-accent-2); }
+
+.bg-brand { background-color: var(--color-primary); }
+.bg-accent { background-color: var(--color-accent); }
+.bg-teal { background-color: var(--color-accent-2); }
+
+.bg-gradient-primary { background: var(--gradient-primary); }
+.bg-gradient-primary-hover { background: var(--gradient-primary-hover); }
+
+.border-accent { border-color: var(--color-accent); }
+.border-brand { border-color: var(--color-primary); }
+.border-teal { border-color: var(--color-accent-2); }
  
  

@@ -108,7 +108,7 @@ The system automatically:
 ## 📁 Project Structure
 
 ```
-bet-intel/
+fairedge/
 ├── app.py                 # FastAPI application
 ├── core/                  # Core utilities (auth, settings, etc.)
 ├── services/              # Business logic services

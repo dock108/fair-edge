@@ -63,7 +63,7 @@ const SignUpPage: React.FC = () => {
         <div className="auth-container">
           <div className="auth-card">
             <div className="auth-header">
-              <h1 className="auth-title">Join BetIntel</h1>
+              <h1 className="auth-title">Join FairEdge</h1>
               <p className="auth-subtitle">Create your account to access premium betting insights</p>
             </div>
 
