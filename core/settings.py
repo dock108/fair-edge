@@ -18,7 +18,6 @@ class Settings(BaseSettings):
     )
     
     # Database Configuration
-    database_url: str = "CHANGE_ME"  # Will fail fast in production
     supabase_url: AnyUrl
     supabase_anon_key: str
     supabase_service_role_key: str
@@ -26,11 +25,10 @@ class Settings(BaseSettings):
     db_connection_string: str
     
     # Security Configuration
-    jwt_secret: str = "CHANGE_ME"  # Will fail fast in production
-    jwt_algorithm: str = "HS256"
+    # Removed unused JWT configuration - using Supabase JWT settings instead
     admin_secret: str = "CHANGE_ME"  # Will fail fast in production
     
-    # Supabase JWT Configuration
+    # Supabase JWT Configuration (used for authentication)
     supabase_jwt_algorithm: str = "HS256"  # Supabase uses HS256 with JWT secret
     
     # Application Configuration
@@ -45,9 +43,6 @@ class Settings(BaseSettings):
     # Redis Configuration
     redis_url: str = "redis://localhost:6379/0"
     refresh_interval_minutes: int = 5
-    
-    # JWT Configuration
-    jwt_expires_minutes: int = 60 * 24 * 7  # 7 days
     
     # Stripe Configuration (Optional - set defaults for development)
     stripe_publishable_key: Optional[str] = None
