@@ -171,17 +171,6 @@ async def get_my_profile(current_user: UserCtx = Depends(get_current_user)):
         "subscription_status": current_user.subscription_status
     }
 
-# Main user profile endpoint (alternative to /auth/me)
-@app.get("/me")
-async def get_my_profile_main(current_user: UserCtx = Depends(get_current_user)):
-    """Get the current user's profile information - main endpoint"""
-    return {
-        "id": current_user.id,
-        "email": current_user.email,
-        "role": current_user.role,
-        "subscription_status": current_user.subscription_status
-    }
-
 # Include auth router
 app.include_router(auth_router)
 
@@ -268,27 +257,8 @@ def calculate_ev_breakdown(opportunity: Dict[str, Any]) -> Dict[str, Any]:
         best_odds_str = original.get('Best Available Odds', '+100')
         ev_raw = original.get('EV_Raw', 0)
         
-        # Parse American odds to decimal for calculation display
-        def american_to_decimal(odds_str: str) -> float:
-            try:
-                # Clean the odds string
-                odds_str = odds_str.split('(')[0].strip()  # Remove parenthetical info
-                odds_str = odds_str.split('→')[0].strip()   # Remove exchange adjustments
-                
-                if odds_str.startswith('+'):
-                    american = int(odds_str[1:])
-                    return (american / 100) + 1
-                elif odds_str.startswith('-'):
-                    american = int(odds_str[1:])
-                    return (100 / american) + 1
-                else:
-                    american = int(odds_str)
-                    if american > 0:
-                        return (american / 100) + 1
-                    else:
-                        return (100 / abs(american)) + 1
-            except (ValueError, ZeroDivisionError):
-                return 2.0  # Default to even odds
+        # Use centralized odds utilities
+        from utils.odds_utils import american_to_decimal
         
         fair_decimal = american_to_decimal(fair_odds_str)
         best_decimal = american_to_decimal(best_odds_str)

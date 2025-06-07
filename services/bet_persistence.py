@@ -14,6 +14,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from models import Bet, BetOffer, Sport, League, Book
 from db import AsyncSessionLocal
+from utils.odds_utils import american_to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -342,7 +343,7 @@ class BetPersistenceService:
         best_odds = opportunity.get('Best Available Odds', '+100')
         
         # Convert American odds to decimal
-        decimal_odds = self._american_to_decimal(best_odds)
+        decimal_odds = american_to_decimal(best_odds)
         
         return {
             "american": best_odds,
@@ -353,34 +354,14 @@ class BetPersistenceService:
     def _parse_fair_odds(self, opportunity: Dict[str, Any]) -> Dict[str, Any]:
         """Parse fair odds data"""
         fair_odds = opportunity.get('Fair Odds', '+100')
-        decimal_odds = self._american_to_decimal(fair_odds)
+        decimal_odds = american_to_decimal(fair_odds)
         
         return {
             "american": fair_odds,
             "decimal": decimal_odds
         }
     
-    def _american_to_decimal(self, odds_str: str) -> float:
-        """Convert American odds to decimal odds"""
-        try:
-            # Clean the odds string
-            odds_str = odds_str.split('(')[0].strip()
-            odds_str = odds_str.split('→')[0].strip()
-            
-            if odds_str.startswith('+'):
-                american = int(odds_str[1:])
-                return (american / 100) + 1
-            elif odds_str.startswith('-'):
-                american = int(odds_str[1:])
-                return (100 / american) + 1
-            else:
-                american = int(odds_str)
-                if american > 0:
-                    return (american / 100) + 1
-                else:
-                    return (100 / abs(american)) + 1
-        except (ValueError, ZeroDivisionError):
-            return 2.0  # Default to even odds
+    # Use centralized odds utilities instead of duplicate implementation
     
     def _determine_book(self, opportunity: Dict[str, Any]) -> str:
         """Determine bookmaker ID from opportunity"""
