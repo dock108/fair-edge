@@ -131,6 +131,15 @@ class ApiService {
     return this.post('/api/opportunities/refresh');
   }
 
+  // Billing API methods
+  async createCheckoutSession(plan?: 'basic' | 'premium'): Promise<{ checkout_url: string }> {
+    return this.post('/api/billing/create-checkout-session', { plan });
+  }
+
+  async createPortalSession(): Promise<{ url: string }> {
+    return this.post('/api/billing/create-portal-session');
+  }
+
   // Error handling
   private handleError(error: any): Error {
     if (axios.isAxiosError(error)) {

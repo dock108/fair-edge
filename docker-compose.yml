@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # Main FastAPI Application
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - REFRESH_INTERVAL_MINUTES=5  # 5 minutes for development
+      - DEBUG_MODE=true
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - THE_ODDS_API_KEY=${THE_ODDS_API_KEY}
+      - WEB_CONCURRENCY=4  # Override for development (production will auto-calculate)
+      - WAIT_FOR_DEPS=true
+      - RUN_MIGRATIONS=false
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bet-intel-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A services.celery_app.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - .:/app
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - REFRESH_INTERVAL_MINUTES=5
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - THE_ODDS_API_KEY=${THE_ODDS_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bet-intel-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "services.celery_app.celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Beat Scheduler
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A services.celery_app.celery_app beat --loglevel=info --schedule=/app/celery-data/beat.db
+    volumes:
+      - .:/app
+      - celery_beat_data:/app/celery-data
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - REFRESH_INTERVAL_MINUTES=5
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - THE_ODDS_API_KEY=${THE_ODDS_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bet-intel-network
+    restart: unless-stopped
+
+  # Celery Flower (Optional monitoring)
+  celery_flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A services.celery_app.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    volumes:
+      - .:/app
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery_worker:
+        condition: service_healthy
+    networks:
+      - bet-intel-network
+    restart: unless-stopped
+
+  # Redis Cache & Broker
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - bet-intel-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis CLI (for debugging)
+  redis_cli:
+    image: redis:7-alpine
+    command: redis-cli -h redis
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bet-intel-network
+    profiles:
+      - debug
+
+volumes:
+  redis_data:
+    driver: local
+  celery_beat_data:
+    driver: local
+
+networks:
+  bet-intel-network:
+    driver: bridge
+
+# Development override (docker-compose.override.yml)
+# Use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up 
