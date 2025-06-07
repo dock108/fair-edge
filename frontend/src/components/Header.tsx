@@ -20,8 +20,8 @@ export const Header = () => {
       <nav className="header-wrap">
         <div className="header-brand">
           <Link to="/" className="brand-link">
-            <span className="brand-icon">⚡</span>
-            <span className="brand-text">BetIntel</span>
+            <img src="/icons/fairedge_logo_64.png" alt="FairEdge logo" className="brand-logo" />
+            <span className="brand-text">FairEdge</span>
           </Link>
         </div>
         

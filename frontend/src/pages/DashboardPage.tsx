@@ -1,7 +1,6 @@
 import { useOpportunities } from '../hooks/useOpportunities';
 import { BetCard } from '../components/BetCard';
 import { useAuth } from '../contexts/AuthContext';
-import { permissions } from '../utils/permissions';
 import PremiumPrompt from '../components/PremiumPrompt';
 
 export const DashboardPage = () => {
@@ -15,8 +14,6 @@ export const DashboardPage = () => {
   } = useOpportunities();
   
   const { user, isAuthenticated } = useAuth();
-  const canAccessPremium = permissions.canAccessPremiumFeatures(user);
-  const userRole = permissions.getUserRoleDisplay(user);
 
   if (loading && opportunities.length === 0) {
     return (
@@ -53,27 +50,27 @@ export const DashboardPage = () => {
     <div className="main-container">
       {/* Header Section */}
       <div className="dashboard-header">
-        {/* User Badge - Positioned Absolutely */}
-        {isAuthenticated && (
+        {/* Admin Badge - Positioned Absolutely */}
+        {isAuthenticated && user?.user_metadata?.role === 'admin' && (
           <div style={{ 
             position: 'absolute',
             top: '0',
             right: '0',
-            background: canAccessPremium ? 'var(--success-50)' : 'var(--grey-50)',
-            border: `1px solid ${canAccessPremium ? 'var(--success-200)' : 'var(--grey-200)'}`,
+            background: 'var(--success-50)',
+            border: '1px solid var(--success-200)',
             borderRadius: 'var(--radius-md)',
             padding: 'var(--space-2) var(--space-3)',
             display: 'flex',
             alignItems: 'center',
             gap: 'var(--space-2)'
           }}>
-            <i className={`fas ${canAccessPremium ? 'fa-crown' : 'fa-user'}`} 
-               style={{ color: canAccessPremium ? 'var(--success-600)' : 'var(--grey-600)' }}></i>
+            <i className="fas fa-crown" 
+               style={{ color: 'var(--success-600)' }}></i>
             <span style={{ 
               fontWeight: '500', 
-              color: canAccessPremium ? 'var(--success-700)' : 'var(--grey-700)' 
+              color: 'var(--success-700)' 
             }}>
-              {userRole} User
+              Admin
             </span>
           </div>
         )}
@@ -123,7 +120,7 @@ export const DashboardPage = () => {
             </a>
           </div>
         )}
-        {isAuthenticated && permissions.isFreeTier(user) && (
+        {isAuthenticated && user?.user_metadata?.role === 'free' && (
           <div style={{ 
             background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%)',
             border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -162,7 +159,7 @@ export const DashboardPage = () => {
             <div>
               <strong style={{ color: 'var(--brand-700)' }}>
                 <i className="fas fa-chart-line" style={{ marginRight: 'var(--space-2)' }}></i>
-                Basic Plan: Main lines with all EV values
+                Basic Plan: Main lines with positive EV unlocked
               </strong>
               <span style={{ color: 'var(--brand-600)', marginLeft: 'var(--space-2)' }}>
                 Upgrade to Premium for player props & alternate lines!
@@ -175,9 +172,10 @@ export const DashboardPage = () => {
         )}
       </div>
 
-      {/* Search Section */}
-      <div className="row mb-4 justify-content-center">
-        <div className="col-md-6 col-lg-5 col-xl-4">
+      {/* Search Section - Hidden for unauthenticated and free users */}
+      {isAuthenticated && user?.user_metadata?.role !== 'free' && (
+        <div className="row mb-4 justify-content-center">
+          <div className="col-md-6 col-lg-5 col-xl-4">
           <div className="input-group">
             <span className="input-group-text">
               <i className="fas fa-search"></i>
@@ -201,6 +199,7 @@ export const DashboardPage = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Opportunities Grid */}
       {opportunities.length === 0 ? (
@@ -232,7 +231,7 @@ export const DashboardPage = () => {
           )}
           
           {/* Limited Content Notice for Free Users */}
-          {isAuthenticated && permissions.isFreeTier(user) && opportunities.length > 0 && (
+          {isAuthenticated && user?.user_metadata?.role === 'free' && opportunities.length > 0 && (
             <div style={{
               background: 'rgba(245, 158, 11, 0.05)',
               border: '1px solid rgba(245, 158, 11, 0.2)',

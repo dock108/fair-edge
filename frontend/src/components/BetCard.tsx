@@ -133,7 +133,10 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
       id={`card-${index}`}
     >
       <div className="odds-card__header">
-        <h2 className="odds-card__event">{cleanEvent}</h2>
+        <div className="odds-card__header-top">
+          <h2 className="odds-card__event">{cleanEvent}</h2>
+          <img src="/icons/fairedge_logo_32.png" alt="FairEdge" className="card-brand-logo" />
+        </div>
         {dateTime && (
           <div className="game-datetime">
             <i className="fas fa-clock"></i>

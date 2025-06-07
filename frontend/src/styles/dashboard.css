@@ -1,5 +1,5 @@
 /* ===========================
-   BET INTEL DASHBOARD STYLES
+   FAIREDGE DASHBOARD STYLES
    =========================== */
 
 /* ===== HEADER ===== */
@@ -7,9 +7,9 @@
     position: sticky;
     top: 0;
     z-index: var(--z-sticky);
-    background: var(--brand-600);
+    background: var(--color-primary);  /* Navy background */
     box-shadow: var(--shadow-sm);
-    border-bottom: 1px solid var(--brand-700);
+    border-bottom: 1px solid var(--brand-navy-dark);
 }
 
 .header-wrap {
@@ -19,31 +19,51 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 64px;
+    min-height: 72px;  /* Slightly taller to accommodate larger branding */
 }
 
 .header-brand {
     display: flex;
     align-items: center;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.05);  /* Subtle background highlight */
+    backdrop-filter: blur(8px);
+    transition: all var(--transition-fast);
+}
+
+.header-brand:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
 }
 
 .brand-link {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-3);
     color: var(--text-inverse);
     text-decoration: none;
     font-weight: var(--font-bold);
-    font-size: var(--text-lg);
+    font-size: var(--text-xl);  /* Larger brand text */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);  /* Subtle text shadow for prominence */
 }
 
 .brand-link:hover {
-    color: var(--brand-100);
+    color: var(--color-accent);  /* Lime accent on hover */
     text-decoration: none;
+    text-shadow: 0 2px 8px rgba(111, 207, 0, 0.4);  /* Lime glow for text */
 }
 
-.brand-icon {
-    font-size: var(--text-2xl);
+.brand-logo {
+    height: 40px;  /* Larger logo */
+    width: auto;
+    /* Remove filters to show the actual logo colors */
+    transition: all var(--transition-fast);
+}
+
+.brand-link:hover .brand-logo {
+    transform: scale(1.05);  /* Subtle scale effect on hover */
+    filter: drop-shadow(0 2px 8px rgba(111, 207, 0, 0.3));  /* Lime glow effect */
 }
 
 .header-nav {
@@ -53,7 +73,7 @@
 }
 
 .header-nav .nav-link {
-    color: var(--brand-100);
+    color: white;  /* White text for unclicked nav links */
     text-decoration: none;
     font-weight: var(--font-medium);
     padding: var(--space-2) var(--space-3);
@@ -62,14 +82,14 @@
 }
 
 .header-nav .nav-link:hover {
-    color: var(--text-inverse);
-    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-accent);  /* Lime accent on hover */
+    background: rgba(111, 207, 0, 0.1);  /* Subtle lime background */
     text-decoration: none;
 }
 
 .header-nav .nav-link.active {
-    color: var(--text-inverse);
-    background: rgba(255, 255, 255, 0.15);
+    color: var(--color-accent);  /* Lime for active state */
+    background: rgba(111, 207, 0, 0.15);
 }
 
 .header-actions {
@@ -85,7 +105,7 @@
 }
 
 .user-email {
-    color: var(--brand-100);
+    color: white;  /* White text for user email */
     font-size: var(--text-sm);
 }
 
@@ -105,26 +125,28 @@
 }
 
 .header-actions .btn-outline {
-    color: var(--brand-100);
-    border-color: var(--brand-100);
+    color: white;  /* White text for login/logout button */
+    border-color: white;  /* White border for login/logout button */
     background: transparent;
 }
 
 .header-actions .btn-outline:hover {
-    color: var(--brand-600);
+    color: var(--color-primary);
     background: var(--text-inverse);
     border-color: var(--text-inverse);
 }
 
 .header-actions .btn-primary {
-    color: var(--brand-600);
-    background: var(--text-inverse);
-    border-color: var(--text-inverse);
+    background: var(--gradient-primary);  /* Use lime-to-teal gradient */
+    border: none;
+    color: white;
+    font-weight: var(--font-semibold);
 }
 
 .header-actions .btn-primary:hover {
-    background: var(--brand-50);
-    border-color: var(--brand-50);
+    background: var(--gradient-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 /* Responsive header */
@@ -256,6 +278,13 @@
     background: transparent;
 }
 
+.odds-card__header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
 .odds-card__event {
     font-size: var(--text-base);
     font-weight: var(--font-semibold);
@@ -263,6 +292,20 @@
     margin: 0 0 var(--space-1) 0;
     line-height: var(--leading-tight);
     word-break: break-word;
+    flex: 1;  /* Take up remaining space */
+}
+
+.card-brand-logo {
+    height: 30px;
+    width: auto;
+    opacity: 0.8;
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+}
+
+.odds-card:hover .card-brand-logo {
+    opacity: 0.9;
+    transform: scale(1.1);
 }
 
 .game-datetime {
@@ -404,12 +447,12 @@
 }
 
 .comparison-title-button:hover {
-    color: #3b82f6;
+    color: var(--color-accent);  /* Lime hover color */
     transform: translateX(4px);
 }
 
 .comparison-title-button:focus {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid var(--color-accent);  /* Lime focus outline */
     outline-offset: 2px;
 }
 
@@ -473,16 +516,17 @@
 }
 
 .odds-card__action .btn-primary {
-    background: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-600) 100%);
-    color: var(--text-inverse);
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.25);
+    background: var(--gradient-primary);  /* Lime to teal gradient */
+    color: white;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 4px 6px -1px rgba(111, 207, 0, 0.25);
 }
 
 .odds-card__action .btn-primary:hover {
-    background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-700) 100%);
+    background: var(--gradient-primary-hover);
     transform: translateY(-1px);
-    box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.35);
-    color: var(--text-inverse);
+    box-shadow: 0 6px 8px -1px rgba(111, 207, 0, 0.35);
+    color: white;
     text-decoration: none;
 }
 
@@ -515,6 +559,10 @@
     
     .odds-card__event {
         font-size: 1rem;
+    }
+    
+    .card-brand-logo {
+        height: 20px;  /* Slightly bigger logo on mobile */
     }
     
     .odds-card__recommended {
@@ -599,7 +647,7 @@
 .education-header {
     text-align: center;
     padding: 3rem 2rem 2rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: var(--gradient-primary);  /* Use FairEdge lime-to-teal gradient */
     color: white;
     position: relative;
     overflow: hidden;
@@ -653,7 +701,7 @@
     color: #1e293b;
     margin: 0 0 1.5rem 0;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid #3b82f6;
+    border-bottom: 2px solid var(--color-accent);  /* Lime accent underline */
     display: inline-block;
 }
 
@@ -784,7 +832,7 @@
 }
 
 .key-term {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: var(--gradient-primary);  /* Use FairEdge gradient */
     color: white;
     padding: 0.25rem 0.5rem;
     border-radius: 6px;
@@ -806,19 +854,19 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: var(--gradient-primary);  /* Use FairEdge gradient */
     color: white;
     text-decoration: none;
     border-radius: 12px;
     font-weight: 600;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 6px -1px rgba(111, 207, 0, 0.3);
 }
 
 .nav-link:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: var(--gradient-primary-hover);  /* Use FairEdge hover gradient */
     transform: translateY(-2px);
-    box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 6px 8px -1px rgba(111, 207, 0, 0.4);
     color: white;
     text-decoration: none;
 }
@@ -868,7 +916,7 @@
 .pricing-title {
     font-size: 3rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: var(--gradient-primary);  /* Use FairEdge gradient text */
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -929,14 +977,14 @@
 }
 
 .pricing-card.premium {
-    border: 2px solid #3b82f6;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%);
+    border: 2px solid var(--color-accent);  /* Lime border */
+    background: linear-gradient(135deg, rgba(111, 207, 0, 0.05) 0%, rgba(2, 150, 114, 0.02) 100%);
 }
 
 .pricing-card.premium:hover {
-    border-color: #2563eb;
+    border-color: var(--color-accent-2);  /* Teal border on hover */
     box-shadow: 
-        0 20px 40px rgba(59, 130, 246, 0.2),
+        0 20px 40px rgba(111, 207, 0, 0.2),
         0 1px 0 rgba(255, 255, 255, 0.5) inset;
 }
 
@@ -945,7 +993,7 @@
     top: -1px;
     left: 50%;
     transform: translateX(-50%);
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: var(--gradient-primary);  /* Use FairEdge gradient */
     color: white;
     padding: 0.5rem 2rem;
     border-radius: 0 0 12px 12px;
@@ -953,7 +1001,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 6px -1px rgba(111, 207, 0, 0.3);
 }
 
 .pricing-card-header {
@@ -963,7 +1011,7 @@
 }
 
 .pricing-card.premium .pricing-card-header {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
+    background: linear-gradient(135deg, rgba(111, 207, 0, 0.08) 0%, rgba(2, 150, 114, 0.04) 100%);
 }
 
 .plan-title {
@@ -1063,15 +1111,16 @@
 }
 
 .pricing-page .btn-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: var(--gradient-primary);  /* Lime to teal gradient */
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    font-weight: var(--font-semibold);
+    box-shadow: 0 4px 6px -1px rgba(111, 207, 0, 0.3);
 }
 
 .pricing-page .btn-primary:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: var(--gradient-primary-hover);
     transform: translateY(-1px);
-    box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 6px 8px -1px rgba(111, 207, 0, 0.4);
     text-decoration: none;
     color: white;
 }
@@ -1354,11 +1403,11 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+    background: var(--gradient-primary);  /* Use FairEdge gradient */
 }
 
 .contact-info a {
-    color: #2563eb;
+    color: var(--color-primary);  /* Use navy color */
     text-decoration: none;
     font-weight: 600;
 }

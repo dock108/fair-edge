@@ -1,5 +1,5 @@
 """
-Celery app configuration for bet-intel background tasks
+Celery app configuration for FairEdge background tasks
 Handles odds data fetching and processing on a schedule with fault tolerance
 """
 from celery import Celery
@@ -17,7 +17,7 @@ REDIS_URL = settings.redis_url
 
 # Create Celery app with Phase 3 task modules
 celery_app = Celery(
-    "bet_intel",
+    "fairedge",
     broker=REDIS_URL,
     backend=REDIS_URL,
     include=["services.tasks", "tasks.ev"]  # Include both existing and new Phase 3 tasks

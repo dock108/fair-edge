@@ -115,7 +115,7 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app with lifespan context manager
 app = FastAPI(
-    title="Bet Intel - Sports +EV Analysis", 
+    title="FairEdge - Sports +EV Analysis", 
     description="Educational sports betting analysis and odds comparison tool",
     version="2.1.0",
     lifespan=lifespan
@@ -474,75 +474,84 @@ MAIN_LINES = {"h2h", "spreads", "totals"}  # moneyline, game spreads, game total
 
 def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role: str) -> Dict[str, Any]:
     """
-    Filter opportunities based on user role
-    Free users: Only main lines with -2% EV or worse, max 10 deterministic opportunities
-    Basic users: All main lines (all EV values)
-    Premium/Subscribers/Admins: All markets
+    Filter opportunities based on user role using feature configuration
+    - Free users: Only main lines with ≤ -2% EV, max 10 deterministic opportunities  
+    - Basic users: All main lines (all EV values)
+    - Premium/Subscribers/Admins: All markets
     """
-    total_available = len(opportunities)
+    from core.config import feature_config
     
-    if user_role in ("premium", "subscriber", "admin"):
-        # Full access for premium users and admins
-        filtered_opportunities = opportunities
-        truncated = False
-        limit = None
-    elif user_role == "basic":
-        # Basic users: all main lines (all EV values)
+    total_available = len(opportunities)
+    role_config = feature_config.get_user_features(user_role)
+    
+    # Get role-specific settings from config
+    markets_access = role_config.get("markets", "main_lines_only")
+    ev_threshold = role_config.get("ev_threshold", -999.0)
+    max_opportunities = role_config.get("max_opportunities", None)
+    
         filtered_opportunities = []
+    
         for opp in opportunities:
             # Get the original market key from the _original data
             original_market = opp.get('_original', {}).get('Market', '')
+        ev_percentage = opp.get('ev_percentage', 0)
             
-            # Check if this is a main line market
+        # Determine if opportunity should be included based on market access
+        include_opportunity = False
+        
+        if markets_access == "all":
+            # Premium users: all markets
+            include_opportunity = True
+        elif markets_access == "main_lines_only":
+            # Free/Basic users: only main lines
             if original_market in MAIN_LINES:
-                # Mask advanced fields for basic users
-                from core.config import feature_config
+                # Check EV threshold (free users have -2.0, basic/premium users have -999.0)
+                if ev_percentage <= ev_threshold or ev_threshold <= -999.0:
+                    include_opportunity = True
+        
+        if include_opportunity:
+            # Mask advanced fields based on role
                 filtered_opp = opp.copy()
+            
+            # Only mask fields for free users (not basic users)
+            if feature_config.should_mask_field("kelly_factor", user_role):
                 for field in feature_config.MASK_FIELDS_FOR_FREE:
                     filtered_opp.pop(field, None)
                     # Also remove from _original if it exists
                     if '_original' in filtered_opp:
                         filtered_opp['_original'].pop(field, None)
+            
                 filtered_opportunities.append(filtered_opp)
         
-        truncated = len(filtered_opportunities) < total_available
-        limit = "main lines only"
-    else:
-        # Free users: main lines with -2% EV or worse, max 10 deterministic
-        filtered_opportunities = []
-        for opp in opportunities:
-            # Get the original market key from the _original data
-            original_market = opp.get('_original', {}).get('Market', '')
-            
-            # Check if this is a main line market with negative EV
-            if original_market in MAIN_LINES:
-                ev_percentage = opp.get('ev_percentage', 0)
-                if ev_percentage <= -2.0:  # Only show -2% EV or worse
-                    # Mask advanced fields for free users
-                    from core.config import feature_config
-                    filtered_opp = opp.copy()
-                    for field in feature_config.MASK_FIELDS_FOR_FREE:
-                        filtered_opp.pop(field, None)
-                        # Also remove from _original if it exists
-                        if '_original' in filtered_opp:
-                            filtered_opp['_original'].pop(field, None)
-                    filtered_opportunities.append(filtered_opp)
-        
-        # Sort by EV percentage (worst first for consistency) and take first 10
-        filtered_opportunities.sort(key=lambda x: x.get('ev_percentage', 0))
-        
-        # Make it deterministic by also sorting by event name as secondary key
-        # This ensures all free users see the same 10 opportunities
+    # Apply opportunity limit (mainly for free users)
+    if max_opportunities is not None and len(filtered_opportunities) > max_opportunities:
+        # For free users, we want the 10 worst opportunities but still display them best-to-worst
+        # So first sort by worst EV to get the bottom 10, then reverse to show best-to-worst
         filtered_opportunities.sort(key=lambda x: (x.get('ev_percentage', 0), x.get('event', '')))
         
-        # Limit to 10 opportunities for free users
-        filtered_opportunities = filtered_opportunities[:10]
-        
-        truncated = len(filtered_opportunities) < total_available
-        limit = "10 worst EV opportunities only"
+        # Take the worst N opportunities
+        filtered_opportunities = filtered_opportunities[:max_opportunities]
     
-    from core.config import feature_config
-    role_config = feature_config.get_user_features(user_role)
+    # Always sort final list from best EV to worst EV for consistent user experience
+    filtered_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
+    
+    # Determine truncation status and limit description
+        truncated = len(filtered_opportunities) < total_available
+    
+    # Generate appropriate limit description
+    if user_role == "free":
+        if len(filtered_opportunities) == 0:
+            limit = "No opportunities with -2% EV or worse available"
+        else:
+            limit = "10 real sample opportunities (-2% EV or worse)"
+    elif user_role == "basic":
+        limit = "All main lines (positive EV unlocked!)"
+    elif user_role in ("premium", "subscriber"):
+        limit = "All markets & lines"
+    elif user_role == "admin":
+        limit = "Full admin access"
+    else:
+        limit = "Limited access"
     
     return {
         "role": user_role,
@@ -1088,13 +1097,15 @@ async def get_premium_opportunities(
 @limiter.limit("30/minute")
 async def get_user_info(request: Request, user: UserCtx = Depends(get_current_user)):
     """
-    Get basic user info using simple JWT validation (no database lookup)
-    Useful for quick authentication checks
+    Get basic user info including role and subscription status from database
+    Useful for frontend role-based UI logic
     Rate limited to prevent abuse
     """
     return {
         "user_id": user.id,
         "email": user.email,
+        "role": user.role,
+        "subscription_status": user.subscription_status,
         "authenticated": True
     }
 

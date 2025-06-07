@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Status Check Script for Bet Intel Local Development
+# Status Check Script for FairEdge Local Development
 
-echo "📊 Bet Intel System Status Check"
+echo "📊 FairEdge System Status Check"
 echo "================================="
 echo ""
 

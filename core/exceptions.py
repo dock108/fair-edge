@@ -1,5 +1,5 @@
 """
-Standardized exception handling for bet-intel application
+Standardized exception handling for FairEdge application
 Provides consistent error handling patterns and responses
 """
 import logging
@@ -11,8 +11,8 @@ from core.auth import UserCtx
 logger = logging.getLogger(__name__)
 
 
-class BetIntelException(Exception):
-    """Base exception for bet-intel application"""
+class FairEdgeException(Exception):
+    """Base exception for FairEdge application"""
     
     def __init__(self, message: str, code: str = "UNKNOWN_ERROR", details: Optional[Dict[str, Any]] = None):
         self.message = message
@@ -21,7 +21,7 @@ class BetIntelException(Exception):
         super().__init__(self.message)
 
 
-class DataFetchError(BetIntelException):
+class DataFetchError(FairEdgeException):
     """Exception for data fetching failures"""
     
     def __init__(self, message: str, source: str = "unknown", details: Optional[Dict[str, Any]] = None):
@@ -29,7 +29,7 @@ class DataFetchError(BetIntelException):
         self.source = source
 
 
-class CacheError(BetIntelException):
+class CacheError(FairEdgeException):
     """Exception for cache-related failures"""
     
     def __init__(self, message: str, operation: str = "unknown", details: Optional[Dict[str, Any]] = None):
@@ -37,7 +37,7 @@ class CacheError(BetIntelException):
         self.operation = operation
 
 
-class ValidationError(BetIntelException):
+class ValidationError(FairEdgeException):
     """Exception for input validation failures"""
     
     def __init__(self, message: str, field: str = "unknown", details: Optional[Dict[str, Any]] = None):
@@ -45,14 +45,14 @@ class ValidationError(BetIntelException):
         self.field = field
 
 
-class AuthenticationError(BetIntelException):
+class AuthenticationError(FairEdgeException):
     """Exception for authentication failures"""
     
     def __init__(self, message: str = "Authentication failed", details: Optional[Dict[str, Any]] = None):
         super().__init__(message, "AUTH_ERROR", details)
 
 
-class AuthorizationError(BetIntelException):
+class AuthorizationError(FairEdgeException):
     """Exception for authorization failures"""
     
     def __init__(self, message: str, required_role: str = "unknown", user_role: str = "unknown", details: Optional[Dict[str, Any]] = None):

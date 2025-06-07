@@ -40,7 +40,7 @@ const LoginPage: React.FC = () => {
           <div className="auth-card">
             <div className="auth-header">
               <h1 className="auth-title">Welcome Back</h1>
-              <p className="auth-subtitle">Sign in to your BetIntel account</p>
+              <p className="auth-subtitle">Sign in to your FairEdge account</p>
             </div>
 
             <form onSubmit={handleSubmit} className="auth-form">

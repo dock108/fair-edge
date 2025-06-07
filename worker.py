@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Celery worker entry point for bet-intel background tasks
+Celery worker entry point for FairEdge background tasks
 Run this script to start the Celery worker that processes background tasks
 """
 import os
@@ -12,7 +12,7 @@ import services.tasks  # noqa: F401 - Import needed for task registration
 
 def main():
     """Start the Celery worker"""
-    print("🚀 Starting bet-intel Celery worker...")
+    print("🚀 Starting FairEdge Celery worker...")
     print(f"Redis: {os.getenv('REDIS_URL', 'redis://localhost:6379/0')}")
     
     # Log registered tasks for debugging

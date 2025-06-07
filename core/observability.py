@@ -1,5 +1,5 @@
 """
-Observability configuration for bet-intel application
+Observability configuration for FairEdge application
 Integrates Prometheus metrics and Sentry error tracking
 """
 import os
@@ -18,17 +18,17 @@ from core.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Custom Prometheus metrics for bet-intel specific monitoring
+# Custom Prometheus metrics for FairEdge specific monitoring
 OPPORTUNITY_METRICS = {
     'opportunities_processed': Counter(
-        'bet_intel_opportunities_processed_total',
+        'fairedge_opportunities_processed_total',
         'Total number of betting opportunities processed',
         ['sport', 'market_type']
     ),
     'ev_distribution': Histogram(
-        'bet_intel_ev_percentage_distribution',
+        'fairedge_ev_percentage_distribution',
         'Distribution of EV percentages found',
-        buckets=[0, 1, 2.5, 4.5, 7.5, 10, 15, 20, float('inf')]
+        buckets=[0, 1, 2.5, 4.5, 7.5, 10, 15, 20, 999.0]
     ),
     'cache_operations': Counter(
         'bet_intel_cache_operations_total',

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { auth } from '../lib/supabase';
 
@@ -9,8 +9,16 @@ type AuthSession = {
   user: User;
 } | null;
 
+// Extended user type with role info from backend
+type UserWithRole = User & {
+  user_metadata: {
+    role?: string;
+    subscription_status?: string;
+  };
+};
+
 interface AuthContextType {
-  user: User | null;
+  user: UserWithRole | null;
   session: AuthSession;
   loading: boolean;
   isAuthenticated: boolean;
@@ -34,9 +42,48 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithRole | null>(null);
   const [session, setSession] = useState<AuthSession>(null);
   const [loading, setLoading] = useState(true);
+
+  // Function to fetch user role from backend
+  const fetchUserRole = async (supabaseUser: User): Promise<UserWithRole> => {
+    try {
+      const session = await auth.getSession();
+      if (!session?.access_token) {
+        console.log('No access token available');
+        return supabaseUser as UserWithRole;
+      }
+      
+      console.log('Fetching user role from backend...');
+      const response = await fetch('/api/user-info', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      
+      if (response.ok) {
+        const userInfo = await response.json();
+        console.log('User role fetched:', userInfo);
+        return {
+          ...supabaseUser,
+          user_metadata: {
+            ...supabaseUser.user_metadata,
+            role: userInfo.role,
+            subscription_status: userInfo.subscription_status
+          }
+        };
+      } else {
+        console.error('Failed to fetch user role:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+    }
+    
+    // Fallback to original user if API call fails
+    console.log('Falling back to original user');
+    return supabaseUser as UserWithRole;
+  };
 
   useEffect(() => {
     // Get initial session
@@ -44,7 +91,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const session = await auth.getSession();
         setSession(session);
-        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          const userWithRole = await fetchUserRole(session.user);
+          setUser(userWithRole);
+        } else {
+          setUser(null);
+        }
       } catch (error) {
         console.error('Error getting initial session:', error);
       } finally {
@@ -58,7 +111,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
       setSession(session);
-      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        const userWithRole = await fetchUserRole(session.user);
+        setUser(userWithRole);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
@@ -70,7 +129,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { session, user } = await auth.signIn(email, password);
       setSession(session);
-      setUser(user);
+      
+      if (user) {
+        const userWithRole = await fetchUserRole(user);
+        setUser(userWithRole);
+      } else {
+        setUser(null);
+      }
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;
@@ -84,7 +149,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { session, user } = await auth.signUp(email, password, metadata);
       setSession(session);
-      setUser(user);
+      
+      if (user) {
+        const userWithRole = await fetchUserRole(user);
+        setUser(userWithRole);
+      } else {
+        setUser(null);
+      }
     } catch (error) {
       console.error('Sign up error:', error);
       throw error;
