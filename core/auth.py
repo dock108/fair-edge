@@ -7,12 +7,11 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from typing import Optional
 import logging
 
 from core.settings import settings
-from db import get_db
+from db import get_db, execute_with_pgbouncer_retry
 
 logger = logging.getLogger(__name__)
 
@@ -70,8 +69,9 @@ async def get_current_user(
 
     # Fetch role & subscription status from profiles table
     try:
-        result = await db.execute(
-            text("SELECT id, email, role, subscription_status FROM profiles WHERE id = :user_id"),
+        result = await execute_with_pgbouncer_retry(
+            db,
+            "SELECT id, email, role, subscription_status FROM profiles WHERE id = :user_id",
             {"user_id": user_id}
         )
         profile = result.fetchone()
@@ -90,7 +90,7 @@ async def get_current_user(
             return UserCtx(id=user_id, email=email)
             
     except Exception as db_error:
-        logger.error(f"Database error fetching user profile: {db_error}")
+        logger.error(f"Database error fetching user profile after retries: {db_error}")
         # Graceful fallback to JWT-only context
         return UserCtx(id=user_id, email=email)
 
