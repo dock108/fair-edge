@@ -489,13 +489,13 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
     ev_threshold = role_config.get("ev_threshold", -999.0)
     max_opportunities = role_config.get("max_opportunities", None)
     
-        filtered_opportunities = []
+    filtered_opportunities = []
     
-        for opp in opportunities:
-            # Get the original market key from the _original data
-            original_market = opp.get('_original', {}).get('Market', '')
+    for opp in opportunities:
+        # Get the original market key from the _original data
+        original_market = opp.get('_original', {}).get('Market', '')
         ev_percentage = opp.get('ev_percentage', 0)
-            
+        
         # Determine if opportunity should be included based on market access
         include_opportunity = False
         
@@ -511,7 +511,7 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
         
         if include_opportunity:
             # Mask advanced fields based on role
-                filtered_opp = opp.copy()
+            filtered_opp = opp.copy()
             
             # Only mask fields for free users (not basic users)
             if feature_config.should_mask_field("kelly_factor", user_role):
@@ -521,8 +521,8 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
                     if '_original' in filtered_opp:
                         filtered_opp['_original'].pop(field, None)
             
-                filtered_opportunities.append(filtered_opp)
-        
+            filtered_opportunities.append(filtered_opp)
+    
     # Apply opportunity limit (mainly for free users)
     if max_opportunities is not None and len(filtered_opportunities) > max_opportunities:
         # For free users, we want the 10 worst opportunities but still display them best-to-worst
@@ -536,7 +536,7 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
     filtered_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
     
     # Determine truncation status and limit description
-        truncated = len(filtered_opportunities) < total_available
+    truncated = len(filtered_opportunities) < total_available
     
     # Generate appropriate limit description
     if user_role == "free":

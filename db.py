@@ -49,7 +49,15 @@ if DB_CONNECTION_STRING:
             pool_size=10,        # Number of connections to maintain
             max_overflow=20,     # Additional connections when pool is full
             pool_timeout=30,     # Timeout when getting connection from pool
-            connect_args={"statement_cache_size": 0}  # Disable statement caching for pgbouncer compatibility
+            connect_args={
+                "statement_cache_size": 0,  # Disable statement caching for pgbouncer compatibility
+                "prepared_statement_cache_size": 0,  # Additional cache disabling
+                "server_settings": {
+                    "application_name": "fairedge_app",
+                    "search_path": "public",  # Explicit schema path
+                    "jit": "off"  # Disable JIT for pgbouncer compatibility
+                }
+            }
         )
         AsyncSessionLocal = async_sessionmaker(
             engine, 
@@ -95,15 +103,19 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     try:
         yield session
     except Exception as e:
-        await session.rollback()
+        try:
+            await session.rollback()
+        except Exception:
+            pass  # Ignore rollback errors
         logger.error(f"Database session error: {e}")
         raise
     finally:
+        # Close session without raising exceptions
         try:
-            await session.close()
-        except Exception as close_error:
-            logger.warning(f"Error closing database session: {close_error}")
-            pass  # Don't let close errors propagate
+            if session.is_active:
+                await session.close()
+        except Exception:
+            pass  # Ignore close errors to prevent IllegalStateChangeError
 
 
 async def get_async_session() -> AsyncSession:
@@ -168,6 +180,26 @@ async def check_supabase_connection() -> bool:
 
 
 # Health check function for API
+async def execute_with_pgbouncer_retry(session: AsyncSession, query_text: str, params: dict = None, max_retries: int = 2):
+    """
+    Execute a database query with PgBouncer compatibility retry logic
+    """
+    for attempt in range(max_retries):
+        try:
+            result = await session.execute(text(query_text), params or {})
+            return result
+        except Exception as e:
+            if "DuplicatePreparedStatementError" in str(e) and attempt < max_retries - 1:
+                logger.warning(f"PgBouncer prepared statement error, retry {attempt + 1}/{max_retries}")
+                # Brief wait before retry
+                import asyncio
+                await asyncio.sleep(0.1)
+                continue
+            else:
+                # Re-raise the exception if it's not a pgbouncer error or we've exhausted retries
+                raise e
+
+
 async def get_database_status() -> dict:
     """
     Get comprehensive database status for health checks

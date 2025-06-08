@@ -32,8 +32,11 @@ async def add_stripe_columns():
         return False
     
     try:
-        # Create async engine
-        engine = create_async_engine(db_connection_string)
+        # Create async engine with pgbouncer compatibility
+        engine = create_async_engine(
+            db_connection_string,
+            connect_args={"statement_cache_size": 0}  # Disable statement caching for pgbouncer compatibility
+        )
         
         async with engine.begin() as conn:
             # Check if columns already exist
@@ -106,7 +109,10 @@ async def verify_migration():
         return False
     
     try:
-        engine = create_async_engine(db_connection_string)
+        engine = create_async_engine(
+            db_connection_string,
+            connect_args={"statement_cache_size": 0}  # Disable statement caching for pgbouncer compatibility
+        )
         
         async with engine.begin() as conn:
             # Check table structure

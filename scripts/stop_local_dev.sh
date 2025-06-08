@@ -2,6 +2,9 @@
 
 # Stop Local Development Services Script for Bet Intel
 
+# Change to project root directory (parent of scripts/)
+cd "$(dirname "$0")/.."
+
 echo "🛑 Stopping Bet Intel Local Development Environment..."
 echo ""
 
@@ -49,9 +52,14 @@ pkill -f "uvicorn" 2>/dev/null || true
 pkill -f "redis-server" 2>/dev/null || true
 sleep 1
 
-# Clean up log files
-echo "📁 Cleaning up log files..."
-rm -f celery_worker.log celery_beat.log 2>/dev/null && echo "✅ Log files cleaned" || echo "ℹ️  No log files to clean"
+# Clean up log files and temp files
+echo "📁 Cleaning up log files and temp files..."
+rm -f celery_worker.log celery_beat.log dump.rdb celerybeat-schedule.db 2>/dev/null
+rm -f logs/celery_worker.log logs/celery_beat.log logs/backend.log 2>/dev/null
+if [ -d logs ] && [ ! "$(ls -A logs)" ]; then
+    rmdir logs 2>/dev/null || true
+fi
+echo "✅ Log files and temp files cleaned"
 echo ""
 
 echo "✅ All services stopped successfully!"
