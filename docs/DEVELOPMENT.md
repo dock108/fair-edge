@@ -63,7 +63,6 @@ This guide provides comprehensive information for developers working on the bet-
    - **Frontend**: http://localhost:5173 (React app with hot reload)
    - **Backend API**: http://localhost:8000
    - **API Docs**: http://localhost:8000/docs
-   - **Celery Flower**: http://localhost:5555 (task monitoring)
 
 6. **Stop development environment**
    ```bash
@@ -172,33 +171,7 @@ alembic downgrade -1
 
 ## 🧪 Testing
 
-### Quick Testing
-```bash
-# Run smoke tests (2-3 minutes)
-./scripts/run_tests.sh smoke
-
-# Run load tests (5-10 minutes)  
-./scripts/run_tests.sh load
-
-# Run full integration tests (10-15 minutes)
-./scripts/run_tests.sh integration
-```
-
-### Test Types
-
-1. **Smoke Tests** (`tests/test_smoke_ci.py`)
-   - Health endpoint verification
-   - API documentation accessibility
-   - Rate limiting functionality
-   - Basic error handling
-
-2. **Load Tests** (`tests/locustfile.py`)
-   - Performance testing with realistic user scenarios
-   - Concurrent user simulation
-   - Error rate monitoring
-
-3. **Integration Tests**
-   - Database connectivity
+See the **[Testing Guide](TESTING.md)** for comprehensive testing documentation including:
    - Redis functionality
    - End-to-end API workflows
 
