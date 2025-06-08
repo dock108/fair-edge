@@ -1,63 +1,57 @@
-# FairEdge - Sports Betting +EV Analysis Platform
-name: fairedge
+# FairEdge Production Environment
+name: fairedge-prod
 
 services:
-  # React Frontend Development Server
+  # Production React Frontend (built static files)
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "80:80"
     environment:
-      - VITE_API_URL=http://localhost:8000
-      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=https://api.fairedge.com
     networks:
       - fairedge-network
-    restart: unless-stopped
+    restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-  # Main FastAPI Application
+  # Production FastAPI Application
   api:
     build: 
       context: .
       dockerfile: Dockerfile
-    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - REFRESH_INTERVAL_MINUTES=5
-      - DEBUG_MODE=true
-      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+      - REFRESH_INTERVAL_MINUTES=30
+      - DEBUG_MODE=false
+      - CORS_ORIGINS=https://fairedge.com,https://www.fairedge.com
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - ODDS_API_KEY=${ODDS_API_KEY}
       - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
-      - STRIPE_BASIC_PRICE=${STRIPE_BASIC_PRICE:-}
-      - STRIPE_PREMIUM_PRICE=${STRIPE_PREMIUM_PRICE:-}
-      - WEB_CONCURRENCY=2
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_BASIC_PRICE=${STRIPE_BASIC_PRICE}
+      - STRIPE_PREMIUM_PRICE=${STRIPE_PREMIUM_PRICE}
       - WAIT_FOR_DEPS=true
-      - RUN_MIGRATIONS=false
+      - RUN_MIGRATIONS=true
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - fairedge-network
+    restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -65,17 +59,15 @@ services:
       retries: 3
       start_period: 40s
 
-  # Celery Worker
+  # Production Celery Worker
   celery_worker:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A services.celery_app.celery_app worker --loglevel=info --concurrency=2
-    volumes:
-      - .:/app
+    command: celery -A services.celery_app.celery_app worker --loglevel=warning --concurrency=4
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - REFRESH_INTERVAL_MINUTES=5
+      - REFRESH_INTERVAL_MINUTES=30
       - PYTHONPATH=/app
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
@@ -88,7 +80,7 @@ services:
         condition: service_healthy
     networks:
       - fairedge-network
-    restart: unless-stopped
+    restart: always
     healthcheck:
       test: ["CMD", "celery", "-A", "services.celery_app.celery_app", "inspect", "ping"]
       interval: 30s
@@ -96,18 +88,17 @@ services:
       retries: 3
       start_period: 40s
 
-  # Celery Beat Scheduler
+  # Production Celery Beat Scheduler
   celery_beat:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A services.celery_app.celery_app beat --loglevel=info --schedule=/app/celery-data/beat.db
+    command: celery -A services.celery_app.celery_app beat --loglevel=warning --schedule=/app/celery-data/beat.db
     volumes:
-      - .:/app
       - celery_beat_data:/app/celery-data
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - REFRESH_INTERVAL_MINUTES=5
+      - REFRESH_INTERVAL_MINUTES=30
       - PYTHONPATH=/app
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
@@ -120,36 +111,22 @@ services:
         condition: service_healthy
     networks:
       - fairedge-network
-    restart: unless-stopped
+    restart: always
 
-  # Redis Cache & Broker
+  # Production Redis
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
     networks:
       - fairedge-network
-    restart: unless-stopped
+    restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # Redis CLI (for debugging)
-  redis_cli:
-    image: redis:7-alpine
-    command: redis-cli -h redis
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - fairedge-network
-    profiles:
-      - debug
 
 volumes:
   redis_data:
@@ -159,7 +136,4 @@ volumes:
 
 networks:
   fairedge-network:
-    driver: bridge
-
-# Development override (docker-compose.override.yml)
-# Use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up 
+    driver: bridge 

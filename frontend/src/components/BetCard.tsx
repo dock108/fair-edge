@@ -220,7 +220,9 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
             <div className="comparison-list mt-2">
               {sortedOdds.map((bookmaker, idx) => {
                 const isP2P = ['novig', 'prophetx'].includes(bookmaker.bookmaker.toLowerCase());
-                const displayOdds = isP2P 
+                // Check if odds already contain fee adjustment (parentheses)
+                const alreadyAdjusted = bookmaker.odds.includes('(');
+                const displayOdds = isP2P && !alreadyAdjusted
                   ? `${bookmaker.odds} (${calculateFeeAdjustedOdds(bookmaker.odds)})`
                   : bookmaker.odds;
                 

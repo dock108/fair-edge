@@ -115,8 +115,8 @@ class BetMatcher:
                           market_key: str = None, major_books: Optional[List[str]] = None) -> int:
         """Count how many major books offer a specific outcome"""
         if not major_books:
-            from services.config import MAJOR_BOOKS
-            major_books = MAJOR_BOOKS
+            from core.config.sports import SportsConfig
+            major_books = SportsConfig.MAJOR_BOOKS
             
         target_identifier = BetMatcher.create_target_identifier(outcome_name, market_odds, market_key)
         if not target_identifier:
@@ -179,8 +179,8 @@ class BetMatcher:
         Returns: Number of major books that have complete two-sided coverage
         """
         if not major_books:
-            from services.config import MAJOR_BOOKS
-            major_books = MAJOR_BOOKS
+            from core.config.sports import SportsConfig
+            major_books = SportsConfig.MAJOR_BOOKS
             
         count = 0
         

@@ -123,18 +123,23 @@ def _is_cache_valid(cache_data: Dict[str, Any]) -> bool:
     return datetime.now() - cache_time < timedelta(seconds=CACHE_DURATION)
 
 
-def fetch_raw_odds_data() -> Dict[str, Any]:
+def fetch_raw_odds_data(force_refresh: bool = False) -> Dict[str, Any]:
     """
     Cached data fetching from odds API (3-hour cache in debug mode, 30-minute cache in production)
+    Args:
+        force_refresh: If True, bypass cache and fetch fresh data from API
     Returns: Raw odds data with metadata
     """
     with _cache_lock:
-        # Try to load from persistent cache
-        cache_data = _load_cache_file(RAW_DATA_CACHE_FILE)
-        
-        if _is_cache_valid(cache_data):
-            logger.info("Returning cached raw odds data from file")
-            return cache_data['data']
+        # Try to load from persistent cache (skip if force_refresh is True)
+        if not force_refresh:
+            cache_data = _load_cache_file(RAW_DATA_CACHE_FILE)
+            
+            if _is_cache_valid(cache_data):
+                logger.info("Returning cached raw odds data from file")
+                return cache_data['data']
+        else:
+            logger.info("Force refresh requested - bypassing cache")
     
     try:
         client = OddsAPIClient()
@@ -175,21 +180,25 @@ def fetch_raw_odds_data() -> Dict[str, Any]:
         }
 
 
-def process_opportunities(raw_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+def process_opportunities(raw_data: Dict[str, Any], force_refresh: bool = False) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Process raw odds data into betting opportunities with analytics (3-hour cache in debug mode, 30-minute cache in production)
     Args:
         raw_data: Raw odds data from fetch_raw_odds_data()
+        force_refresh: If True, bypass cache and process fresh data
     Returns:
         Tuple of (opportunities_list, analytics_summary)
     """
     with _cache_lock:
-        # Try to load from persistent cache
-        cache_data = _load_cache_file(PROCESSED_DATA_CACHE_FILE)
-        
-        if _is_cache_valid(cache_data):
-            logger.info("Returning cached processed opportunities from file")
-            return cache_data['data']
+        # Try to load from persistent cache (skip if force_refresh is True)
+        if not force_refresh:
+            cache_data = _load_cache_file(PROCESSED_DATA_CACHE_FILE)
+            
+            if _is_cache_valid(cache_data):
+                logger.info("Returning cached processed opportunities from file")
+                return cache_data['data']
+        else:
+            logger.info("Force refresh requested - bypassing processed data cache")
     
     if raw_data['status'] != 'success':
         return [], {'error': raw_data.get('error', 'Unknown error')}

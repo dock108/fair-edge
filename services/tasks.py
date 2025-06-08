@@ -35,6 +35,15 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 is_shutting_down = False
 active_tasks = set()
 
+# Define custom exceptions
+class DataProcessingError(Exception):
+    """Exception for data processing errors that shouldn't trigger retries"""
+    pass
+
+class TransientError(Exception):
+    """Exception for transient errors that should trigger retries"""
+    pass
+
 @worker_shutdown.connect
 def worker_shutdown_handler(_sender=None, **kwargs):
     """Handle worker shutdown signal"""
@@ -83,15 +92,19 @@ def cleanup_celery():
 @shared_task(
     bind=True,
     name="refresh_odds_data",
-    autoretry_for=(Exception,),
+    autoretry_for=(TransientError,),  # Only retry transient errors
     retry_backoff=True,  # Exponential backoff
     retry_kwargs={"max_retries": 5},
     soft_time_limit=20 * 60,  # 20 minutes soft limit
     time_limit=25 * 60,       # 25 minutes hard limit
+    ignore_result=True,  # Don't store results in backend to avoid Redis serialization issues
 )
-def refresh_odds_data(self):
+def refresh_odds_data(self, force_refresh=False):
     """
     Background task to refresh odds data and process EV opportunities with fault tolerance.
+    
+    Args:
+        force_refresh: If True, bypass cache and fetch fresh data from API
     
     This task:
     1. Fetches fresh data from The Odds API for all supported sports
@@ -103,7 +116,10 @@ def refresh_odds_data(self):
     all_opportunities = []
     
     try:
-        logger.info("🚀 Celery task started: Refreshing odds data for all sports")
+        if force_refresh:
+            logger.info("🚀 Celery task started: Refreshing odds data for all sports (FORCE REFRESH)")
+        else:
+            logger.info("🚀 Celery task started: Refreshing odds data for all sports")
         
         # Update task state to show progress
         self.update_state(
@@ -134,7 +150,7 @@ def refresh_odds_data(self):
             )
             
             # Fetch raw odds for all sports at once
-            raw_data = fetch_raw_odds_data()
+            raw_data = fetch_raw_odds_data(force_refresh=force_refresh)
             
             if raw_data.get('status') != 'success':
                 error_msg = f"Failed to fetch odds data: {raw_data.get('error', 'Unknown error')}"
@@ -154,7 +170,7 @@ def refresh_odds_data(self):
             )
             
             logger.info("🔄 Processing opportunities for all sports...")
-            sport_opportunities, sport_analytics = process_opportunities(raw_data)
+            sport_opportunities, sport_analytics = process_opportunities(raw_data, force_refresh=force_refresh)
             
             if sport_opportunities:
                 all_opportunities.extend(sport_opportunities)
@@ -176,7 +192,7 @@ def refresh_odds_data(self):
                 logger.error(error_msg)
                 for sport in SPORTS_SUPPORTED:
                     failed_sports.append({'sport': sport, 'error': 'No opportunities generated'})
-                raise Exception(error_msg)
+                raise DataProcessingError(error_msg)
                 
         except Exception as e:
             logger.error(f"❌ Failed to process odds data: {str(e)}")
@@ -188,7 +204,7 @@ def refresh_odds_data(self):
         if not all_opportunities:
             error_msg = f"No opportunities found from any sport. Failed sports: {failed_sports}"
             logger.error(error_msg)
-            raise Exception(error_msg)
+            raise DataProcessingError(error_msg)
         
         logger.info(f"📈 Total opportunities collected: {len(all_opportunities)}")
         
@@ -295,10 +311,35 @@ def refresh_odds_data(self):
         
         return result
         
-    except Exception as exc:
+    except DataProcessingError as exc:
         processing_time = time.perf_counter() - start_time
+        
         error_details = {
             'error': str(exc),
+            'error_type': 'DataProcessingError',
+            'timestamp': datetime.utcnow().isoformat(),
+            'processing_time_seconds': round(processing_time, 2),
+            'retry_count': self.request.retries,
+            'max_retries': self.max_retries,
+            'note': 'This error will not trigger retries'
+        }
+        
+        logger.error(f"❌ Task failed after {processing_time:.2f}s (no retry): {str(exc)}")
+        
+        self.update_state(
+            state='FAILURE',
+            meta=error_details
+        )
+        
+        # Don't re-raise DataProcessingError to avoid retry loops
+        return error_details
+        
+    except Exception as exc:
+        processing_time = time.perf_counter() - start_time
+        
+        error_details = {
+            'error': str(exc),
+            'error_type': 'Exception',
             'timestamp': datetime.utcnow().isoformat(),
             'processing_time_seconds': round(processing_time, 2),
             'retry_count': self.request.retries,
@@ -312,8 +353,8 @@ def refresh_odds_data(self):
             meta=error_details
         )
         
-        # Re-raise for retry logic
-        raise exc
+        # Re-raise as TransientError to trigger retries for unexpected errors
+        raise TransientError(str(exc)) from exc
 
 def generate_analytics(opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Generate analytics from processed opportunities"""
@@ -411,6 +452,7 @@ def publish_realtime_update(opportunities: List[Dict[str, Any]]):
     autoretry_for=(Exception,),
     retry_kwargs={"max_retries": 2},
     soft_time_limit=30,  # 30 seconds
+    ignore_result=True,  # Don't store results in backend
 )
 def health_check(self):
     """
@@ -456,7 +498,8 @@ def health_check(self):
     bind=True,
     name="cleanup_old_data",
     autoretry_for=(Exception,),
-    retry_kwargs={"max_retries": 2}
+    retry_kwargs={"max_retries": 2},
+    ignore_result=True,  # Don't store results in backend
 )
 def cleanup_old_data(self):
     """

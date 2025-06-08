@@ -4,7 +4,7 @@ Updated to use unified math utilities - no longer duplicates conversion logic
 """
 import logging
 from typing import Dict, List, Any, Optional
-from services.config import BOOKMAKERS, EXCHANGE_COMMISSIONS, MAKER_EDGE_MARGIN
+from core.config.sports import SportsConfig
 from utils.math_utils import MathUtils
 
 logger = logging.getLogger(__name__)
@@ -116,7 +116,7 @@ class OddsCalculator:
         market_odds = {}
         for bookmaker_data in market_data.get('bookmakers', []):
             bookmaker_key = bookmaker_data['key']
-            if bookmaker_key in [bm['key'] for bm in BOOKMAKERS.values()]:
+            if bookmaker_key in [bm['key'] for bm in SportsConfig.BOOKMAKERS.values()]:
                 for market in bookmaker_data.get('markets', []):
                     market_key = market['key']
                     if market_key not in market_odds:
@@ -152,11 +152,11 @@ class OddsCalculator:
                                 'market_type': market_key,
                                 'outcome': outcome_name,
                                 'bookmaker': bookmaker_key,
-                                'bookmaker_name': BOOKMAKERS.get(bookmaker_key, {}).get('name', bookmaker_key),
+                                'bookmaker_name': SportsConfig.BOOKMAKERS.get(bookmaker_key, {}).get('name', bookmaker_key),
                                 'offered_odds': offered_odds,
                                 'fair_odds': fair_price,
                                 'ev_percentage': ev_percentage,
-                                'action': f"Take bet on {BOOKMAKERS.get(bookmaker_key, {}).get('name', bookmaker_key)}",
+                                'action': f"Take bet on {SportsConfig.BOOKMAKERS.get(bookmaker_key, {}).get('name', bookmaker_key)}",
                                 'description': self._format_bet_description(market_key, outcome, market_data)
                             }
                             opportunities.append(opportunity)
@@ -171,7 +171,7 @@ class OddsCalculator:
                                 'market_type': market_key,
                                 'outcome': outcome_name,
                                 'bookmaker': bookmaker_key,
-                                'bookmaker_name': BOOKMAKERS.get(bookmaker_key, {}).get('name', bookmaker_key),
+                                'bookmaker_name': SportsConfig.BOOKMAKERS.get(bookmaker_key, {}).get('name', bookmaker_key),
                                 'offered_odds': offered_odds,
                                 'fair_odds': fair_price,
                                 'ev_percentage': ev_percentage,
@@ -203,7 +203,7 @@ class OddsCalculator:
         market_odds = {}
         for bookmaker_data in market_data.get('bookmakers', []):
             bookmaker_key = bookmaker_data['key']
-            if bookmaker_key in [bm['key'] for bm in BOOKMAKERS.values()]:
+            if bookmaker_key in [bm['key'] for bm in SportsConfig.BOOKMAKERS.values()]:
                 for market in bookmaker_data.get('markets', []):
                     market_key = market['key']
                     if market_key not in market_odds:
@@ -233,8 +233,8 @@ class OddsCalculator:
                 for outcome_name, fair_price in fair_odds.items():
                     # Calculate suggested posting odds for each exchange
                     for exchange in self.exchanges:
-                        if exchange in EXCHANGE_COMMISSIONS:
-                            commission = EXCHANGE_COMMISSIONS[exchange]
+                        if exchange in SportsConfig.EXCHANGE_COMMISSIONS:
+                            commission = SportsConfig.EXCHANGE_COMMISSIONS[exchange]
                             suggested_odds = self._calculate_maker_odds(fair_price, commission)
                             
                             suggestion = {
@@ -246,11 +246,11 @@ class OddsCalculator:
                                 'market_type': market_key,
                                 'outcome': outcome_name,
                                 'exchange': exchange,
-                                'exchange_name': BOOKMAKERS.get(exchange, {}).get('name', exchange),
+                                'exchange_name': SportsConfig.BOOKMAKERS.get(exchange, {}).get('name', exchange),
                                 'fair_odds': fair_price,
                                 'suggested_odds': suggested_odds,
                                 'expected_profit_margin': self._calculate_maker_profit_margin(fair_price, suggested_odds, commission),
-                                'action': f"Post on {BOOKMAKERS.get(exchange, {}).get('name', exchange)} at {suggested_odds:.2f}",
+                                'action': f"Post on {SportsConfig.BOOKMAKERS.get(exchange, {}).get('name', exchange)} at {suggested_odds:.2f}",
                                 'description': self._format_bet_description(market_key, {'name': outcome_name}, market_data)
                             }
                             suggestions.append(suggestion)
@@ -262,7 +262,7 @@ class OddsCalculator:
         fair_prob = self.decimal_to_implied_probability(fair_odds)
         
         # Adjust probability to account for commission and maker edge
-        adjusted_prob = fair_prob * (1 + commission + MAKER_EDGE_MARGIN)
+        adjusted_prob = fair_prob * (1 + commission + SportsConfig.MAKER_EDGE_MARGIN)
         
         # Ensure probability doesn't exceed reasonable bounds
         adjusted_prob = min(adjusted_prob, 0.95)
