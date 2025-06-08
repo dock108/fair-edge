@@ -16,8 +16,8 @@ This guide provides comprehensive information for developers working on the bet-
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/bet-intel.git
-   cd bet-intel
+git clone https://github.com/your-org/fairedge.git
+cd fairedge
    ```
 
 2. **Set up environment variables**
@@ -26,47 +26,38 @@ This guide provides comprehensive information for developers working on the bet-
    # Edit .env with your configuration
    ```
 
-3. **Quick start (recommended - Full Docker)**
+3. **Quick start with Docker (recommended)**
    ```bash
-   # Start everything (frontend + backend) in Docker
-   ./scripts/start_dev_full.sh
+   # Start full development environment (frontend + backend)
+   docker-compose up -d
+   
+   # Or start production environment
+   docker-compose -f docker-compose.prod.yml up -d
    ```
 
-   **Alternative: Backend Docker + Local Frontend**
+   **Alternative: Local development**
    ```bash
-   # Start backend services only
-   ./scripts/start_local_dev.sh
+   # Backend services locally
+   pip install -r requirements.txt
+   redis-server &
+   celery -A services.celery_app.celery_app worker --loglevel=info &
+   celery -A services.celery_app.celery_app beat --loglevel=info &
+   uvicorn app:app --reload --port 8000 &
    
-   # In another terminal, start frontend locally
+   # Frontend locally
    cd frontend
    npm install
    npm run dev
    ```
 
-   **Alternative: Everything Local**
-   ```bash
-   # Start backend services locally (no Docker)
-   ./scripts/start_local_no_docker.sh
-   
-   # In another terminal, start frontend
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-4. **Verify setup**
-   ```bash
-   ./scripts/check_status.sh
-   ```
-
-5. **Access your application**
+4. **Access your application**
    - **Frontend**: http://localhost:5173 (React app with hot reload)
    - **Backend API**: http://localhost:8000
    - **API Docs**: http://localhost:8000/docs
 
-6. **Stop development environment**
+5. **Stop development environment**
    ```bash
-   ./scripts/stop_dev.sh
+   docker-compose down
    ```
 
 ## 🏗 Architecture Overview
@@ -86,7 +77,7 @@ graph LR
 ### Directory Structure
 
 ```
-bet-intel/
+fairedge/
 ├── app.py                 # Main FastAPI application
 ├── core/                  # Core utilities and configuration
 │   ├── auth.py           # Authentication logic
@@ -285,8 +276,8 @@ npm run build
 npm run preview
 
 # Build Docker image
-docker build -t bet-intel .
-docker run -p 8000:8000 bet-intel
+docker build -t fairedge .
+docker run -p 8000:8000 fairedge
 ```
 
 ### Environment-specific Deployment

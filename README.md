@@ -4,15 +4,27 @@ A modern sports betting analysis tool that identifies positive expected value (E
 
 ## 🚀 Quick Start
 
-**Docker Development (Recommended):**
+### Development Environment
 ```bash
-# Start all services
-./scripts/start_dev.sh
+# Start the full development environment (frontend + backend)
+docker-compose up -d
 
-# Access your application
+# Access the application
 # Frontend: http://localhost:5173
-# Backend: http://localhost:8000
+# Backend API: http://localhost:8000
 # API Docs: http://localhost:8000/docs
+
+# Stop services
+docker-compose down
+```
+
+### Production Environment
+```bash
+# Start production environment
+docker-compose -f docker-compose.prod.yml up -d
+
+# Frontend: http://localhost:80
+# Backend API: http://localhost:8000
 ```
 
 **Manual Setup:**

@@ -19,7 +19,7 @@ DEBUG = settings.is_debug
 SUPPORTED_SPORTS = SportsConfig.SUPPORTED_SPORTS
 BOOKMAKERS = SportsConfig.BOOKMAKERS
 FEATURED_MARKETS = SportsConfig.FEATURED_MARKETS
-SPORT_FEATURED_MARKETS = SportsConfig.FEATURED_MARKETS  # Use same for sport-specific
+SPORT_FEATURED_MARKETS = SportsConfig.ADDITIONAL_MARKETS  # This is the sport-specific markets dict
 ADDITIONAL_MARKETS = SportsConfig.ADDITIONAL_MARKETS
 MAJOR_BOOKS = SportsConfig.MAJOR_BOOKS
 
@@ -161,7 +161,7 @@ class OddsAPIClient:
                 'commenceTimeFrom': now.replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
                 'commenceTimeTo': end_time.replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
                 'regions': 'us,us_ex,eu',  # Include us_ex for exchanges
-                'markets': ','.join(SPORT_FEATURED_MARKETS.get(sport_key, FEATURED_MARKETS)),
+                'markets': ','.join(FEATURED_MARKETS),  # Start with basic markets only
                 'bookmakers': ','.join(bookmaker_keys),
                 'oddsFormat': 'decimal',
                 'dateFormat': 'iso'

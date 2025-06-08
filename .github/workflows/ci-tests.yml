@@ -309,7 +309,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t bet-intel:test .
+        docker build -t fairedge:test .
 
     - name: Test Docker image startup
       run: |
@@ -330,7 +330,7 @@ jobs:
           -e SUPABASE_ANON_KEY=test_key \
           -e SUPABASE_JWT_SECRET=test_secret \
           -e THE_ODDS_API_KEY=test_api_key \
-          bet-intel:test
+          fairedge:test
 
     - name: Wait and test container health
       run: |
