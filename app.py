@@ -258,10 +258,14 @@ def calculate_ev_breakdown(opportunity: Dict[str, Any]) -> Dict[str, Any]:
         ev_raw = original.get('EV_Raw', 0)
         
         # Use centralized odds utilities
-        from utils.odds_utils import american_to_decimal
+        from utils.math_utils import MathUtils
         
-        fair_decimal = american_to_decimal(fair_odds_str)
-        best_decimal = american_to_decimal(best_odds_str)
+        # Parse American odds to integers and convert to decimal
+        fair_american = int(fair_odds_str.replace('+', '')) if fair_odds_str.startswith('+') else int(fair_odds_str)
+        best_american = int(best_odds_str.replace('+', '')) if best_odds_str.startswith('+') else int(best_odds_str)
+        
+        fair_decimal = MathUtils.american_to_decimal(fair_american)
+        best_decimal = MathUtils.american_to_decimal(best_american)
         
         # Calculate implied probabilities
         fair_probability = 1 / fair_decimal if fair_decimal > 1 else 0.5

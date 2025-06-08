@@ -126,6 +126,29 @@ const DisclaimerPage: React.FC = () => {
           </div>
         </section>
 
+        {/* Affiliate Disclosure */}
+        <section className="disclaimer-section">
+          <h2 className="section-title">🔗 Affiliate Link Disclosure</h2>
+          <div className="disclaimer-content">
+            <p><strong>Affiliate Relationships:</strong> This website contains affiliate links to third-party betting platforms, including but not limited to ProphetX and Novig.</p>
+            
+            <div className="risk-list">
+              <ul>
+                <li><strong>Commission Disclosure:</strong> We may receive compensation when you click on these links and create an account or place bets on partner platforms</li>
+                <li><strong>No Additional Cost:</strong> Using our affiliate links does not result in any additional cost to you</li>
+                <li><strong>Editorial Independence:</strong> Our analysis and recommendations are not influenced by affiliate relationships</li>
+                <li><strong>Platform Selection:</strong> We recommend platforms based on mathematical calculations and user experience, not commission rates</li>
+              </ul>
+            </div>
+            
+            <p><span className="highlight">Transparency:</span> We believe in full transparency about our business relationships. Any affiliate links are clearly marked as external links that will take you to partner websites.</p>
+            
+            <div className="legal-text">
+              <p><em>Please review the terms and conditions of any third-party platforms before creating accounts or placing bets. We are not responsible for the policies, practices, or services of affiliate partners.</em></p>
+            </div>
+          </div>
+        </section>
+
         {/* Terms of Use */}
         <section className="disclaimer-section">
           <h2 className="section-title">📝 Terms of Use</h2>

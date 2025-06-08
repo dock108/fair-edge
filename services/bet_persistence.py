@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from models import Bet, BetOffer, Sport, League, Book
 from db import AsyncSessionLocal
-from utils.odds_utils import american_to_decimal
+from utils.math_utils import MathUtils
 
 logger = logging.getLogger(__name__)
 
@@ -342,8 +342,12 @@ class BetPersistenceService:
         """Parse odds data into structured format"""
         best_odds = opportunity.get('Best Available Odds', '+100')
         
-        # Convert American odds to decimal
-        decimal_odds = american_to_decimal(best_odds)
+        # Convert American odds to decimal - handle sign properly
+        if best_odds.startswith('-'):
+            american_int = -int(best_odds[1:])
+        else:
+            american_int = int(best_odds.replace('+', ''))
+        decimal_odds = MathUtils.american_to_decimal(american_int)
         
         return {
             "american": best_odds,
@@ -354,7 +358,12 @@ class BetPersistenceService:
     def _parse_fair_odds(self, opportunity: Dict[str, Any]) -> Dict[str, Any]:
         """Parse fair odds data"""
         fair_odds = opportunity.get('Fair Odds', '+100')
-        decimal_odds = american_to_decimal(fair_odds)
+        # Convert American odds to decimal - handle sign properly  
+        if fair_odds.startswith('-'):
+            american_int = -int(fair_odds[1:])
+        else:
+            american_int = int(fair_odds.replace('+', ''))
+        decimal_odds = MathUtils.american_to_decimal(american_int)
         
         return {
             "american": fair_odds,
