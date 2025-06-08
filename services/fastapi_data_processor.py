@@ -16,11 +16,12 @@ from core.fair_odds_calculator import FairOddsCalculator
 from core.ev_analyzer import EVAnalyzer
 from core.maker_odds_calculator import MakerOddsCalculator
 from utils.bet_matching import BetMatcher
+from config import settings
 
 logger = logging.getLogger(__name__)
 
 # Cache configuration
-DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
+DEBUG_MODE = settings.debug_mode
 CACHE_DURATION = 10800 if DEBUG_MODE else 1800  # 3 hours in debug, 30 minutes in production
 CACHE_DIR = "cache"
 RAW_DATA_CACHE_FILE = os.path.join(CACHE_DIR, "raw_data_cache.pkl")
@@ -620,24 +621,22 @@ def _get_recommended_action(outcome_ev: Dict, outcome_posting: Dict) -> str:
 def _generate_action_links(outcome_ev: Dict, outcome_posting: Dict) -> str:
     """Generate action links string"""
     best_market = outcome_ev.get('best_market_odds')
-    posting_rec = outcome_posting.get('posting_recommendation')
     
     links = []
     
     # Take link - if EV is reasonable or for demo purposes
     if best_market:
-        ev_percentage = outcome_ev.get('ev_analysis', {}).get('ev_percentage', 0)
         bookmaker = best_market['bookmaker']
         
         # Generate take link for positive EV or demo purposes
-        if ev_percentage >= 0.015 or True:  # Always show for demo
-            take_url = f"https://{bookmaker}.com/sportsbook"
-            links.append(f"Take: {take_url}")
+        # Always show for demo
+        take_url = f"https://{bookmaker}.com/sportsbook"
+        links.append(f"Take: {take_url}")
     
     # Post link - always show posting option
-    if posting_rec or True:  # Always show for demo
-        post_url = "https://novig.com/exchange"  # Default exchange
-        links.append(f"Post: {post_url}")
+    # Always show for demo
+    post_url = "https://novig.com/exchange"  # Default exchange
+    links.append(f"Post: {post_url}")
     
     return " | ".join(links) if links else "N/A"
 

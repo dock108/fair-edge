@@ -225,7 +225,7 @@ class MathUtils:
         return f"{ev * 100:+.1f}%"
     
     @staticmethod
-    def validate_conversion_accuracy(american_odds: int, tolerance: float = 1e-6) -> bool:
+    def validate_conversion_accuracy(american_odds: int, _tolerance: float = 1e-6) -> bool:
         """
         Validate round-trip conversion accuracy
         american -> probability -> american should match within tolerance

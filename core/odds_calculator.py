@@ -282,7 +282,7 @@ class OddsCalculator:
         
         return 0.0
     
-    def _format_bet_description(self, market_key: str, outcome: Dict[str, Any], event_data: Dict[str, Any]) -> str:
+    def _format_bet_description(self, market_key: str, outcome: Dict[str, Any], _event_data: Dict[str, Any]) -> str:
         """Format a human-readable bet description"""
         outcome_name = outcome.get('name', '')
         

@@ -35,7 +35,7 @@ PROCESSING_STATUS_TTL = 600  # 10 minutes for status tracking
     soft_time_limit=10 * 60,  # 10 minutes soft limit
     time_limit=12 * 60,       # 12 minutes hard limit
 )
-def calc_ev_batch(self, batch_id: str, options: Optional[Dict[str, Any]] = None):
+def calc_ev_batch(self, batch_id: str, _options: Optional[Dict[str, Any]] = None):
     """
     Calculate EV for a batch of opportunities - heavy computation task
     

@@ -4,15 +4,15 @@ Handles caching of EV opportunities and analytics data
 """
 import redis
 import json
-import os
 import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+from config import settings
 
 logger = logging.getLogger(__name__)
 
 # Redis configuration
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = settings.redis_url
 EV_CACHE_KEY = "ev_opportunities"
 ANALYTICS_CACHE_KEY = "ev_analytics"
 LAST_UPDATE_KEY = "last_update"

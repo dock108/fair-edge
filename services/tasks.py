@@ -37,7 +37,7 @@ is_shutting_down = False
 active_tasks = set()
 
 @worker_shutdown.connect
-def worker_shutdown_handler(sender=None, **kwargs):
+def worker_shutdown_handler(_sender=None, **kwargs):
     """Handle worker shutdown signal"""
     global is_shutting_down
     is_shutting_down = True
