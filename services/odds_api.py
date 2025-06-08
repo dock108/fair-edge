@@ -7,10 +7,21 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import pytz
-from services.config import (
-    ODDS_API_KEY, ODDS_API_BASE_URL, BOOKMAKERS, FEATURED_MARKETS, 
-    SPORT_FEATURED_MARKETS, ADDITIONAL_MARKETS, MAJOR_BOOKS, SUPPORTED_SPORTS, DEBUG
-)
+from core.settings import settings
+from core.config.sports import SportsConfig
+
+# Map settings to old variable names for backward compatibility
+ODDS_API_KEY = settings.odds_api_key
+ODDS_API_BASE_URL = settings.odds_api_base_url
+DEBUG = settings.is_debug
+
+# Import configuration constants
+SUPPORTED_SPORTS = SportsConfig.SUPPORTED_SPORTS
+BOOKMAKERS = SportsConfig.BOOKMAKERS
+FEATURED_MARKETS = SportsConfig.FEATURED_MARKETS
+SPORT_FEATURED_MARKETS = SportsConfig.FEATURED_MARKETS  # Use same for sport-specific
+ADDITIONAL_MARKETS = SportsConfig.ADDITIONAL_MARKETS
+MAJOR_BOOKS = SportsConfig.MAJOR_BOOKS
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)

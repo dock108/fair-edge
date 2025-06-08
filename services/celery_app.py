@@ -7,7 +7,7 @@ import sys
 from celery import Celery
 from celery.schedules import crontab
 import logging
-from config import settings
+from core.settings import settings
 
 # Add project root to Python path for imports to work in Celery workers
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,16 +21,14 @@ logging.basicConfig(level=logging.INFO)
 REFRESH_INTERVAL_MINUTES = settings.refresh_interval_minutes
 REDIS_URL = settings.redis_url
 
-# Create Celery app with Phase 3 task modules
+# Create Celery app with actual task modules
 celery_app = Celery(
     "fairedge",
     broker=REDIS_URL,
     backend=REDIS_URL,
     include=[
-        "services.tasks",  # Legacy tasks (will be deprecated)
-        "tasks.ev",        # Legacy EV tasks
-        "src.odds.tasks",  # New odds domain tasks
-        "src.admin.tasks",  # New admin domain tasks
+        "services.tasks",  # Main tasks module
+        "tasks.ev",        # EV calculation tasks
     ]
 )
 
@@ -57,12 +55,12 @@ celery_app.conf.update(
     worker_disable_rate_limits=False,
     
     # Beat Scheduler Configuration
-    beat_schedule_filename='logs/celerybeat-schedule.db',  # Store in logs directory
+    beat_schedule_filename='/app/celery-data/beat.db',  # Store in persistent volume for Docker
     
     # Beat Schedule Configuration - Use exact task names from @shared_task decorators
     beat_schedule={
         'refresh-ev-data': {
-            'task': 'odds.refresh_odds_data',  # Matches @shared_task(name="odds.refresh_odds_data")
+            'task': 'refresh_odds_data',  # Matches @shared_task(name="refresh_odds_data")
             'schedule': crontab(minute=f"*/{REFRESH_INTERVAL_MINUTES}"),
             'options': {
                 'expires': 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up
@@ -78,7 +76,7 @@ celery_app.conf.update(
             }
         },
         'health-check': {
-            'task': 'admin.health_check',  # Matches @shared_task(name="admin.health_check")
+            'task': 'health_check',  # Matches @shared_task(name="health_check")
             'schedule': crontab(minute='*/5'),
             'options': {
                 'expires': 300,

@@ -7,7 +7,7 @@ import json
 import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from config import settings
+from core.settings import settings
 
 logger = logging.getLogger(__name__)
 

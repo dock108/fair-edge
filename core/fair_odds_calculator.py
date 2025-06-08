@@ -3,7 +3,7 @@ Fair Odds Calculator for Sports Betting +EV Analysis
 Calculates no-vig fair odds by removing bookmaker margins
 """
 import logging
-from services.config import MAJOR_BOOKS
+from core.config.sports import SportsConfig
 from typing import Dict, List, Any, Optional, Tuple
 from utils.math_utils import MathUtils
 from utils.bet_matching import BetMatcher
@@ -23,7 +23,7 @@ class FairOddsCalculator:
     """
     
     def __init__(self):
-        self.major_books = MAJOR_BOOKS  # ['pinnacle', 'draftkings', 'fanduel']
+        self.major_books = SportsConfig.MAJOR_BOOKS  # ['pinnacle', 'draftkings', 'fanduel']
     
     # Removed redundant wrapper methods - use MathUtils directly
     

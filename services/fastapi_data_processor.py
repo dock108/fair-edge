@@ -16,7 +16,7 @@ from core.fair_odds_calculator import FairOddsCalculator
 from core.ev_analyzer import EVAnalyzer
 from core.maker_odds_calculator import MakerOddsCalculator
 from utils.bet_matching import BetMatcher
-from config import settings
+from core.settings import settings
 
 logger = logging.getLogger(__name__)
 
