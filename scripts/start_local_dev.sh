@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Local Development Startup Script for Bet Intel
-# This script starts all necessary services for local development with 5-minute odds API pulls
+# Docker-based Local Development Startup Script for Bet Intel
+# This script uses Docker Compose for all services (consistent and reliable)
 
 # Change to project root directory (parent of scripts/)
 cd "$(dirname "$0")/.."
 
-echo "🚀 Starting Bet Intel Local Development Environment..."
+echo "🚀 Starting Bet Intel Local Development Environment (Docker)"
 echo "📊 Configured for 5-minute odds API refresh interval"
 echo ""
 
@@ -15,175 +15,160 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to check if a port is in use
-port_in_use() {
-    lsof -i :$1 >/dev/null 2>&1
-}
-
-# Function to kill processes on a port
-kill_port() {
-    echo "🔄 Killing processes on port $1..."
-    lsof -ti :$1 | xargs kill -9 2>/dev/null || true
-    sleep 2
-}
-
 # Check dependencies
 echo "🔍 Checking dependencies..."
 
-if ! command_exists redis-server; then
-    echo "❌ Redis not found. Please install Redis:"
-    echo "   brew install redis"
+if ! command_exists docker; then
+    echo "❌ Docker not found. Please install Docker Desktop"
+    echo "   Download from: https://www.docker.com/products/docker-desktop"
     exit 1
 fi
 
-if ! command_exists celery; then
-    echo "❌ Celery not found. Please install:"
-    echo "   pip install celery[redis]"
+if ! command_exists docker-compose; then
+    echo "❌ Docker Compose not found. Please install Docker Compose"
     exit 1
 fi
 
-echo "✅ All dependencies found"
+# Set correct Docker context for Docker Desktop
+docker context use desktop-linux >/dev/null 2>&1 || true
+
+# Check if Docker daemon is running
+if ! docker info >/dev/null 2>&1; then
+    echo "❌ Docker daemon is not running. Please start Docker Desktop"
+    echo "   - On macOS: Open Docker Desktop app"
+    echo "   - On Linux: sudo systemctl start docker"
+    echo "   - On Windows: Start Docker Desktop"
+    exit 1
+fi
+
+echo "✅ All dependencies found and Docker is running"
 echo ""
 
-# Clean up any existing processes
-echo "🧹 Cleaning up existing processes..."
-kill_port 8000  # FastAPI backend
-kill_port 6379  # Redis
+# Check important environment variables
+echo "🔧 Checking environment variables..."
+missing_vars=()
+
+if [ -z "$ODDS_API_KEY" ]; then
+    missing_vars+=("ODDS_API_KEY")
+fi
+
+if [ -z "$SUPABASE_URL" ]; then
+    missing_vars+=("SUPABASE_URL")
+fi
+
+if [ ${#missing_vars[@]} -gt 0 ]; then
+    echo "⚠️  Warning: Missing environment variables:"
+    for var in "${missing_vars[@]}"; do
+        echo "   - $var"
+    done
+    echo ""
+    echo "💡 Create a .env file with these variables or set them in your environment"
+    echo "   Example: echo 'ODDS_API_KEY=your_key_here' >> .env"
+    echo ""
+    echo "ℹ️  Continuing anyway (some features may not work)..."
+else
+    echo "✅ Required environment variables are set"
+fi
+echo ""
+
+# Clean up any existing local processes that might conflict
+echo "🧹 Cleaning up potential conflicts..."
+pkill -f "redis-server" 2>/dev/null || true
 pkill -f "celery worker" 2>/dev/null || true
 pkill -f "celery beat" 2>/dev/null || true
-echo ""
+pkill -f "uvicorn" 2>/dev/null || true
+pkill -f "fastapi" 2>/dev/null || true
+pkill -f "python.*app.py" 2>/dev/null || true
 
-# Start Redis
-echo "🔴 Starting Redis server..."
-redis-server --daemonize yes --port 6379
-sleep 2
-
-if ! port_in_use 6379; then
-    echo "❌ Failed to start Redis"
-    exit 1
+# Kill any processes on ports we need
+if lsof -i :8000 >/dev/null 2>&1; then
+    echo "🔄 Freeing up port 8000..."
+    lsof -ti :8000 | xargs kill -9 2>/dev/null || true
+    sleep 1
 fi
-echo "✅ Redis started on port 6379"
+
+if lsof -i :6379 >/dev/null 2>&1; then
+    echo "🔄 Freeing up port 6379..."
+    lsof -ti :6379 | xargs kill -9 2>/dev/null || true
+    sleep 1
+fi
+
+# Stop any existing Docker containers
+echo "🐳 Stopping existing Docker containers..."
+docker-compose down 2>/dev/null || true
 echo ""
 
-# Create logs directory if it doesn't exist
-mkdir -p logs
-
-# Start Celery Worker (background task processor)
-echo "👷 Starting Celery worker..."
-nohup celery -A services.celery_app worker --loglevel=info --concurrency=2 > logs/celery_worker.log 2>&1 &
-CELERY_WORKER_PID=$!
+# Start all services with Docker Compose
+echo "🐳 Starting all services with Docker Compose..."
+docker-compose up -d redis
+echo "⏳ Waiting for Redis to be ready..."
 sleep 5
 
-# Verify worker started
-if ps -p $CELERY_WORKER_PID > /dev/null; then
-    echo "✅ Celery worker started (PID: $CELERY_WORKER_PID)"
+docker-compose up -d celery_worker celery_beat
+echo "⏳ Waiting for Celery services to be ready..."
+sleep 10
+
+docker-compose up -d api
+echo "⏳ Waiting for API to be ready..."
+sleep 10
+
+# Check service health
+echo "🔍 Checking service health..."
+echo ""
+
+# Redis health
+if docker-compose exec redis redis-cli ping | grep -q PONG; then
+    echo "✅ Redis: Ready"
 else
-    echo "❌ Failed to start Celery worker"
-    echo "📋 Check logs/celery_worker.log for errors"
-    exit 1
+    echo "❌ Redis: Not responding"
 fi
-echo ""
 
-# Start Celery Beat (task scheduler)
-echo "⏰ Starting Celery beat scheduler..."
-nohup celery -A services.celery_app beat --loglevel=info > logs/celery_beat.log 2>&1 &
-CELERY_BEAT_PID=$!
-sleep 5
-
-# Verify beat started
-if ps -p $CELERY_BEAT_PID > /dev/null; then
-    echo "✅ Celery beat started (PID: $CELERY_BEAT_PID)"
+# API health
+if curl -f http://localhost:8000/health >/dev/null 2>&1; then
+    echo "✅ API: Ready at http://localhost:8000"
 else
-    echo "❌ Failed to start Celery beat"
-    echo "📋 Check logs/celery_beat.log for errors"
-    exit 1
+    echo "❌ API: Not responding"
 fi
-echo "📅 Scheduled tasks:"
-echo "   - Odds refresh: Every 5 minutes"
-echo "   - Health check: Every 5 minutes"
-echo ""
 
-# Start FastAPI Backend
-echo "🌐 Starting FastAPI backend..."
-python -m uvicorn app:app --reload --host 0.0.0.0 --port 8000 > logs/backend.log 2>&1 &
-BACKEND_PID=$!
-sleep 5
-
-if ! port_in_use 8000; then
-    echo "❌ Failed to start FastAPI backend"
-    echo "📋 Check logs/backend.log for errors"
-    kill $CELERY_WORKER_PID $CELERY_BEAT_PID 2>/dev/null || true
-    exit 1
+# Celery worker health
+if docker-compose exec celery_worker celery -A services.celery_app.celery_app inspect ping >/dev/null 2>&1; then
+    echo "✅ Celery Worker: Ready"
+else
+    echo "❌ Celery Worker: Not responding"
 fi
-echo "✅ FastAPI backend started on http://localhost:8000"
+
 echo ""
 
-# Test Celery connection and trigger initial data fetch
-echo "🧪 Testing Celery setup..."
-sleep 2
+# Show container status
+echo "📋 Container Status:"
+docker-compose ps
 
-# Verify Celery can see the tasks
-echo "📋 Registered Celery tasks:"
-celery -A services.celery_app inspect registered 2>/dev/null | grep -E "(refresh_odds_data|health_check)" || echo "   ⚠️  Could not verify registered tasks"
-
-# Trigger an immediate data refresh to test the system
-echo "🚀 Triggering initial data refresh..."
-python -c "
-from services.tasks import refresh_odds_data
-try:
-    result = refresh_odds_data.delay()
-    print(f'   ✅ Task queued: {result.id}')
-except Exception as e:
-    print(f'   ❌ Failed to queue task: {e}')
-"
 echo ""
-
-# Display status
 echo "🎉 All services started successfully!"
 echo ""
-echo "📋 Service Status:"
-echo "   🔴 Redis:        http://localhost:6379"
-echo "   🌐 Backend:      http://localhost:8000"
-echo "   👷 Celery Worker: Running (PID: $CELERY_WORKER_PID)"
-echo "   ⏰ Celery Beat:   Running (PID: $CELERY_BEAT_PID)"
+echo "📋 Service Endpoints:"
+echo "   🔴 Redis:        localhost:6379"
+echo "   🌐 API:          http://localhost:8000"
+echo "   📊 Health Check: http://localhost:8000/health"
+echo "   🌸 Flower (opt): http://localhost:5555"
 echo ""
-echo "📁 Log Files:"
-echo "   📝 FastAPI Backend: logs/backend.log"
-echo "   📝 Celery Worker:   logs/celery_worker.log"
-echo "   📝 Celery Beat:     logs/celery_beat.log"
+echo "📁 View Logs:"
+echo "   docker-compose logs -f api"
+echo "   docker-compose logs -f celery_worker"
+echo "   docker-compose logs -f celery_beat"
+echo "   docker-compose logs -f redis"
 echo ""
 echo "📊 Odds API Configuration:"
 echo "   🔄 Refresh Interval: 5 minutes"
-echo "   🔑 API Key: $(echo $ODDS_API_KEY | cut -c1-8)..."
+echo "   📅 Scheduled tasks: odds refresh + health checks"
 echo ""
 echo "🎯 Next Steps:"
 echo "   1. Start your frontend: cd frontend && npm run dev"
 echo "   2. Visit: http://localhost:3000"
-echo "   3. Watch logs for odds updates every 5 minutes"
+echo "   3. Monitor with: docker-compose logs -f"
 echo ""
 echo "🛑 To stop all services:"
-echo "   ./stop_local_dev.sh"
+echo "   docker-compose down"
 echo ""
-
-# Function to handle cleanup on script exit
-cleanup() {
-    echo ""
-    echo "🛑 Shutting down services..."
-    kill $CELERY_WORKER_PID $CELERY_BEAT_PID $BACKEND_PID $TAIL_PID 2>/dev/null || true
-    redis-cli shutdown 2>/dev/null || true
-    echo "✅ All services stopped"
-}
-
-# Set up signal handlers
-trap cleanup EXIT INT TERM
-
-# Keep script running and show logs
-echo "📝 Showing backend logs (Ctrl+C to stop all services):"
-echo "----------------------------------------"
-# Show logs in real-time
-tail -f logs/backend.log &
-TAIL_PID=$!
-
-# Wait for backend process and clean up tail when done
-wait $BACKEND_PID
-kill $TAIL_PID 2>/dev/null || true 
+echo "📝 To follow logs:"
+echo "   docker-compose logs -f" 

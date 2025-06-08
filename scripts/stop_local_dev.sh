@@ -8,61 +8,28 @@ cd "$(dirname "$0")/.."
 echo "🛑 Stopping Bet Intel Local Development Environment..."
 echo ""
 
-# Function to kill processes on a port
-kill_port() {
-    if lsof -i :$1 >/dev/null 2>&1; then
-        echo "🔄 Stopping processes on port $1..."
-        lsof -ti :$1 | xargs kill -9 2>/dev/null || true
-        sleep 1
-        echo "✅ Port $1 cleared"
-    else
-        echo "ℹ️  No processes running on port $1"
-    fi
-}
+# Stop Docker services (primary method)
+echo "🐳 Stopping Docker containers..."
+docker-compose down
+echo "✅ Docker containers stopped"
+echo ""
 
-# Stop Celery processes
-echo "👷 Stopping Celery workers and beat scheduler..."
-pkill -f "celery.*worker" 2>/dev/null && echo "✅ Celery workers stopped" || echo "ℹ️  No Celery workers running"
-pkill -f "celery.*beat" 2>/dev/null && echo "✅ Celery beat stopped" || echo "ℹ️  No Celery beat running"
-
-# Additional cleanup for stubborn processes
+# Clean up any local processes that might still be running
+echo "🧹 Cleaning up any remaining local processes..."
+pkill -f "redis-server" 2>/dev/null && echo "✅ Local Redis stopped" || echo "ℹ️  No local Redis running"
+pkill -f "celery.*worker" 2>/dev/null && echo "✅ Local Celery workers stopped" || echo "ℹ️  No local Celery workers running"
+pkill -f "celery.*beat" 2>/dev/null && echo "✅ Local Celery beat stopped" || echo "ℹ️  No local Celery beat running"
+pkill -f "uvicorn" 2>/dev/null && echo "✅ Local FastAPI stopped" || echo "ℹ️  No local FastAPI running"
 pkill -f "services.celery_app" 2>/dev/null || true
-sleep 2
-echo ""
-
-# Stop FastAPI backend
-echo "🌐 Stopping FastAPI backend..."
-kill_port 8000
-echo ""
-
-# Stop Redis
-echo "🔴 Stopping Redis server..."
-if redis-cli ping >/dev/null 2>&1; then
-    redis-cli shutdown 2>/dev/null
-    echo "✅ Redis stopped"
-else
-    echo "ℹ️  Redis not running"
-fi
-kill_port 6379
-echo ""
-
-# Clean up any remaining processes
-echo "🧹 Final cleanup..."
-pkill -f "uvicorn" 2>/dev/null || true
-pkill -f "redis-server" 2>/dev/null || true
 sleep 1
 
-# Clean up log files and temp files
-echo "📁 Cleaning up log files and temp files..."
-rm -f celery_worker.log celery_beat.log dump.rdb celerybeat-schedule.db 2>/dev/null
-rm -f logs/celery_worker.log logs/celery_beat.log logs/backend.log 2>/dev/null
-if [ -d logs ] && [ ! "$(ls -A logs)" ]; then
-    rmdir logs 2>/dev/null || true
-fi
-echo "✅ Log files and temp files cleaned"
 echo ""
-
 echo "✅ All services stopped successfully!"
 echo ""
+echo "💡 Note: Docker volumes are preserved (Redis data, logs, etc.)"
+echo ""
 echo "🎯 To restart services:"
-echo "   ./start_local_dev.sh" 
+echo "   ./scripts/start_local_dev.sh"
+echo ""
+echo "🧹 To clean up everything (including data volumes):"
+echo "   docker-compose down -v" 
