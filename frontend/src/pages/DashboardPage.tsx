@@ -2,6 +2,7 @@ import { useOpportunities } from '../hooks/useOpportunities';
 import { BetCard } from '../components/BetCard';
 import { useAuth } from '../contexts/AuthContext';
 import PremiumPrompt from '../components/PremiumPrompt';
+import { useEffect } from 'react';
 
 export const DashboardPage = () => {
   const {
@@ -13,7 +14,20 @@ export const DashboardPage = () => {
     refreshOpportunities
   } = useOpportunities();
   
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+
+  // Debug: Log user role information
+  useEffect(() => {
+    console.log('DashboardPage - User debug info:', {
+      isAuthenticated,
+      authLoading,
+      user: user ? {
+        email: user.email,
+        role: user.user_metadata?.role,
+        user_metadata: user.user_metadata
+      } : null
+    });
+  }, [user, isAuthenticated, authLoading]);
 
   if (loading && opportunities.length === 0) {
     return (
@@ -120,7 +134,8 @@ export const DashboardPage = () => {
             </a>
           </div>
         )}
-        {isAuthenticated && user?.user_metadata?.role === 'free' && (
+        {/* Role-specific upgrade messages - only show when not loading and user role is determined */}
+        {!authLoading && isAuthenticated && user?.user_metadata?.role === 'free' && (
           <div style={{ 
             background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%)',
             border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -145,35 +160,11 @@ export const DashboardPage = () => {
             </a>
           </div>
         )}
-        {isAuthenticated && user?.user_metadata?.role === 'basic' && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, var(--brand-50) 0%, var(--brand-100) 100%)',
-            border: '1px solid var(--brand-200)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-3)',
-            marginTop: 'var(--space-4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div>
-              <strong style={{ color: 'var(--brand-700)' }}>
-                <i className="fas fa-chart-line" style={{ marginRight: 'var(--space-2)' }}></i>
-                Basic Plan: Main lines with positive EV unlocked
-              </strong>
-              <span style={{ color: 'var(--brand-600)', marginLeft: 'var(--space-2)' }}>
-                Upgrade to Premium for player props & alternate lines!
-              </span>
-            </div>
-            <a href="/pricing" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>
-              Upgrade
-            </a>
-          </div>
-        )}
+        {/* Basic users get no upgrade messages - clean experience like premium users */}
       </div>
 
       {/* Search Section - Hidden for unauthenticated and free users */}
-      {isAuthenticated && user?.user_metadata?.role !== 'free' && (
+      {!authLoading && isAuthenticated && user?.user_metadata?.role !== 'free' && (
         <div className="row mb-4 justify-content-center">
           <div className="col-md-6 col-lg-5 col-xl-4">
           <div className="input-group">
@@ -231,7 +222,7 @@ export const DashboardPage = () => {
           )}
           
           {/* Limited Content Notice for Free Users */}
-          {isAuthenticated && user?.user_metadata?.role === 'free' && opportunities.length > 0 && (
+          {!authLoading && isAuthenticated && user?.user_metadata?.role === 'free' && opportunities.length > 0 && (
             <div style={{
               background: 'rgba(245, 158, 11, 0.05)',
               border: '1px solid rgba(245, 158, 11, 0.2)',
@@ -289,52 +280,7 @@ export const DashboardPage = () => {
             </div>
           )}
 
-          {/* Upsell for Basic Users */}
-          {isAuthenticated && user?.user_metadata?.role === 'basic' && opportunities.length > 0 && (
-            <div style={{
-              background: 'var(--grey-50)',
-              border: '1px solid var(--grey-200)',
-              borderRadius: 'var(--radius-md)',
-              padding: 'var(--space-4)',
-              textAlign: 'center',
-              marginTop: 'var(--space-6)'
-            }}>
-              <h4 style={{ color: 'var(--grey-700)', marginBottom: 'var(--space-3)' }}>
-                <i className="fas fa-arrow-up" style={{ marginRight: 'var(--space-2)' }}></i>
-                Unlock 5x More Opportunities
-              </h4>
-              <p style={{ color: 'var(--grey-600)', marginBottom: 'var(--space-4)' }}>
-                You're seeing profitable main lines. Premium users get access to <strong>player props and alternate lines</strong> for maximum daily opportunities:
-              </p>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                gap: 'var(--space-3)',
-                marginBottom: 'var(--space-4)'
-              }}>
-                <div>
-                  <i className="fas fa-basketball-ball" style={{ color: 'var(--brand-500)', marginRight: 'var(--space-2)' }}></i>
-                  Player Props
-                </div>
-                <div>
-                  <i className="fas fa-chart-line" style={{ color: 'var(--brand-500)', marginRight: 'var(--space-2)' }}></i>
-                  Alternate Lines
-                </div>
-                <div>
-                  <i className="fas fa-expand-arrows-alt" style={{ color: 'var(--brand-500)', marginRight: 'var(--space-2)' }}></i>
-                  All Market Types
-                </div>
-                <div>
-                  <i className="fas fa-trophy" style={{ color: 'var(--brand-500)', marginRight: 'var(--space-2)' }}></i>
-                  Higher EV Potential
-                </div>
-              </div>
-              <a href="/pricing" className="btn btn-primary" style={{ textDecoration: 'none' }}>
-                <i className="fas fa-crown" style={{ marginRight: 'var(--space-2)' }}></i>
-                Upgrade to Premium
-              </a>
-            </div>
-          )}
+          {/* Basic users get no upsell messages - clean experience like premium users */}
         </>
       )}
 

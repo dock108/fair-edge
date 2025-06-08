@@ -11,7 +11,7 @@ from typing import Optional
 import logging
 
 from core.settings import settings
-from db import get_db, execute_with_pgbouncer_retry
+from db import get_db, execute_with_pgbouncer_retry, get_supabase
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,30 @@ async def get_current_user(
             
     except Exception as db_error:
         logger.error(f"Database error fetching user profile after retries: {db_error}")
-        # Graceful fallback to JWT-only context
+        
+        # Fallback to Supabase REST API
+        try:
+            logger.info(f"Attempting to fetch user profile via Supabase REST API for user {user_id}")
+            supabase_client = get_supabase()
+            response = supabase_client.table('profiles').select('id, email, role, subscription_status').eq('id', user_id).execute()
+            
+            if response.data and len(response.data) > 0:
+                profile_data = response.data[0]
+                logger.info(f"Successfully fetched user profile via Supabase REST API: {profile_data['email']} (role: {profile_data['role']})")
+                return UserCtx(
+                    id=str(profile_data['id']),
+                    email=profile_data['email'] or email,
+                    role=profile_data['role'] or "free",
+                    subscription_status=profile_data['subscription_status'] or "none",
+                )
+            else:
+                logger.warning(f"User profile not found in Supabase for user {user_id}")
+                
+        except Exception as supabase_error:
+            logger.error(f"Supabase REST API fallback also failed: {supabase_error}")
+        
+        # Final fallback to JWT-only context
+        logger.warning(f"Using JWT-only context with default role for user {user_id}")
         return UserCtx(id=user_id, email=email)
 
 

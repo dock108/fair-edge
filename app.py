@@ -505,8 +505,10 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
         elif markets_access == "main_lines_only":
             # Free/Basic users: only main lines
             if original_market in MAIN_LINES:
-                # Check EV threshold (free users have -2.0, basic/premium users have -999.0)
-                if ev_percentage <= ev_threshold or ev_threshold <= -999.0:
+                # Check EV threshold (free users have -2.0, paid users have -999.0 = unlimited)
+                if ev_threshold <= -100.0:  # Paid users get all EV values (unlimited threshold)
+                    include_opportunity = True
+                elif ev_percentage <= ev_threshold:  # Free users get only opportunities <= -2.0% EV
                     include_opportunity = True
         
         if include_opportunity:
@@ -1577,6 +1579,7 @@ async def debug_cookies(request: Request):
         debug_info["jwt_decode_error"] = str(e)
     
     return debug_info
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 
