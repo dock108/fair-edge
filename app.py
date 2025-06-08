@@ -1100,20 +1100,29 @@ async def get_premium_opportunities(
 
 
 @app.get("/api/user-info")
-@limiter.limit("30/minute")
-async def get_user_info(request: Request, user: UserCtx = Depends(get_current_user)):
+async def get_user_info(user: UserCtx = Depends(get_current_user)):
     """
     Get basic user info including role and subscription status from database
     Useful for frontend role-based UI logic
     Rate limited to prevent abuse
     """
-    return {
-        "user_id": user.id,
-        "email": user.email,
-        "role": user.role,
-        "subscription_status": user.subscription_status,
-        "authenticated": True
-    }
+    try:
+        logger.info(f"📋 User-info request for user: {user.email} (role: {user.role})")
+        
+        response_data = {
+            "user_id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "subscription_status": user.subscription_status,
+            "authenticated": True
+        }
+        
+        logger.info(f"✅ User-info response: {response_data}")
+        return response_data
+        
+    except Exception as e:
+        logger.error(f"❌ Error in get_user_info: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting user info: {str(e)}")
 
 
 # Background Task Endpoints

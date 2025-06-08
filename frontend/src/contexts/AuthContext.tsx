@@ -56,7 +56,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       console.log('Fetching user role from backend...');
-      const response = await fetch('/api/user-info', {
+      const url = '/api/user-info'; // Proxy will route this to the backend
+      console.log('🔗 Making request to:', url);
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -64,8 +66,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.ok) {
         const userInfo = await response.json();
-        console.log('User role fetched:', userInfo);
-        return {
+        console.log('✅ User role fetched from backend:', userInfo);
+        const userWithRole = {
           ...supabaseUser,
           user_metadata: {
             ...supabaseUser.user_metadata,
@@ -73,16 +75,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             subscription_status: userInfo.subscription_status
           }
         };
+        console.log('✅ Updated user object:', {
+          email: userWithRole.email,
+          role: userWithRole.user_metadata.role,
+          user_metadata: userWithRole.user_metadata
+        });
+        return userWithRole;
       } else {
-        console.error('Failed to fetch user role:', response.status, response.statusText);
+        console.error('❌ Failed to fetch user role:', response.status, response.statusText);
+        const responseText = await response.text();
+        console.error('❌ Response body:', responseText);
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
     }
     
     // Fallback to original user if API call fails
-    console.log('Falling back to original user');
-    return supabaseUser as UserWithRole;
+    console.log('⚠️ Falling back to original user (no role fetched)');
+    const fallbackUser = supabaseUser as UserWithRole;
+    console.log('⚠️ Fallback user:', {
+      email: fallbackUser.email,
+      role: fallbackUser.user_metadata?.role,
+      user_metadata: fallbackUser.user_metadata
+    });
+    return fallbackUser;
   };
 
   useEffect(() => {
