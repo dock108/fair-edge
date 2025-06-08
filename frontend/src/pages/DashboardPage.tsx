@@ -16,35 +16,49 @@ export const DashboardPage = () => {
   
   const { user, isAuthenticated, loading: authLoading } = useAuth();
 
-  // Helper function to determine if user should see upgrade banners
-  const shouldShowUpgradeBanners = () => {
-    if (!isAuthenticated || authLoading) return false;
+  // Helper functions for different banner types and features
+  const shouldShowFreeTierBanners = () => {
+    // Only for free users - "you're seeing losing bets" messaging
     const userRole = user?.user_metadata?.role;
-    console.log('shouldShowUpgradeBanners check:', { userRole, isAuthenticated, authLoading });
-    // Only show banners to users with explicitly 'free' role, not basic/premium/subscriber
-    const shouldShow = userRole === 'free';
-    console.log('shouldShowUpgradeBanners result:', shouldShow);
+    const shouldShow = isAuthenticated && !authLoading && userRole === 'free';
+    console.log('shouldShowFreeTierBanners:', { userRole, isAuthenticated, authLoading, shouldShow });
     return shouldShow;
   };
 
-  // Helper function to determine if user should see search functionality
+  const shouldShowBasicToPremiumBanners = () => {
+    // Only for basic users - "upgrade to premium for player props" messaging
+    const userRole = user?.user_metadata?.role;
+    const shouldShow = isAuthenticated && !authLoading && userRole === 'basic';
+    console.log('shouldShowBasicToPremiumBanners:', { userRole, isAuthenticated, authLoading, shouldShow });
+    return shouldShow;
+  };
+
   const shouldShowSearch = () => {
+    // All paid users get search (basic, premium, subscriber, admin)
     if (!isAuthenticated || authLoading) return false;
     const userRole = user?.user_metadata?.role;
-    // Show search to all paid users (basic, premium, subscriber) but not free
-    return userRole !== 'free';
+    const paidRoles = ['basic', 'premium', 'subscriber', 'admin'];
+    const shouldShow = paidRoles.includes(userRole);
+    console.log('shouldShowSearch:', { userRole, shouldShow });
+    return shouldShow;
   };
 
   // Debug: Log user role information
   useEffect(() => {
-    console.log('DashboardPage - User debug info:', {
+    console.log('🔍 DashboardPage - Complete User Debug Info:', {
       isAuthenticated,
       authLoading,
       user: user ? {
         email: user.email,
         role: user.user_metadata?.role,
-        user_metadata: user.user_metadata
-      } : null
+        user_metadata: user.user_metadata,
+        rawUser: user
+      } : null,
+      helperResults: {
+        shouldShowFreeTierBanners: shouldShowFreeTierBanners(),
+        shouldShowBasicToPremiumBanners: shouldShowBasicToPremiumBanners(),
+        shouldShowSearch: shouldShowSearch()
+      }
     });
   }, [user, isAuthenticated, authLoading]);
 
@@ -127,7 +141,7 @@ export const DashboardPage = () => {
           </div>
         </div>
         
-        {/* Access Level Banner */}
+        {/* Unauthenticated Preview Banner */}
         {!isAuthenticated && (
           <div style={{ 
             background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%)',
@@ -142,7 +156,7 @@ export const DashboardPage = () => {
             <div>
               <strong style={{ color: '#d97706' }}>
                 <i className="fas fa-eye" style={{ marginRight: 'var(--space-2)' }}></i>
-                                    Preview Mode: Viewing 10 real sample opportunities
+                Preview Mode: Viewing 10 real sample opportunities
               </strong>
               <span style={{ color: '#92400e', marginLeft: 'var(--space-2)' }}>
                 Sign up to see profitable opportunities!
@@ -153,8 +167,9 @@ export const DashboardPage = () => {
             </a>
           </div>
         )}
-        {/* Role-specific upgrade messages - only show to free users */}
-        {shouldShowUpgradeBanners() && (
+
+        {/* Free Tier Warning Banner */}
+        {shouldShowFreeTierBanners() && (
           <div style={{ 
             background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%)',
             border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -179,8 +194,47 @@ export const DashboardPage = () => {
             </a>
           </div>
         )}
-        {/* Basic users get no upgrade messages - clean experience like premium users */}
+
+        {/* Basic users get subtle premium upsell, Premium+ users get clean experience */}
       </div>
+
+      {/* Basic to Premium Banner Above Search/Filter */}
+      {shouldShowBasicToPremiumBanners() && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--space-3)',
+          marginBottom: 'var(--space-4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 'var(--space-2)'
+        }}>
+          <div style={{ flex: '1', minWidth: '300px' }}>
+            <strong style={{ color: '#1e40af', fontSize: '0.95rem' }}>
+              <i className="fas fa-crown" style={{ marginRight: 'var(--space-2)', color: '#f59e0b' }}></i>
+              Upgrade to Premium for 5x More Opportunities
+            </strong>
+            <div style={{ color: '#374151', fontSize: '0.85rem', marginTop: '4px' }}>
+              Get player props, alternate lines & complete market coverage (+$6/month)
+            </div>
+          </div>
+          <a href="/pricing" className="btn btn-sm" style={{ 
+            background: 'linear-gradient(135deg, #3b82f6 0%, #10b981 100%)',
+            color: 'white',
+            textDecoration: 'none',
+            padding: '8px 16px',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '0.85rem',
+            whiteSpace: 'nowrap'
+          }}>
+            <i className="fas fa-arrow-up" style={{ marginRight: 'var(--space-1)' }}></i>
+            Upgrade Now
+          </a>
+        </div>
+      )}
 
       {/* Search Section - Available for paid users (basic, premium, subscriber) */}
       {shouldShowSearch() && (
@@ -231,7 +285,7 @@ export const DashboardPage = () => {
             ))}
           </div>
           
-          {/* Upsell for Unauthenticated Users */}
+          {/* Unauthenticated Users Upsell */}
           {!isAuthenticated && (
             <PremiumPrompt featureName="profitable betting opportunities">
               <strong>These are just the unprofitable bets!</strong>
@@ -240,8 +294,8 @@ export const DashboardPage = () => {
             </PremiumPrompt>
           )}
           
-          {/* Limited Content Notice for Free Users */}
-          {shouldShowUpgradeBanners() && opportunities.length > 0 && (
+          {/* Free Tier "Losing Bets" Warning */}
+          {shouldShowFreeTierBanners() && opportunities.length > 0 && (
             <div style={{
               background: 'rgba(245, 158, 11, 0.05)',
               border: '1px solid rgba(245, 158, 11, 0.2)',
@@ -299,7 +353,81 @@ export const DashboardPage = () => {
             </div>
           )}
 
-          {/* Basic users get no upsell messages - clean experience like premium users */}
+          {/* Basic Tier Subtle Premium Upsell */}
+          {shouldShowBasicToPremiumBanners() && opportunities.length > 0 && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)',
+              border: '1px solid rgba(59, 130, 246, 0.15)',
+              borderRadius: 'var(--radius-md)',
+              padding: 'var(--space-4)',
+              textAlign: 'center',
+              marginTop: 'var(--space-6)'
+            }}>
+              <h4 style={{ color: '#1e40af', marginBottom: 'var(--space-3)', fontSize: '1.1rem' }}>
+                <i className="fas fa-crown" style={{ marginRight: 'var(--space-2)', color: '#f59e0b' }}></i>
+                Unlock Premium Features
+              </h4>
+              <p style={{ color: '#374151', marginBottom: 'var(--space-4)', fontSize: '0.95rem' }}>
+                Get <strong>player props & alternate lines</strong> for 5x more profitable opportunities daily
+              </p>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                gap: 'var(--space-4)',
+                marginBottom: 'var(--space-4)',
+                maxWidth: '600px',
+                margin: '0 auto var(--space-4)'
+              }}>
+                <div style={{ 
+                  background: 'rgba(59, 130, 246, 0.1)', 
+                  padding: 'var(--space-3)', 
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)'
+                }}>
+                  <h5 style={{ color: '#2563eb', marginBottom: 'var(--space-2)', fontSize: '0.9rem' }}>
+                    <i className="fas fa-check-circle" style={{ marginRight: 'var(--space-2)' }}></i>
+                    Your Current Basic Plan
+                  </h5>
+                  <p style={{ color: '#1e40af', fontSize: '0.85rem', margin: 0 }}>
+                    ✓ All main lines (spreads, totals, moneylines)<br/>
+                    ✓ Positive EV opportunities<br/>
+                    ✓ Search & filter tools
+                  </p>
+                </div>
+                <div style={{ 
+                  background: 'rgba(245, 158, 11, 0.1)', 
+                  padding: 'var(--space-3)', 
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(245, 158, 11, 0.2)'
+                }}>
+                  <h5 style={{ color: '#d97706', marginBottom: 'var(--space-2)', fontSize: '0.9rem' }}>
+                    <i className="fas fa-plus-circle" style={{ marginRight: 'var(--space-2)' }}></i>
+                    Premium Upgrade (+$6/month)
+                  </h5>
+                  <p style={{ color: '#92400e', fontSize: '0.85rem', margin: 0 }}>
+                    + Player props (points, assists, rebounds)<br/>
+                    + Alternate lines (all spread variations)<br/>
+                    + 5x more opportunities
+                  </p>
+                </div>
+              </div>
+              
+              <a href="/pricing" className="btn" style={{ 
+                background: 'linear-gradient(135deg, #3b82f6 0%, #10b981 100%)',
+                color: 'white',
+                textDecoration: 'none',
+                padding: 'var(--space-2) var(--space-4)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.9rem'
+              }}>
+                <i className="fas fa-arrow-up" style={{ marginRight: 'var(--space-2)' }}></i>
+                Upgrade to Premium
+              </a>
+            </div>
+          )}
+
+          {/* Premium+ users get clean experience with no upsell banners */}
         </>
       )}
 
