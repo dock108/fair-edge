@@ -16,6 +16,25 @@ export const DashboardPage = () => {
   
   const { user, isAuthenticated, loading: authLoading } = useAuth();
 
+  // Helper function to determine if user should see upgrade banners
+  const shouldShowUpgradeBanners = () => {
+    if (!isAuthenticated || authLoading) return false;
+    const userRole = user?.user_metadata?.role;
+    console.log('shouldShowUpgradeBanners check:', { userRole, isAuthenticated, authLoading });
+    // Only show banners to users with explicitly 'free' role, not basic/premium/subscriber
+    const shouldShow = userRole === 'free';
+    console.log('shouldShowUpgradeBanners result:', shouldShow);
+    return shouldShow;
+  };
+
+  // Helper function to determine if user should see search functionality
+  const shouldShowSearch = () => {
+    if (!isAuthenticated || authLoading) return false;
+    const userRole = user?.user_metadata?.role;
+    // Show search to all paid users (basic, premium, subscriber) but not free
+    return userRole !== 'free';
+  };
+
   // Debug: Log user role information
   useEffect(() => {
     console.log('DashboardPage - User debug info:', {
@@ -134,8 +153,8 @@ export const DashboardPage = () => {
             </a>
           </div>
         )}
-        {/* Role-specific upgrade messages - only show when not loading and user role is determined */}
-        {!authLoading && isAuthenticated && user?.user_metadata?.role === 'free' && (
+        {/* Role-specific upgrade messages - only show to free users */}
+        {shouldShowUpgradeBanners() && (
           <div style={{ 
             background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%)',
             border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -163,8 +182,8 @@ export const DashboardPage = () => {
         {/* Basic users get no upgrade messages - clean experience like premium users */}
       </div>
 
-      {/* Search Section - Hidden for unauthenticated and free users */}
-      {!authLoading && isAuthenticated && user?.user_metadata?.role !== 'free' && (
+      {/* Search Section - Available for paid users (basic, premium, subscriber) */}
+      {shouldShowSearch() && (
         <div className="row mb-4 justify-content-center">
           <div className="col-md-6 col-lg-5 col-xl-4">
           <div className="input-group">
@@ -222,7 +241,7 @@ export const DashboardPage = () => {
           )}
           
           {/* Limited Content Notice for Free Users */}
-          {!authLoading && isAuthenticated && user?.user_metadata?.role === 'free' && opportunities.length > 0 && (
+          {shouldShowUpgradeBanners() && opportunities.length > 0 && (
             <div style={{
               background: 'rgba(245, 158, 11, 0.05)',
               border: '1px solid rgba(245, 158, 11, 0.2)',

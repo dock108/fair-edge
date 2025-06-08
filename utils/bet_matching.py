@@ -151,7 +151,17 @@ class BetMatcher:
             if price > 1.0:
                 american_odds = MathUtils.decimal_to_american(price)
                 display_name = _get_bookmaker_display_name(bookmaker_key)
-                odds_str = f"{american_odds:+d}"
+                
+                # Apply exchange fees for exchanges
+                exchanges = ['novig', 'prophetx']
+                if bookmaker_key.lower() in exchanges:
+                    exchange_fee = 0.02  # 2% commission
+                    adjusted_decimal = MathUtils.apply_exchange_fee(price, exchange_fee)
+                    adjusted_american = MathUtils.decimal_to_american(adjusted_decimal)
+                    odds_str = f"{american_odds:+d} ({adjusted_american:+d})"
+                else:
+                    odds_str = f"{american_odds:+d}"
+                    
                 odds_list.append(f"{display_name}: {odds_str}")
         
         return "; ".join(odds_list) if odds_list else "N/A"

@@ -123,8 +123,8 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
 
   const recommendedP2P = getRecommendedP2P();
   const p2pPostLink = recommendedP2P === 'ProphetX' 
-    ? 'https://prophetx.com/exchange' 
-    : 'https://novig.com/exchange';
+    ? 'https://app.prophetx.co/E5Yi?af_js_web=true&af_ss_ver=2_9_3&pid=ProphetX&c=RAF&af_channel=ProphetX&deep_link_value=referral&deep_link_sub1=NC3JLP' 
+    : 'https://novig.onelink.me/JHQQ/k695ugsr';
 
   return (
     <div 

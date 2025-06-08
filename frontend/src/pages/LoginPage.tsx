@@ -112,13 +112,7 @@ const LoginPage: React.FC = () => {
               <p>Don't have an account? <a href="/signup" className="auth-link">Sign up</a></p>
             </div>
 
-            <div className="auth-divider">
-              <span>or</span>
-            </div>
 
-            <div className="auth-note">
-              <p>🎯 <strong>Demo Accounts:</strong> Use the test credentials provided in your setup, or create a new account to get started.</p>
-            </div>
           </div>
         </div>
       </div>

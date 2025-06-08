@@ -33,13 +33,7 @@ class EVAnalyzer:
         self.calculator = FairOddsCalculator()
         self.exchange_fees = {'novig': 0.02, 'prophetx': 0.02}  # 2% commission rates
     
-    def american_to_decimal(self, american_odds: int) -> float:
-        """Convert American odds to decimal format using unified math utils"""
-        return MathUtils.american_to_decimal(american_odds)
-    
-    def calculate_fair_probability(self, fair_american_odds: int) -> float:
-        """Calculate implied probability from fair American odds using unified math utils"""
-        return MathUtils.american_to_probability(fair_american_odds)
+    # Removed redundant wrapper methods - use MathUtils directly
     
     def calculate_ev_percentage(self, fair_probability: float, market_decimal_odds: float, exchange_fee: float = 0.0) -> float:
         """
@@ -127,7 +121,6 @@ class EVAnalyzer:
         
         analysis = {
             'market_summary': {
-                'arbitrage_detected': fair_odds_result.get('arbitrage_detected', False),
                 'anchor_books': fair_odds_result.get('anchor_books', {})
             },
             'outcomes': {}
@@ -136,7 +129,7 @@ class EVAnalyzer:
         # Analyze each outcome
         for outcome_name, fair_american_odds in fair_odds_result['outcomes'].items():
             # Calculate fair probability
-            fair_probability = self.calculate_fair_probability(fair_american_odds)
+            fair_probability = MathUtils.american_to_probability(fair_american_odds)
             
             # Find best available odds for this outcome with proper matching
             best_odds_data = self.find_best_odds_for_outcome(outcome_name, market_odds, market_key)
@@ -152,7 +145,8 @@ class EVAnalyzer:
                 
                 # Calculate EV with fee-adjusted odds if it's an exchange
                 if exchange_data['is_exchange']:
-                    ev_percentage_adjusted = self.calculate_ev_percentage(fair_probability, exchange_data['adjusted_decimal'], exchange_data['commission_rate'])
+                    # Use adjusted decimal odds (fees already applied) with no additional fee
+                    ev_percentage_adjusted = self.calculate_ev_percentage(fair_probability, exchange_data['adjusted_decimal'], 0.0)
                 else:
                     ev_percentage_adjusted = ev_percentage_original
                 

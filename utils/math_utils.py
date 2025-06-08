@@ -237,19 +237,4 @@ class MathUtils:
         return abs(back_to_american - american_odds) <= 1
 
 
-# Convenience functions for backward compatibility
-def decimal_to_american(decimal_odds: float) -> int:
-    """Backward compatibility wrapper"""
-    return MathUtils.decimal_to_american(decimal_odds)
-
-def american_to_probability(american_odds: int) -> float:
-    """Backward compatibility wrapper"""
-    return MathUtils.american_to_probability(american_odds)
-
-def probability_to_american(probability: float) -> int:
-    """Backward compatibility wrapper"""
-    return MathUtils.probability_to_american(probability)
-
-def calculate_ev_percentage(fair_probability: float, market_decimal_odds: float, fee_rate: float = 0.0) -> float:
-    """Backward compatibility wrapper for net EV"""
-    return MathUtils.calculate_ev_net(fair_probability, market_decimal_odds, fee_rate) 
+# All functions now consolidated in MathUtils class - no backward compatibility wrappers needed 

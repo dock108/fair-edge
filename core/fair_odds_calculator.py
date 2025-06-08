@@ -25,17 +25,7 @@ class FairOddsCalculator:
     def __init__(self):
         self.major_books = MAJOR_BOOKS  # ['pinnacle', 'draftkings', 'fanduel']
     
-    def decimal_to_american(self, decimal_odds: float) -> int:
-        """Convert decimal odds to American format using unified math utils"""
-        return MathUtils.decimal_to_american(decimal_odds)
-    
-    def american_to_probability(self, american_odds: int) -> float:
-        """Convert American odds to probability using unified math utils"""
-        return MathUtils.american_to_probability(american_odds)
-    
-    def probability_to_american(self, probability: float) -> int:
-        """Convert probability to American odds using unified math utils"""
-        return MathUtils.probability_to_american(probability)
+    # Removed redundant wrapper methods - use MathUtils directly
     
     def find_best_payout_for_outcome(self, outcome_name: str, market_odds: Dict[str, List[Dict[str, Any]]], market_key: str = None) -> Optional[Tuple[str, int]]:
         """
@@ -92,7 +82,7 @@ class FairOddsCalculator:
             if outcome_identifier == target_identifier:
                 decimal_odds = outcome.get('price')
                 if decimal_odds and decimal_odds > 1.0:
-                    return self.decimal_to_american(decimal_odds)
+                    return MathUtils.decimal_to_american(decimal_odds)
         return None
     
     def calculate_fair_odds(self, market_odds: Dict[str, List[Dict[str, Any]]], market_key: str = None) -> Optional[Dict[str, Any]]:
@@ -131,26 +121,20 @@ class FairOddsCalculator:
         fair_odds_result = {
             'outcomes': {},
             'anchor_books': {},
-            'raw_probabilities': {},
-            'arbitrage_detected': False
+            'raw_probabilities': {}
         }
         
         for outcome_name, (anchor_book, outcome_odds, opposite_odds) in anchor_data.items():
             # Convert to probabilities
-            prob_outcome = self.american_to_probability(outcome_odds)
-            prob_opposite = self.american_to_probability(opposite_odds)
+            prob_outcome = MathUtils.american_to_probability(outcome_odds)
+            prob_opposite = MathUtils.american_to_probability(opposite_odds)
             
-            # Check for arbitrage (sum < 1.0)
+            # Remove vig by normalizing probabilities
             total_prob = prob_outcome + prob_opposite
-            if total_prob < 1.0:
-                fair_odds_result['arbitrage_detected'] = True
-                logger.info(f"Arbitrage detected in {anchor_book}: total probability = {total_prob:.4f}")
-            
-            # Remove vig by normalizing
             fair_prob_outcome = prob_outcome / total_prob
             
             # Convert back to American odds
-            fair_american_odds = self.probability_to_american(fair_prob_outcome)
+            fair_american_odds = MathUtils.probability_to_american(fair_prob_outcome)
             
             # Store results
             fair_odds_result['outcomes'][outcome_name] = fair_american_odds
@@ -173,7 +157,7 @@ class FairOddsCalculator:
             # Use the normalized probability from the calculated outcome
             fair_prob_calculated = fair_odds_result['raw_probabilities'][calculated_outcome]['fair']
             fair_prob_missing = 1.0 - fair_prob_calculated
-            fair_american_missing = self.probability_to_american(fair_prob_missing)
+            fair_american_missing = MathUtils.probability_to_american(fair_prob_missing)
             
             fair_odds_result['outcomes'][missing_outcome] = fair_american_missing
             fair_odds_result['raw_probabilities'][missing_outcome] = {
@@ -195,15 +179,11 @@ class FairOddsCalculator:
         
         for outcome_name, american_odds in outcomes.items():
             if american_odds > 0:
-                formatted_parts.append(f"{outcome_name} +{american_odds}")
+                formatted_parts.append(f"{outcome_name} {MathUtils.format_american_odds(american_odds)}")
             else:
-                formatted_parts.append(f"{outcome_name} {american_odds}")
+                formatted_parts.append(f"{outcome_name} {MathUtils.format_american_odds(american_odds)}")
         
         result = " / ".join(formatted_parts) + " (fair)"
-        
-        if fair_odds_result.get('arbitrage_detected'):
-            result += " [ARB]"
-            
         return result
     
     def get_all_current_odds_display(self, market_odds: Dict[str, List[Dict[str, Any]]]) -> Dict[str, str]:
@@ -222,11 +202,8 @@ class FairOddsCalculator:
                         name = outcome.get('name', '')
                         decimal_odds = outcome.get('price')
                         if decimal_odds and decimal_odds > 1.0:
-                            american_odds = self.decimal_to_american(decimal_odds)
-                            if american_odds > 0:
-                                formatted_parts.append(f"{name} +{american_odds}")
-                            else:
-                                formatted_parts.append(f"{name} {american_odds}")
+                            american_odds = MathUtils.decimal_to_american(decimal_odds)
+                            formatted_parts.append(f"{name} {MathUtils.format_american_odds(american_odds)}")
                         else:
                             formatted_parts.append(f"{name} N/A")
                     
