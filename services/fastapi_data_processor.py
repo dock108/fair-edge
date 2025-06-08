@@ -22,7 +22,16 @@ logger = logging.getLogger(__name__)
 
 # Cache configuration
 DEBUG_MODE = settings.debug_mode
-CACHE_DURATION = 10800 if DEBUG_MODE else 1800  # 3 hours in debug, 30 minutes in production
+
+# Environment-specific cache durations
+if hasattr(settings, 'app_env'):
+    if settings.app_env in ['development', 'local']:
+        CACHE_DURATION = 3600  # 60 minutes for dev/local
+    else:
+        CACHE_DURATION = 295   # 4 minutes 55 seconds for production
+else:
+    # Fallback: assume development if debug mode is on, otherwise production
+    CACHE_DURATION = 3600 if DEBUG_MODE else 295
 CACHE_DIR = "cache"
 RAW_DATA_CACHE_FILE = os.path.join(CACHE_DIR, "raw_data_cache.pkl")
 PROCESSED_DATA_CACHE_FILE = os.path.join(CACHE_DIR, "processed_data_cache.pkl")

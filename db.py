@@ -54,7 +54,6 @@ if DB_CONNECTION_STRING:
                 "prepared_statement_cache_size": 0,  # Additional cache disabling
                 "server_settings": {
                     "application_name": "fairedge_app",
-                    "search_path": "public",  # Explicit schema path
                     "jit": "off"  # Disable JIT for pgbouncer compatibility
                 }
             }
