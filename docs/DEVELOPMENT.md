@@ -26,10 +26,27 @@ This guide provides comprehensive information for developers working on the bet-
    # Edit .env with your configuration
    ```
 
-3. **Quick start (recommended)**
+3. **Quick start (recommended - Full Docker)**
    ```bash
-   # Start all backend services
+   # Start everything (frontend + backend) in Docker
+   ./scripts/start_dev_full.sh
+   ```
+
+   **Alternative: Backend Docker + Local Frontend**
+   ```bash
+   # Start backend services only
    ./scripts/start_local_dev.sh
+   
+   # In another terminal, start frontend locally
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+   **Alternative: Everything Local**
+   ```bash
+   # Start backend services locally (no Docker)
+   ./scripts/start_local_no_docker.sh
    
    # In another terminal, start frontend
    cd frontend
@@ -40,6 +57,17 @@ This guide provides comprehensive information for developers working on the bet-
 4. **Verify setup**
    ```bash
    ./scripts/check_status.sh
+   ```
+
+5. **Access your application**
+   - **Frontend**: http://localhost:5173 (React app with hot reload)
+   - **Backend API**: http://localhost:8000
+   - **API Docs**: http://localhost:8000/docs
+   - **Celery Flower**: http://localhost:5555 (task monitoring)
+
+6. **Stop development environment**
+   ```bash
+   ./scripts/stop_dev.sh
    ```
 
 ## 🏗 Architecture Overview
