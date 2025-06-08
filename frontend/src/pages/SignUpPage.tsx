@@ -183,14 +183,6 @@ const SignUpPage: React.FC = () => {
             <div className="auth-footer">
               <p>Already have an account? <a href="/login" className="auth-link">Sign in</a></p>
             </div>
-
-            <div className="auth-divider">
-              <span>or</span>
-            </div>
-
-            <div className="auth-note">
-              <p>🎯 <strong>Free Access:</strong> Start with main lines (moneyline, spreads, totals) or upgrade to Premium for player props and advanced features.</p>
-            </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Header } from './components/Header';
+import { Footer } from './components/Footer';
 import { DashboardPage } from './pages/DashboardPage';
 import EducationPage from './pages/EducationPage';
 import PricingPage from './pages/PricingPage';
@@ -35,7 +36,7 @@ function App() {
         <div className="App">
           <Header />
           
-          <main>
+          <main className="main-content">
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/education" element={<EducationPage />} />
@@ -54,6 +55,8 @@ function App() {
               } />
             </Routes>
           </main>
+          
+          <Footer />
         </div>
       </Router>
     </AuthProvider>
