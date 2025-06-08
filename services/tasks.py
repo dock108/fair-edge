@@ -15,7 +15,6 @@ from celery.signals import worker_shutdown
 from services.celery_app import celery_app
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 from services.redis_cache import store_ev_data, store_analytics_data, health_check as redis_health_check
-from core.constants import CACHE_KEYS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -228,10 +227,12 @@ def refresh_odds_data(self):
                 )
             )
             
-            logger.info(f"✅ Database persistence completed: "
-                       f"{persistence_result['bets_created']} bets created, "
-                       f"{persistence_result['offers_created']} offers created, "
-                       f"{len(persistence_result['errors'])} errors")
+            logger.info(
+                f"✅ Database persistence completed: "
+                f"{persistence_result['bets_created']} bets created, "
+                f"{persistence_result['offers_created']} offers created, "
+                f"{len(persistence_result['errors'])} errors"
+            )
             
             # Include persistence results in final result
             persistence_summary = {
@@ -356,14 +357,14 @@ def store_role_based_cache(opportunities: List[Dict[str, Any]], analytics: Dict[
         
         # Cache for free users (main lines only, masked fields)
         redis_client.setex(
-            CACHE_KEYS["ev_data_free"], 
+            "ev_opportunities:free", 
             3600,  # 1 hour expiry
             json.dumps(free_opportunities)
         )
         
         # Cache for full access users (subscribers/admins) - all markets
         redis_client.setex(
-            CACHE_KEYS["ev_data_full"],
+            "ev_opportunities:full",
             3600,
             json.dumps(opportunities)
         )
@@ -371,7 +372,7 @@ def store_role_based_cache(opportunities: List[Dict[str, Any]], analytics: Dict[
         logger.info(f"📦 Role-based caches updated: {len(free_opportunities)} free (main lines), {len(opportunities)} full (all markets)")
         
     except Exception as e:
-        logger.warning(f"Failed to update role-based cache: {e}")
+        logger.error(f"❌ Failed to store role-based cache: {str(e)}")
         # Don't fail the main task for cache issues
 
 def publish_realtime_update(opportunities: List[Dict[str, Any]]):

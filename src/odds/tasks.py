@@ -14,7 +14,6 @@ from celery.signals import worker_shutdown
 from services.celery_app import celery_app
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 from services.redis_cache import store_ev_data, store_analytics_data
-from core.constants import CACHE_KEYS
 from config import settings
 
 # Configure logging
@@ -205,7 +204,8 @@ def refresh_odds_data(self):
             }
         )
         
-        raise self.retry(countdown=60, exc=e)
+        # Use Celery's built-in retry mechanism
+        raise e
 
 
 def generate_analytics(opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -238,10 +238,10 @@ def store_role_based_cache(opportunities: List[Dict[str, Any]], analytics: Dict[
     try:
         # Store for free users (limited data)
         free_opportunities = opportunities[:10]  # Limit to 10 for free users
-        store_ev_data(free_opportunities, cache_key=CACHE_KEYS['free_ev_data'])
+        store_ev_data(free_opportunities)
         
-        # Store for paid users (full data)
-        store_ev_data(opportunities, cache_key=CACHE_KEYS['paid_ev_data'])
+        # Store for paid users (full data)  
+        store_ev_data(opportunities)
         
         # Store analytics
         store_analytics_data(analytics)

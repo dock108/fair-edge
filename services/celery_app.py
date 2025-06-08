@@ -2,10 +2,17 @@
 Celery app configuration for FairEdge background tasks
 Handles odds data fetching and processing on a schedule with fault tolerance
 """
+import os
+import sys
 from celery import Celery
 from celery.schedules import crontab
 import logging
 from config import settings
+
+# Add project root to Python path for imports to work in Celery workers
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 # Configure Celery logging before other imports
 logging.basicConfig(level=logging.INFO)
@@ -96,6 +103,11 @@ celery_app.conf.update(
     # Error Handling
     task_reject_on_worker_lost=True,
     task_ignore_result=False,
+    
+    # Result Backend Configuration (fix serialization issues)
+    result_accept_content=['json'],
+    result_backend_max_retries=3,
+    result_backend_retry_on_timeout=True,
 )
 
 # Logging configuration for Celery
