@@ -168,7 +168,7 @@ class MetricLabelSanitizer:
     def __enter__(self):
         return self
     
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, _exc_tb):
         if exc_type:
             logger.error(f"Error in metric recording for {self.metric_name}: {exc_val}")
     

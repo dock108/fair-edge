@@ -10,7 +10,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request
 from sse_starlette.sse import EventSourceResponse
 import redis.asyncio as aioredis
 from datetime import datetime
-from utils.redis_utils import get_redis_url
+from common.redis_utils import get_redis_url
 
 logger = logging.getLogger(__name__)
 

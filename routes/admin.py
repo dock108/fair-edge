@@ -144,7 +144,7 @@ async def update_user_role(
     role_update: UserRoleUpdate,
     request: Request,
     admin_user: UserCtx = Depends(require_role("admin")),
-    csrf_valid: bool = Depends(require_csrf_validation),
+    _csrf_valid: bool = Depends(require_csrf_validation),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -381,7 +381,7 @@ async def delete_user(
     user_id: str,
     request: Request,
     admin_user: UserCtx = Depends(require_role("admin")),
-    csrf_valid: bool = Depends(require_csrf_validation),
+    _csrf_valid: bool = Depends(require_csrf_validation),
     db: AsyncSession = Depends(get_db)
 ):
     """

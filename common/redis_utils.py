@@ -65,7 +65,7 @@ class RedisConnectionManager:
         self.client = await create_redis_client(self.decode_responses)
         return self.client
     
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, _exc_tb):
         if self.client:
             await self.client.close()
 

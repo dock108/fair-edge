@@ -201,7 +201,7 @@ except ImportError as e:
 # Register signal handlers for graceful shutdown
 def setup_signal_handlers():
     """Setup signal handlers for graceful shutdown"""
-    def signal_handler(signum, frame):
+    def signal_handler(signum, _frame):
         logger.info(f"📡 Received signal {signum}")
         # Let FastAPI handle the cleanup through the lifespan handler
         
@@ -1113,7 +1113,7 @@ async def get_user_info(request: Request, user: UserCtx = Depends(get_current_us
 # Background Task Endpoints
 @app.post("/api/refresh", tags=["background-tasks"])
 @limiter.limit("5/minute")  # Lower limit for admin operations
-async def manual_refresh(request: Request, admin_user: UserCtx = Depends(require_role("admin")), csrf_valid: bool = Depends(require_csrf_validation)):
+async def manual_refresh(request: Request, admin_user: UserCtx = Depends(require_role("admin")), _csrf_valid: bool = Depends(require_csrf_validation)):
     """
     Manually trigger odds data refresh using Celery background task - ADMIN ONLY
     Requires CSRF token validation
@@ -1199,7 +1199,7 @@ async def get_cache_status(request: Request):
 
 @app.post("/api/clear-cache", tags=["system"])
 @limiter.limit("10/minute")
-async def clear_redis_cache(request: Request, admin_user: UserCtx = Depends(require_role("admin")), csrf_valid: bool = Depends(require_csrf_validation)):
+async def clear_redis_cache(request: Request, admin_user: UserCtx = Depends(require_role("admin")), _csrf_valid: bool = Depends(require_csrf_validation)):
     """
     Clear Redis cache - ADMIN ONLY
     Requires CSRF token validation
