@@ -25,7 +25,8 @@ COPY . .
 
 # Copy and set permissions for entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker/railway-entrypoint.sh /railway-entrypoint.sh
+RUN chmod +x /entrypoint.sh /railway-entrypoint.sh
 
 # Create non-root user and setup directories
 RUN useradd --create-home --shell /bin/bash app && \
@@ -40,5 +41,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Use entrypoint script for production
-ENTRYPOINT ["/entrypoint.sh"] 
+# Use Railway entrypoint for Railway deployments
+ENTRYPOINT ["/railway-entrypoint.sh"] 

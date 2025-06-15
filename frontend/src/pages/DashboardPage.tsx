@@ -36,7 +36,7 @@ export const DashboardPage = () => {
   const shouldShowSearch = () => {
     // All paid users get search (basic, premium, subscriber, admin)
     if (!isAuthenticated || authLoading) return false;
-    const userRole = user?.user_metadata?.role;
+    const userRole = user?.user_metadata?.role || '';
     const paidRoles = ['basic', 'premium', 'subscriber', 'admin'];
     const shouldShow = paidRoles.includes(userRole);
     console.log('shouldShowSearch:', { userRole, shouldShow });
