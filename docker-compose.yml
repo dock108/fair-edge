@@ -5,15 +5,16 @@ services:
   # React Frontend Development Server
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: docker/Dockerfile.dev
+      target: frontend-dev
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - ./.env.development:/app/../.env.development:ro
     environment:
-      - VITE_API_URL=http://localhost:8000
       - CHOKIDAR_USEPOLLING=true
     networks:
       - fairedge-network
@@ -29,13 +30,14 @@ services:
   api:
     build: 
       context: .
-      dockerfile: Dockerfile
-    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+      dockerfile: docker/Dockerfile.dev
+      target: backend-dev
     ports:
       - "8000:8000"
     volumes:
       - .:/app
     environment:
+      - ENVIRONMENT=development
       - REDIS_URL=redis://redis:6379/0
       - REFRESH_INTERVAL_MINUTES=5
       - DEBUG_MODE=true
@@ -69,12 +71,16 @@ services:
   celery_worker:
     build:
       context: .
-      dockerfile: Dockerfile
-    command: celery -A services.celery_app.celery_app worker --loglevel=info --concurrency=2
+      dockerfile: docker/Dockerfile.dev
+      target: backend-dev
+    command: ["/entrypoints/celery-worker.sh"]
     volumes:
       - .:/app
     environment:
+      - ENVIRONMENT=development
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_CONCURRENCY=2
+      - CELERY_LOGLEVEL=info
       - REFRESH_INTERVAL_MINUTES=5
       - PYTHONPATH=/app
       - SUPABASE_URL=${SUPABASE_URL}
@@ -100,13 +106,16 @@ services:
   celery_beat:
     build:
       context: .
-      dockerfile: Dockerfile
-    command: celery -A services.celery_app.celery_app beat --loglevel=info --schedule=/app/celery-data/beat.db
+      dockerfile: docker/Dockerfile.dev
+      target: backend-dev
+    command: ["/entrypoints/celery-beat.sh"]
     volumes:
       - .:/app
       - celery_beat_data:/app/celery-data
     environment:
+      - ENVIRONMENT=development
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_LOGLEVEL=info
       - REFRESH_INTERVAL_MINUTES=5
       - PYTHONPATH=/app
       - SUPABASE_URL=${SUPABASE_URL}

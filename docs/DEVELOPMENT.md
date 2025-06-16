@@ -1,154 +1,246 @@
-# Development Guide
+# FairEdge Development & Deployment Guide
 
-This guide provides comprehensive information for developers working on the bet-intel project.
+Complete guide for developing and deploying the FairEdge sports betting platform, from local development to production deployment.
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- **Python 3.8+** with pip
-- **Node.js 18+** with npm
-- **Redis** for caching and task queue
-- **PostgreSQL** or Supabase account
+- **Docker & Docker Compose** (recommended)
+- **Python 3.11+** with pip (for local development)
+- **Node.js 18+** with npm (for local development)
 - **Git** for version control
 
-### Initial Setup
-
-1. **Clone the repository**
-   ```bash
+### Instant Setup (Recommended)
+```bash
+# Clone repository
 git clone https://github.com/your-org/fairedge.git
 cd fairedge
-   ```
 
-2. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+# Setup environment
+cp .env.example .env.development
+# Edit .env.development with your configuration
 
-3. **Quick start with Docker (recommended)**
-   ```bash
-   # Start full development environment (frontend + backend)
-   docker-compose up -d
-   
-   # Or start production environment
-   docker-compose -f docker-compose.prod.yml up -d
-   ```
+# Start everything with Docker
+./scripts/deploy.sh development
 
-   **Alternative: Local development**
-   ```bash
-   # Backend services locally
-   pip install -r requirements.txt
-   redis-server &
-   celery -A services.celery_app.celery_app worker --loglevel=info &
-   celery -A services.celery_app.celery_app beat --loglevel=info &
-   uvicorn app:app --reload --port 8000 &
-   
-   # Frontend locally
-   cd frontend
-   npm install
-   npm run dev
-   ```
+# Access your application
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```
 
-4. **Access your application**
-   - **Frontend**: http://localhost:5173 (React app with hot reload)
-   - **Backend API**: http://localhost:8000
-   - **API Docs**: http://localhost:8000/docs
-
-5. **Stop development environment**
-   ```bash
-   docker-compose down
-   ```
-
-## 🏗 Architecture Overview
+## 🏗️ Architecture Overview
 
 ### System Components
-
 ```mermaid
 graph LR
     A[React Frontend] -->|HTTP/JSON| B[FastAPI Backend]
     B -->|Cache| C[Redis]
-    B -->|Database| D[PostgreSQL]
+    B -->|Database| D[PostgreSQL/Supabase]
     B -->|Tasks| E[Celery Workers]
     F[Celery Beat] -->|Schedule| E
     G[The Odds API] -->|Data| E
 ```
 
-### Directory Structure
-
+### Monorepo Structure
 ```
 fairedge/
-├── app.py                 # Main FastAPI application
-├── core/                  # Core utilities and configuration
-│   ├── auth.py           # Authentication logic
-│   ├── settings.py       # Configuration management
-│   └── ...
-├── services/             # Business logic services
-│   ├── tasks.py          # Celery background tasks
-│   ├── redis_cache.py    # Cache management
-│   └── ...
-├── routes/               # API route modules
-├── models.py             # Database models
-├── utils/                # Shared utilities
-│   ├── odds_utils.py     # Odds conversion functions
-│   └── math_utils.py     # Mathematical calculations
-├── frontend/             # React SPA
-│   ├── src/
-│   ├── public/
-│   └── package.json
-├── docs/                 # Documentation
-├── tests/                # Test suite
-└── scripts/              # Development scripts
+├── 📁 docker/                    # All Docker configurations
+│   ├── Dockerfile.backend        # Multi-stage backend (API + Celery)
+│   ├── Dockerfile.frontend       # Production React + Nginx
+│   ├── Dockerfile.dev            # Development containers
+│   ├── entrypoints/              # Service startup scripts
+│   ├── nginx/                    # Nginx configuration
+│   └── redis/                    # Redis configuration
+├── 📁 frontend/                  # React application
+│   ├── src/                      # React source code
+│   ├── public/                   # Static assets
+│   ├── package.json              # Frontend dependencies
+│   └── vite.config.ts            # Build configuration
+├── 📁 backend/                   # FastAPI application
+│   ├── app.py                    # Main FastAPI application
+│   ├── core/                     # Core utilities and configuration
+│   ├── services/                 # Business logic services
+│   ├── routes/                   # API route modules
+│   ├── models.py                 # Database models
+│   └── utils/                    # Shared utilities
+├── 📁 docs/                      # Documentation
+├── 📁 scripts/                   # Deployment and utility scripts
+├── 📁 tests/                     # Test suite
+├── .env.development              # Development configuration
+├── .env.production               # Production configuration
+├── .env.example                  # Configuration template
+├── docker-compose.yml            # Development orchestration
+├── docker-compose.prod.yml       # Production orchestration
+└── requirements.txt              # Python dependencies
 ```
 
-## 🛠 Development Workflow
+## 🔧 Environment Configuration
 
-### Backend Development
+### Consolidated Environment Management
 
-1. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+**Single Source of Truth**: All configuration (backend + frontend) is managed from root-level files:
 
-2. **Start services manually** (alternative to start_local_dev.sh)
-   ```bash
-   # Terminal 1: Redis
-   redis-server
-   
-   # Terminal 2: Celery Worker
-   celery -A worker worker --loglevel=info
-   
-   # Terminal 3: Celery Beat (scheduler)
-   celery -A worker beat --loglevel=info
-   
-   # Terminal 4: FastAPI server
-   uvicorn app:app --reload --port 8000
-   ```
+- **`.env.development`** - Development settings
+- **`.env.production`** - Production settings  
+- **`.env.example`** - Template for setup
 
-3. **Access backend services**
-   - API: http://localhost:8000
-   - Documentation: http://localhost:8000/docs
-   - Health check: http://localhost:8000/health
+### Environment Variables Structure
 
-### Frontend Development
+#### Backend Variables
+```bash
+# Application
+ENVIRONMENT=development
+DEBUG_MODE=true
 
-1. **Install dependencies**
-   ```bash
-   cd frontend
-   npm install
-   ```
+# Database & Auth (Supabase)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_JWT_SECRET=your_jwt_secret
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+DB_CONNECTION_STRING=postgresql+asyncpg://...
 
-2. **Start development server**
-   ```bash
-   npm run dev
-   ```
+# External APIs
+ODDS_API_KEY=your_odds_api_key
 
-3. **Access frontend**
-   - Application: http://localhost:5173
-   - Hot reload enabled for React components
+# Redis Cache & Tasks
+REDIS_URL=redis://localhost:6379/0
+REFRESH_INTERVAL_MINUTES=5
+
+# Stripe Payments
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_BASIC_PRICE=price_...
+STRIPE_PREMIUM_PRICE=price_...
+
+# Security
+ADMIN_SECRET=your_secure_admin_secret
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+```
+
+#### Frontend Variables (VITE_* prefix)
+```bash
+# Frontend Configuration (exposed to browser)
+VITE_API_URL=http://localhost:8000
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+VITE_APP_TITLE=FairEdge Sports Betting
+VITE_APP_VERSION=1.0.0
+VITE_ENABLE_DEV_TOOLS=true
+VITE_ENABLE_ANALYTICS=false
+```
+
+### Setup Instructions
+```bash
+# 1. Copy environment template
+cp .env.example .env.development
+
+# 2. Configure your values (replace all CHANGE_ME values)
+# - Update Supabase credentials
+# - Add your Odds API key
+# - Configure Stripe keys (test keys for development)
+
+# 3. For production deployment
+cp .env.example .env.production
+# Update with production values and live API keys
+```
+
+## 🐳 Development Environments
+
+### Docker Development (Recommended)
+
+**Benefits**: Consistent environment, no local dependencies, easy setup
+
+```bash
+# Start full development environment
+./scripts/deploy.sh development
+
+# Alternative: Direct Docker Compose
+docker-compose up -d
+
+# View logs
+./scripts/deploy.sh logs development
+
+# Stop services
+./scripts/deploy.sh stop
+```
+
+**Services Started**:
+- **Frontend**: Vite dev server with hot reload (port 5173)
+- **Backend**: FastAPI with auto-reload (port 8000)
+- **Celery Worker**: Background task processing
+- **Celery Beat**: Task scheduler
+- **Redis**: Cache and message broker (port 6379)
+
+### Local Development (Alternative)
+
+**Benefits**: Direct debugging, faster iteration for specific components
+
+```bash
+# Backend services
+pip install -r requirements.txt
+
+# Terminal 1: Redis
+redis-server
+
+# Terminal 2: Celery Worker
+celery -A services.celery_app.celery_app worker --loglevel=info
+
+# Terminal 3: Celery Beat (scheduler)
+celery -A services.celery_app.celery_app beat --loglevel=info
+
+# Terminal 4: FastAPI server
+uvicorn app:app --reload --port 8000
+
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+## 🧪 Testing
+
+### Running Tests
+```bash
+# All tests via script
+./scripts/run_tests.sh smoke      # Quick health checks
+./scripts/run_tests.sh integration # Full test suite
+./scripts/run_tests.sh load       # Performance testing
+
+# Manual testing
+pytest tests/ -v                  # Python tests
+cd frontend && npm test           # Frontend tests
+
+# Docker-based testing
+docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+```
+
+### Test Structure
+- **Smoke Tests**: Basic health checks and API connectivity
+- **Integration Tests**: End-to-end API workflows and data processing
+- **Load Tests**: Performance benchmarks using Locust
+- **Frontend Tests**: React component and integration tests
+
+## 🔄 Development Workflow
+
+### Daily Development
+```bash
+# Start development environment
+./scripts/deploy.sh development
+
+# Make changes to code
+# - Backend: Auto-reload enabled
+# - Frontend: Hot module replacement
+
+# Run tests before committing
+./scripts/run_tests.sh smoke
+
+# View logs for debugging
+./scripts/deploy.sh logs development
+docker-compose logs -f api        # Specific service logs
+```
 
 ### Database Migrations
-
 ```bash
 # Generate new migration
 alembic revision --autogenerate -m "description"
@@ -160,195 +252,9 @@ alembic upgrade head
 alembic downgrade -1
 ```
 
-## 🧪 Testing
+### Code Quality Standards
 
-See the **[Testing Guide](TESTING.md)** for comprehensive testing documentation including:
-   - Redis functionality
-   - End-to-end API workflows
-
-### Running Tests Manually
-
-```bash
-# Python tests
-pytest tests/ -v
-
-# Frontend tests
-cd frontend
-npm test
-
-# Docker tests
-docker-compose -f docker-compose.test.yml up --abort-on-container-exit
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-**Essential Configuration** (`.env`):
-```bash
-# Database & Authentication
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_JWT_SECRET=your-jwt-secret
-DB_CONNECTION_STRING=postgresql://user:pass@host:port/db
-
-# External APIs
-ODDS_API_KEY=your-odds-api-key
-ODDS_API_BASE_URL=https://api.the-odds-api.com/v4
-
-# Redis Configuration
-REDIS_URL=redis://localhost:6379/0
-
-# Application Settings
-APP_ENV=development
-DEBUG_MODE=true
-REFRESH_INTERVAL_MINUTES=5
-
-# Optional: Stripe (for payments)
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-```
-
-**Frontend Configuration** (`frontend/.env.development`):
-```bash
-VITE_API_URL=http://localhost:8000
-```
-
-### Feature Flags
-
-Toggle features via environment variables:
-```bash
-# Enable advanced analytics
-ENABLE_ADVANCED_ANALYTICS=true
-
-# Enable admin features
-ENABLE_ADMIN_DASHBOARD=true
-```
-
-## 📊 Data Processing Pipeline
-
-### EV Calculation Flow
-
-1. **Data Ingestion** (Every 5 minutes)
-   ```python
-   # services/tasks.py
-   @shared_task
-   def refresh_odds_data():
-       raw_data = fetch_raw_odds_data()
-       opportunities = process_opportunities(raw_data)
-       store_ev_data(opportunities)
-   ```
-
-2. **EV Analysis** 
-   ```python
-   # Core EV calculation
-   fair_probability = american_to_probability(fair_odds)
-   market_decimal = american_to_decimal(market_odds)
-   ev = (fair_probability * market_decimal) - 1
-   ```
-
-3. **Role-based Filtering**
-   ```python
-   # Filter by user role
-   if user.role == "free":
-       opportunities = filter_main_lines_only(opportunities)
-   elif user.role in ["subscriber", "admin"]:
-       opportunities = opportunities  # All markets
-   ```
-
-### Adding New Markets
-
-1. **Update models** (`models.py`)
-2. **Add processing logic** (`services/fastapi_data_processor.py`)
-3. **Update cache keys** (`services/redis_cache.py`)
-4. **Add frontend components** (`frontend/src/components/`)
-
-## 🚀 Deployment
-
-### Local Production Testing
-
-```bash
-# Build frontend
-cd frontend
-npm run build
-
-# Test production build
-npm run preview
-
-# Build Docker image
-docker build -t fairedge .
-docker run -p 8000:8000 fairedge
-```
-
-### Environment-specific Deployment
-
-**Development**: Use `./start_local_dev.sh`
-**Staging**: Deploy with docker-compose.yml
-**Production**: Use container orchestration (K8s, ECS)
-
-### Environment Variables by Environment
-
-| Variable | Development | Staging | Production |
-|----------|------------|---------|------------|
-| DEBUG_MODE | true | false | false |
-| APP_ENV | development | staging | production |
-| CORS_ORIGINS | localhost:* | staging-domain | prod-domain |
-
-## 🔍 Debugging
-
-### Common Issues
-
-1. **Redis Connection Errors**
-   ```bash
-   # Check Redis status
-   redis-cli ping
-   
-   # Restart Redis
-   sudo service redis restart
-   ```
-
-2. **Celery Worker Issues**
-   ```bash
-   # Check worker status
-   celery -A worker inspect active
-   
-   # Purge task queue
-   celery -A worker purge
-   ```
-
-3. **Database Connection Issues**
-   ```bash
-   # Test database connection
-   python -c "from db import get_db; print('DB connection OK')"
-   ```
-
-### Debugging Tools
-
-- **System Status**: `./scripts/check_status.sh`
-- **Log Files**: `tail -f logs/*.log`
-- **Redis Monitoring**: `redis-cli monitor`
-- **API Testing**: http://localhost:8000/docs
-
-### Development Commands
-
-```bash
-# Reset Redis cache
-redis-cli FLUSHALL
-
-# Restart all services
-./scripts/stop_local_dev.sh && ./scripts/start_local_dev.sh
-
-# View active Celery tasks
-celery -A worker inspect active
-
-# Manual data refresh
-curl -X POST http://localhost:8000/api/opportunities/refresh
-```
-
-## 🎯 Code Standards
-
-### Python Code Style
-
+#### Python (Backend)
 - **Formatter**: Black
 - **Linting**: Flake8
 - **Type Hints**: Required for new functions
@@ -368,8 +274,7 @@ def calculate_ev(fair_probability: float, decimal_odds: float) -> float:
     return (fair_probability * decimal_odds) - 1
 ```
 
-### TypeScript Code Style
-
+#### TypeScript (Frontend)
 - **Formatter**: Prettier
 - **Linting**: ESLint
 - **Type Safety**: Strict mode enabled
@@ -384,53 +289,305 @@ interface BettingOpportunity {
 }
 ```
 
-### Git Workflow
+## 🚀 Production Deployment
 
-1. Create feature branch: `git checkout -b feature/description`
-2. Make changes with clear commits
-3. Run tests: `./scripts/run_tests.sh smoke`
-4. Push and create PR
-5. Ensure CI passes before merging
+### Docker Production Stack
 
-## 📈 Performance Optimization
+**Architecture**: Multi-container production setup with monitoring
 
-### Backend Performance
+```bash
+# Deploy to production
+./scripts/deploy.sh production
 
-- **Cache Strategy**: Redis for all expensive calculations
-- **Database**: Use indexes for frequent queries
-- **API**: Implement pagination for large datasets
-- **Background Tasks**: Celery for heavy processing
+# With monitoring (Prometheus + Grafana)
+./scripts/deploy.sh production --monitoring
 
-### Frontend Performance
+# Alternative: Direct Docker Compose
+docker-compose -f docker-compose.prod.yml up -d
+```
 
-- **Code Splitting**: Vite handles automatically
-- **API Calls**: Debounced search, optimistic updates
-- **Caching**: React Query for API state management
-- **Bundle Size**: Regular analysis with `npm run build -- --analyze`
+**Production Services**:
+- **Frontend**: Nginx serving optimized React build (port 80/443)
+- **Backend**: Gunicorn + Uvicorn workers (port 8000)
+- **Celery**: Optimized worker processes with resource limits
+- **Redis**: Production-tuned configuration
+- **Monitoring**: Prometheus (port 9090) + Grafana (port 3000)
 
-## 🤝 Contributing Guidelines
+### Production Docker Images
+
+#### Backend Image (`docker/Dockerfile.backend`)
+- **Base**: Python 3.11-slim
+- **Multi-stage**: Builder + Production
+- **Features**: Non-root user, optimized packages, health checks
+- **Services**: API, Celery Worker, Celery Beat (configurable entrypoints)
+
+#### Frontend Image (`docker/Dockerfile.frontend`)
+- **Base**: Node 18 + Nginx Alpine
+- **Multi-stage**: Builder + Production
+- **Features**: Optimized React build, security headers, caching
+
+#### Development Image (`docker/Dockerfile.dev`)
+- **Multi-target**: Backend-dev + Frontend-dev
+- **Features**: Hot reload, development tools, shared configuration
+
+### Environment-Specific Configuration
+
+#### Development
+```bash
+ENVIRONMENT=development
+DEBUG_MODE=true
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+VITE_API_URL=http://localhost:8000
+VITE_ENABLE_DEV_TOOLS=true
+```
+
+#### Production
+```bash
+ENVIRONMENT=production
+DEBUG_MODE=false
+CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+VITE_API_URL=https://api.yourdomain.com
+VITE_ENABLE_DEV_TOOLS=false
+VITE_ENABLE_ANALYTICS=true
+```
+
+## 📊 Monitoring & Observability
+
+### Health Checks
+All services include comprehensive health monitoring:
+- **API**: `/health` endpoint with dependency checks
+- **Frontend**: Nginx status endpoint
+- **Celery Worker**: Celery inspect ping
+- **Redis**: Redis ping command
+
+### Monitoring Stack (Optional)
+```bash
+# Start with monitoring
+./scripts/deploy.sh production --monitoring
+
+# Access monitoring tools
+# Prometheus: http://localhost:9090
+# Grafana: http://localhost:3000 (admin/admin)
+```
+
+**Metrics Collected**:
+- API performance and response times
+- Celery task metrics and queue sizes
+- Redis performance and memory usage
+- System metrics (CPU, memory, disk)
+
+### Logging
+```bash
+# View all logs
+./scripts/deploy.sh logs production
+
+# Service-specific logs
+docker-compose logs -f api
+docker-compose logs -f celery_worker
+docker-compose logs -f frontend
+
+# Log files (mounted volumes)
+tail -f logs/api/*.log
+tail -f logs/celery/*.log
+tail -f logs/nginx/*.log
+```
+
+## 🔧 Troubleshooting
+
+### Common Development Issues
+
+#### Services Won't Start
+```bash
+# Check Docker status
+docker --version
+docker-compose --version
+
+# Check port availability
+netstat -tulpn | grep :8000
+netstat -tulpn | grep :5173
+
+# Reset everything
+./scripts/deploy.sh clean
+./scripts/deploy.sh development
+```
+
+#### Environment Variable Issues
+```bash
+# Check environment loading
+./scripts/deploy.sh status development
+
+# Verify frontend can read root env
+cd frontend && npm run dev
+
+# Check Docker environment passing
+docker-compose exec frontend env | grep VITE_
+docker-compose exec api env | grep SUPABASE_
+```
+
+#### Database Connection Issues
+```bash
+# Test Supabase connection
+python -c "
+import asyncpg
+import asyncio
+async def test(): 
+    conn = await asyncpg.connect('${DB_CONNECTION_STRING}')
+    await conn.close()
+    print('DB connection OK')
+asyncio.run(test())
+"
+```
+
+#### Redis Connection Issues
+```bash
+# Test Redis connectivity
+redis-cli -u ${REDIS_URL} ping
+
+# Check Redis in Docker
+docker-compose exec redis redis-cli ping
+
+# Clear Redis cache if needed
+redis-cli -u ${REDIS_URL} FLUSHALL
+```
+
+#### Celery Task Issues
+```bash
+# Check worker status
+docker-compose exec celery_worker celery -A services.celery_app.celery_app inspect active
+
+# Check scheduled tasks
+docker-compose exec celery_beat celery -A services.celery_app.celery_app inspect scheduled
+
+# Purge task queue
+docker-compose exec celery_worker celery -A services.celery_app.celery_app purge
+```
+
+### Performance Optimization
+
+#### Production Tuning
+```bash
+# Adjust worker processes based on CPU cores
+WEB_CONCURRENCY=4               # API workers
+CELERY_CONCURRENCY=4            # Celery workers
+CELERY_MAX_TASKS_PER_CHILD=1000 # Worker recycling
+CELERY_MAX_MEMORY_PER_CHILD=200000 # Memory limits
+```
+
+#### Resource Limits (docker-compose.prod.yml)
+```yaml
+deploy:
+  resources:
+    limits:
+      memory: 1G
+      cpus: '1.0'
+    reservations:
+      memory: 512M
+      cpus: '0.5'
+```
+
+## 🔒 Security Best Practices
+
+### Environment Security
+- Never commit `.env.*` files with real credentials
+- Use different secrets for each environment
+- Rotate JWT secrets and API keys regularly
+- Enable Redis authentication in production
+
+### Container Security
+- Non-root user execution
+- Minimal base images
+- Multi-stage builds (smaller attack surface)
+- Network isolation between services
+
+### Application Security
+- CORS configuration for allowed origins
+- Security headers via Nginx
+- Input validation and sanitization
+- Rate limiting on API endpoints
+
+## 🔄 Maintenance & Updates
+
+### Regular Maintenance
+```bash
+# Update base images
+docker pull python:3.11-slim
+docker pull node:18-alpine
+docker pull nginx:1.25-alpine
+docker pull redis:7-alpine
+
+# Rebuild with latest dependencies
+./scripts/deploy.sh production --clean
+
+# Clean up old images
+docker system prune -af
+```
+
+### Backup Procedures
+```bash
+# Backup Redis data
+docker-compose exec redis redis-cli BGSAVE
+
+# Backup application data
+docker run --rm -v fairedge-prod_redis_data:/data -v $(pwd):/backup alpine tar czf /backup/redis-backup.tar.gz -C /data .
+```
+
+## 🚀 Deployment Commands Reference
+
+### Development
+```bash
+./scripts/deploy.sh development    # Start dev environment
+./scripts/deploy.sh logs development # View logs
+./scripts/deploy.sh status development # Check status
+```
+
+### Production
+```bash
+./scripts/deploy.sh production     # Deploy to production
+./scripts/deploy.sh production --monitoring # With monitoring
+./scripts/deploy.sh logs production # View production logs
+./scripts/deploy.sh stop          # Stop all services
+./scripts/deploy.sh clean         # Clean up everything
+```
+
+### Manual Docker Compose
+```bash
+# Development
+docker-compose up -d
+docker-compose down --remove-orphans
+
+# Production  
+docker-compose -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.prod.yml down --remove-orphans
+```
+
+## 🤝 Contributing
 
 ### Pull Request Process
-
-1. **Branch Naming**: `feature/feature-name` or `fix/bug-description`
-2. **Commit Messages**: Use conventional commits
-3. **Testing**: All tests must pass
-4. **Documentation**: Update relevant docs
-5. **Code Review**: At least one approval required
+1. **Branch**: `git checkout -b feature/description`
+2. **Develop**: Make changes with proper testing
+3. **Test**: `./scripts/run_tests.sh smoke`
+4. **Commit**: Use conventional commit messages
+5. **PR**: Create pull request with clear description
 
 ### Code Quality Checklist
-
-- [ ] Code follows style guidelines
-- [ ] Tests pass locally
-- [ ] Documentation updated
-- [ ] No hardcoded secrets
+- [ ] Code follows style guidelines (Black, Prettier)
+- [ ] All tests pass locally
+- [ ] Environment variables documented
+- [ ] No hardcoded secrets or credentials
 - [ ] Error handling implemented
-- [ ] Performance considerations addressed
+- [ ] Documentation updated
 
 ---
 
+## 📚 Additional Resources
+
+- **API Documentation**: http://localhost:8000/docs (when running)
+- **Frontend Development**: React + TypeScript + Vite
+- **Backend Development**: FastAPI + SQLAlchemy + Celery
+- **Database**: Supabase (PostgreSQL) with auth
+- **Deployment**: Docker + Docker Compose
+
 **Need Help?**
-- Check system status: `./scripts/check_status.sh`
-- View logs: `ls logs/`
-- Run diagnostics: `python scripts/test_setup.py`
-- Ask in development channel 
+- Check system status: `./scripts/deploy.sh status`
+- View comprehensive logs: `./scripts/deploy.sh logs development`
+- Run diagnostics: `python scripts/test_setup.py` 
