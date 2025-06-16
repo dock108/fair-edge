@@ -6,7 +6,10 @@ A modern sports betting analysis tool that identifies positive expected value (E
 
 ### Development Environment
 ```bash
-# Start the full development environment (frontend + backend)
+# Start the full development environment (recommended)
+./scripts/deploy.sh development
+
+# Or using Docker Compose directly
 docker-compose up -d
 
 # Access the application
@@ -14,25 +17,36 @@ docker-compose up -d
 # Backend API: http://localhost:8000
 # API Docs: http://localhost:8000/docs
 
+# View logs
+./scripts/deploy.sh logs development
+
 # Stop services
-docker-compose down
+./scripts/deploy.sh stop
 ```
 
 ### Production Environment
 ```bash
-# Start production environment
+# Start production environment (recommended)
+./scripts/deploy.sh production
+
+# With monitoring stack
+./scripts/deploy.sh production --monitoring
+
+# Or using Docker Compose directly
 docker-compose -f docker-compose.prod.yml up -d
 
+# Access the application
 # Frontend: http://localhost:80
 # Backend API: http://localhost:8000
+# Monitoring: http://localhost:3000 (Grafana)
 ```
 
-**Manual Setup:**
+**Manual Setup (Development Only):**
 ```bash
 # Backend
 pip install -r requirements.txt
 cp .env.example .env  # Edit with your configuration
-./scripts/start_local_dev.sh
+uvicorn app:app --reload
 
 # Frontend (separate terminal)
 cd frontend && npm install && npm run dev
@@ -55,20 +69,28 @@ cd frontend && npm install && npm run dev
 
 ## 🔧 Configuration
 
-Key environment variables in `.env`:
+**Simplified Environment Management**: All configuration is managed from root-level environment files:
+
+- **`.env.development`** - Development settings (backend + frontend)
+- **`.env.production`** - Production settings (backend + frontend) 
+- **`.env.example`** - Template for setup
+
+Key environment variables:
 ```bash
-# Database & Auth
+# Backend Configuration
 SUPABASE_URL=your-supabase-url
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_JWT_SECRET=your-jwt-secret
-
-# APIs
 ODDS_API_KEY=your-odds-api-key
-
-# Redis
 REDIS_URL=redis://localhost:6379/0
-REFRESH_INTERVAL_MINUTES=5
+
+# Frontend Configuration (VITE_* prefix)
+VITE_API_URL=http://localhost:8000
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+**Setup**: `cp .env.example .env.development` and configure your values.
 
 ## 🧪 Testing
 
@@ -85,7 +107,7 @@ REFRESH_INTERVAL_MINUTES=5
 
 ## 📚 Documentation
 
-- **[Development Guide](docs/DEVELOPMENT.md)** - Complete setup and workflows
+- **[Development & Deployment Guide](docs/DEVELOPMENT.md)** - Complete setup, workflows & production deployment
 - **[Testing Guide](docs/TESTING.md)** - Testing infrastructure and CI/CD
 - **[Database Guide](docs/DB_ENUM_UPGRADES.md)** - Schema management
 
