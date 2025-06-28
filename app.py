@@ -82,7 +82,7 @@ from core.rate_limit import limiter
 from core.exceptions import setup_exception_handlers
 
 # Import all route modules
-from routes import opportunities, auth, analytics, admin, system, debug, billing, realtime
+from routes import opportunities, auth, analytics, admin, system, debug, billing, realtime, dashboard_admin
 
 # Import services for startup/shutdown
 from services.redis_cache import initialize_redis, close_redis
@@ -228,6 +228,7 @@ def create_app() -> FastAPI:
     app.include_router(debug.router)
     app.include_router(billing.router)
     app.include_router(realtime.router)
+    app.include_router(dashboard_admin.router)
     
     # Root endpoint
     @app.get("/")

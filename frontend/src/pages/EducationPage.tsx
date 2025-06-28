@@ -6,20 +6,27 @@ const EducationPage: React.FC = () => {
       <div className="main-container">
         <div className="education-container">
         {/* Header */}
-        <header className="education-header">
-          <h1 className="education-title" style={{color: 'white'}}>🧮 How Our Analysis Works</h1>
-          <p className="education-subtitle">The math and strategy behind our recommended odds</p>
+        <header className="education-header text-center" style={{ marginBottom: 'var(--space-10)' }}>
+          <h1 className="type-h1 text-inverse">🧮 How Our Analysis Works</h1>
+          <p className="type-body-sm text-inverse font-medium">The math and strategy behind our recommended odds</p>
         </header>
 
         {/* What We're Actually Doing */}
         <section className="education-section">
-          <h2 className="section-title">🎯 What We're Actually Doing</h2>
-          <div className="education-content">
+          <div className="prose mx-auto">
+            <h2>🎯 What We're Actually Doing</h2>
+            
             <p>Our tool isn't just comparing odds - we're trying to find situations where the market has mispriced a bet. Think of it like finding a stock that's trading below its "true" value.</p>
             
-            <div className="strategy-box">
-              <div className="strategy-title">💡 Our Core Strategy</div>
-              <p>We identify <strong>the best valued sportsbook</strong> (not P2P exchange) for each bet - often Pinnacle due to their sharp lines and low margins, but could be DraftKings, FanDuel, or others. Then we look for other books offering significantly different odds on the same outcome. When we find big differences, there might be value.</p>
+            <div className="strategy-box" style={{
+              background: 'var(--surface-secondary)',
+              border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--space-6)',
+              marginBottom: 'var(--space-6)'
+            }}>
+              <h3 className="type-h4 text-brand" style={{ marginTop: 0, marginBottom: 'var(--space-3)' }}>💡 Our Core Strategy</h3>
+              <p className="type-body">We identify <strong>the best valued sportsbook</strong> (not P2P exchange) for each bet - often Pinnacle due to their sharp lines and low margins, but could be DraftKings, FanDuel, or others. Then we look for other books offering significantly different odds on the same outcome. When we find big differences, there might be value.</p>
             </div>
             
             <p>The goal is to post odds on betting exchanges that give us a mathematical edge - similar to how a casino has an edge on every game.</p>

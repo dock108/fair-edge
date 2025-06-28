@@ -1,15 +1,19 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface PremiumPromptProps {
   featureName?: string;
   children?: React.ReactNode;
+  requiredTier?: 'basic' | 'premium';
 }
 
 export const PremiumPrompt: React.FC<PremiumPromptProps> = ({ 
   featureName = "this feature", 
-  children 
+  children,
+  requiredTier = 'premium'
 }) => {
+  const { isAuthenticated, userRole } = usePermissions();
   return (
     <div className="premium-prompt" style={{
       background: 'linear-gradient(135deg, var(--brand-50) 0%, var(--brand-100) 100%)',
@@ -50,22 +54,47 @@ export const PremiumPrompt: React.FC<PremiumPromptProps> = ({
         justifyContent: 'center',
         flexWrap: 'wrap'
       }}>
-        <Link 
-          to="/pricing" 
-          className="btn btn-primary"
-          style={{ textDecoration: 'none' }}
-        >
-          <i className="fas fa-star" style={{ marginRight: 'var(--space-2)' }}></i>
-          Upgrade to Premium
-        </Link>
-        
-        <Link 
-          to="/login" 
-          className="btn btn-outline"
-          style={{ textDecoration: 'none' }}
-        >
-          Sign In
-        </Link>
+        {!isAuthenticated ? (
+          <>
+            <Link 
+              to="/login" 
+              className="btn btn-primary"
+              style={{ textDecoration: 'none' }}
+            >
+              <i className="fas fa-sign-in-alt" style={{ marginRight: 'var(--space-2)' }}></i>
+              Sign In
+            </Link>
+            <Link 
+              to="/pricing" 
+              className="btn btn-outline"
+              style={{ textDecoration: 'none' }}
+            >
+              View Plans
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link 
+              to="/pricing" 
+              className="btn btn-primary"
+              style={{ textDecoration: 'none' }}
+            >
+              <i className="fas fa-star" style={{ marginRight: 'var(--space-2)' }}></i>
+              {userRole === 'basic' && requiredTier === 'premium' 
+                ? 'Upgrade to Premium' 
+                : `Upgrade to ${requiredTier === 'basic' ? 'Basic' : 'Premium'}`}
+            </Link>
+            {userRole === 'free' && (
+              <Link 
+                to="/education" 
+                className="btn btn-outline"
+                style={{ textDecoration: 'none' }}
+              >
+                Learn More
+              </Link>
+            )}
+          </>
+        )}
       </div>
       
       <div style={{ 

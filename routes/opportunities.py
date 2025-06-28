@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
+import hashlib
 
 # Import authentication and rate limiting
 from core.auth import require_role, get_user_or_none, UserCtx
@@ -15,6 +16,7 @@ from core.rate_limit import limiter
 # Import services
 from services.redis_cache import get_ev_data, update_ev_data
 from services.tasks import refresh_odds_data
+from services.dashboard_activity import dashboard_activity
 from core.ev_analyzer import format_opportunities_for_api
 
 # Initialize router
@@ -25,13 +27,19 @@ logger = logging.getLogger(__name__)
 @limiter.limit("60/minute")
 async def get_opportunities(
     request: Request,
+    background_tasks: BackgroundTasks,
     limit: Optional[int] = None,
     min_ev: Optional[float] = None,
     market_type: Optional[str] = None,
     user: Optional[UserCtx] = Depends(get_user_or_none)
 ):
     """
-    Get betting opportunities with role-based filtering
+    Get betting opportunities with role-based filtering and smart refresh logic
+    
+    Smart Refresh Strategy:
+    - Tracks dashboard activity to optimize API calls
+    - Refreshes on load if data is stale and no active sessions
+    - Auto-refreshes every 15 minutes only when dashboard is active
     
     Role-based access control:
     - Free users: Limited to worst 10 opportunities with -2% EV threshold
@@ -40,6 +48,26 @@ async def get_opportunities(
     - Admins: Complete access with debug information
     """
     try:
+        # Generate session ID for activity tracking
+        user_id = user.id if user else None
+        client_ip = request.client.host if request.client else "unknown"
+        session_data = f"{user_id}:{client_ip}:{request.headers.get('user-agent', '')}"
+        session_id = hashlib.md5(session_data.encode()).hexdigest()[:12]
+        
+        # Track dashboard activity
+        dashboard_activity.track_dashboard_access(user_id=user_id, session_id=session_id)
+        
+        # Check if we should refresh data on load (if stale and no recent activity)
+        should_refresh_on_load = dashboard_activity.should_refresh_on_load()
+        refresh_triggered = False
+        
+        if should_refresh_on_load:
+            logger.info("🔄 Triggering refresh on dashboard load - data is stale")
+            # Trigger background refresh with skip_activity_check=True for on-demand refresh
+            task = refresh_odds_data.delay(force_refresh=False, skip_activity_check=True)
+            background_tasks.add_task(lambda: task)  # Add to background tasks for proper handling
+            refresh_triggered = True
+        
         # Get cached EV data
         ev_data = get_ev_data()
         
@@ -52,7 +80,11 @@ async def get_opportunities(
                     "user_role": user.role if user else "anonymous"
                 },
                 "message": "No opportunities available. Data may be refreshing.",
-                "cache_status": "empty"
+                "cache_status": "empty",
+                "refresh_status": {
+                    "triggered_on_load": refresh_triggered,
+                    "reason": "stale_data" if refresh_triggered else "no_data"
+                }
             }
         
         # Apply role-based filtering
@@ -80,11 +112,24 @@ async def get_opportunities(
                 "market_type": market_type
             },
             "timestamp": datetime.now().isoformat(),
-            "cache_status": "hit"
+            "cache_status": "hit",
+            "session_info": {
+                "session_id": session_id,
+                "activity_tracked": True
+            }
         }
+        
+        # Add refresh status if triggered
+        if refresh_triggered:
+            response_data["refresh_status"] = {
+                "triggered_on_load": True,
+                "reason": "stale_data",
+                "message": "Fresh data will be available shortly"
+            }
         
         # Add debug info for admins
         if user and user.role == "admin":
+            activity_stats = dashboard_activity.get_stats()
             response_data["debug_info"] = {
                 "raw_data_count": len(ev_data),
                 "filtering_applied": True,
@@ -92,7 +137,8 @@ async def get_opportunities(
                     "id": user.id,
                     "email": user.email,
                     "role": user.role
-                }
+                },
+                "activity_stats": activity_stats
             }
         
         return response_data
@@ -118,15 +164,16 @@ async def refresh_opportunities(
     try:
         logger.info(f"Manual refresh triggered by admin: {admin_user.email}")
         
-        # Start background task
-        task = refresh_odds_data.delay()
+        # Start background task with force_refresh=True and skip_activity_check=True for manual refresh
+        task = refresh_odds_data.delay(force_refresh=True, skip_activity_check=True)
         
         return {
             "success": True,
-            "message": "Refresh initiated",
+            "message": "Manual refresh initiated (force refresh)",
             "task_id": task.id,
             "triggered_by": admin_user.email,
             "timestamp": datetime.now().isoformat(),
+            "refresh_type": "manual_force",
             "note": "Check /api/task-status/{task_id} for progress"
         }
         

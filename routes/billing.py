@@ -142,8 +142,8 @@ router = APIRouter(prefix="/api/billing", tags=["billing"])
 logger = logging.getLogger(__name__)
 
 def require_subscriber(user: UserCtx = Depends(get_current_user)) -> UserCtx:
-    """Require user to be an active subscriber"""
-    if user.role != "subscriber" or user.subscription_status != "active":
+    """Require user to be an active subscriber (basic or premium)"""
+    if user.role not in ["basic", "premium"] or user.subscription_status != "active":
         raise HTTPException(
             status_code=403, 
             detail="This feature requires an active subscription"
@@ -174,7 +174,7 @@ async def create_stripe_checkout(
             )
         
         # Check if user is already a subscriber
-        if user.role == "subscriber" and user.subscription_status == "active":
+        if user.role in ["basic", "premium"] and user.subscription_status == "active":
             raise HTTPException(
                 status_code=400, 
                 detail="User is already an active subscriber"
@@ -542,7 +542,7 @@ async def get_subscription_status(user: UserCtx = Depends(get_current_user)):
         "user_id": user.id,
         "role": user.role,
         "subscription_status": user.subscription_status,
-        "is_subscriber": user.role == "subscriber" and user.subscription_status == "active",
+        "is_subscriber": user.role in ["basic", "premium"] and user.subscription_status == "active",
         "stripe_configured": settings.stripe_configured
     }
 
