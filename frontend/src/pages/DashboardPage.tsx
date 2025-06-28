@@ -5,7 +5,7 @@ import { FeatureGate } from '../components/FeatureGate';
 import { usePermissions } from '../hooks/usePermissions';
 import PremiumPrompt from '../components/PremiumPrompt';
 import { useEffect } from 'react';
-import { DashboardSkeleton, LoadingSpinner, InlineLoader, Banner } from '../components/common';
+import { DashboardSkeleton, InlineLoader, Banner } from '../components/common';
 
 export const DashboardPage = () => {
   const {

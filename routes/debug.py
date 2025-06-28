@@ -20,7 +20,10 @@ from core.settings import settings
 from db import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from services.redis_cache import get_redis_client
+import redis
+
+def get_redis_client():
+    return redis.from_url(settings.redis_url)
 
 # Initialize router
 router = APIRouter(tags=["debug", "health"])

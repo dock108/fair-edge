@@ -15,9 +15,47 @@ from core.rate_limit import limiter
 from core.session import require_csrf_validation
 
 # Import services
-from services.redis_cache import get_redis_client, clear_all_cache, get_cache_info
-from services.tasks import refresh_odds_data, get_task_status
+from services.redis_cache import clear_cache, health_check
+from services.tasks import refresh_odds_data
 from services.celery_app import celery_app
+import redis
+from core.settings import settings
+
+# Simple helper functions
+def get_redis_client():
+    return redis.from_url(settings.redis_url)
+
+def get_cache_info():
+    try:
+        client = get_redis_client()
+        info = client.info()
+        return {
+            "used_memory": info.get("used_memory_human", "unknown"),
+            "connected_clients": info.get("connected_clients", 0),
+            "keyspace": info.get("db0", "{}"),
+            "status": "connected"
+        }
+    except:
+        return {"status": "error", "message": "Could not connect to Redis"}
+
+def clear_all_cache():
+    try:
+        client = get_redis_client()
+        client.flushall()
+        return {"success": True}
+    except:
+        return {"success": False}
+
+def get_task_status(task_id):
+    try:
+        result = celery_app.AsyncResult(task_id)
+        return {
+            "task_id": task_id,
+            "status": result.status,
+            "result": result.result if result.ready() else None
+        }
+    except:
+        return {"task_id": task_id, "status": "unknown"}
 
 # Initialize router
 router = APIRouter(tags=["system"])

@@ -201,6 +201,14 @@ def get_current_user_from_cookie(request: Request) -> Optional[UserCtx]:
 
 
 # Dependency for endpoints that require both auth and CSRF validation
+def generate_csrf_token() -> str:
+    """Generate a simple CSRF token"""
+    return secrets.token_urlsafe(32)
+
+def validate_csrf_token(token: str, stored_token: Optional[str]) -> bool:
+    """Validate CSRF token"""
+    return token and stored_token and hmac.compare_digest(token, stored_token)
+
 def require_csrf_validation(request: Request) -> bool:
     """
     Dependency that validates CSRF token for state-changing operations

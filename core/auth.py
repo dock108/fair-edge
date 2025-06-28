@@ -142,7 +142,7 @@ Critical Alerts:
 - JWT token validation failures (potential security issue)
 """
 from jose import jwt, JWTError
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -375,4 +375,34 @@ async def get_optional_user(
         return await get_current_user(credentials, db)
     except HTTPException:
         # Invalid token - return None instead of raising exception
-        return None 
+        return None
+
+
+async def get_user_or_none(
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db)
+) -> Optional[UserCtx]:
+    """
+    Optional authentication dependency that works with FastAPI dependency injection
+    Returns UserCtx if valid token provided, None otherwise
+    """
+    return await get_optional_user(authorization, db)
+
+
+def verify_jwt_token(token: str) -> dict:
+    """
+    Simple JWT token verification function
+    Returns decoded payload if valid, raises exception if invalid
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            settings.supabase_jwt_secret,
+            algorithms=[settings.supabase_jwt_algorithm or "HS256"]
+        )
+        return payload
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        ) 
