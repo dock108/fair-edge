@@ -33,7 +33,7 @@ class SessionManager:
         response.set_cookie(
             key=cls.AUTH_COOKIE,
             value=access_token,
-            max_age=settings.jwt_expires_minutes * 60,  # Convert to seconds
+            max_age=3600,  # 1 hour in seconds
             httponly=True,  # Block JS access
             secure=False,  # Always False for development (localhost doesn't use HTTPS)
             samesite="lax",  # CSRF protection
