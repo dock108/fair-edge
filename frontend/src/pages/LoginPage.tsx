@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { LoadingButton } from '../components/common';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -92,20 +93,15 @@ const LoginPage: React.FC = () => {
                 <a href="#" className="forgot-link">Forgot password?</a>
               </div>
 
-              <button 
+              <LoadingButton 
                 type="submit" 
-                className="btn btn-primary auth-button"
-                disabled={loading}
+                className="auth-button"
+                loading={loading}
+                loadingText="Signing in..."
+                variant="primary"
               >
-                {loading ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin"></i>
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </button>
+                Sign In
+              </LoadingButton>
             </form>
 
             <div className="auth-footer">

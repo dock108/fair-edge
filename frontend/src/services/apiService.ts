@@ -2,14 +2,15 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import type { ApiResponse } from '../types';
 import { supabase } from '../lib/supabase';
+import { config, debugLog } from '../utils/env';
 
 class ApiService {
   private api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
-      timeout: 30000,
+      baseURL: config.apiUrl,
+      timeout: config.apiTimeout,
       headers: {
         'Content-Type': 'application/json',
       },

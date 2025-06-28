@@ -18,7 +18,8 @@ if project_root not in sys.path:
 logging.basicConfig(level=logging.INFO)
 
 # Get configuration from centralized settings
-REFRESH_INTERVAL_MINUTES = settings.refresh_interval_minutes
+# Use 15 minutes for smart refresh (instead of 5) since we now only refresh when dashboard is active
+REFRESH_INTERVAL_MINUTES = 15  # Smart refresh with activity checking
 REDIS_URL = settings.redis_url
 
 # Create Celery app with actual task modules
@@ -57,11 +58,11 @@ celery_app.conf.update(
     # Beat Scheduler Configuration
     beat_schedule_filename='/app/celery-data/beat.db',  # Store in persistent volume for Docker
     
-    # Beat Schedule Configuration - Use exact task names from @shared_task decorators
+    # Beat Schedule Configuration - Smart refresh with activity checking
     beat_schedule={
-        'refresh-ev-data': {
-            'task': 'refresh_odds_data',  # Matches @shared_task(name="refresh_odds_data")
-            'schedule': crontab(minute=f"*/{REFRESH_INTERVAL_MINUTES}"),
+        'smart-refresh-ev-data': {
+            'task': 'tasks.odds.refresh_data',  # Matches @shared_task(name="tasks.odds.refresh_data")
+            'schedule': crontab(minute=f"*/{REFRESH_INTERVAL_MINUTES}"),  # Every 15 minutes
             'options': {
                 'expires': 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up
                 'retry': True,
@@ -73,10 +74,14 @@ celery_app.conf.update(
                 },
                 'queue': 'celery',
                 'routing_key': 'celery'
+            },
+            'kwargs': {
+                'force_refresh': False,
+                'skip_activity_check': False  # Use activity checking for scheduled refreshes
             }
         },
         'health-check': {
-            'task': 'health_check',  # Matches @shared_task(name="health_check")
+            'task': 'tasks.system.health_check',  # Matches @shared_task(name="tasks.system.health_check")
             'schedule': crontab(minute='*/5'),
             'options': {
                 'expires': 300,
@@ -121,8 +126,9 @@ logger.addHandler(console_handler)
 
 # Log configuration on startup
 logger.info(f"Celery configured with Redis URL: {REDIS_URL}")
-logger.info(f"Auto-refresh interval: {REFRESH_INTERVAL_MINUTES} minutes")
+logger.info(f"Smart refresh interval: {REFRESH_INTERVAL_MINUTES} minutes (activity-based)")
 logger.info(f"Beat schedule: {list(celery_app.conf.beat_schedule.keys())}")
+logger.info("📊 Smart refresh strategy: Only refreshes when dashboard is active, on-demand refresh when stale")
 
 if __name__ == '__main__':
     celery_app.start() 

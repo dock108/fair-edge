@@ -1,8 +1,11 @@
 import { useOpportunities } from '../hooks/useOpportunities';
 import { BetCard } from '../components/BetCard';
 import { useAuth } from '../contexts/AuthContext';
+import { FeatureGate } from '../components/FeatureGate';
+import { usePermissions } from '../hooks/usePermissions';
 import PremiumPrompt from '../components/PremiumPrompt';
 import { useEffect } from 'react';
+import { DashboardSkeleton, LoadingSpinner, InlineLoader, Banner } from '../components/common';
 
 export const DashboardPage = () => {
   const {
@@ -15,6 +18,7 @@ export const DashboardPage = () => {
   } = useOpportunities();
   
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { userRole, isSubscriptionActive } = usePermissions();
 
   // Helper functions for different banner types and features
   const shouldShowFreeTierBanners = () => {
@@ -63,16 +67,7 @@ export const DashboardPage = () => {
   }, [user, isAuthenticated, authLoading]);
 
   if (loading && opportunities.length === 0) {
-    return (
-      <div className="main-container">
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-3">Loading betting opportunities...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {
@@ -97,27 +92,44 @@ export const DashboardPage = () => {
     <div className="main-container">
       {/* Header Section */}
       <div className="dashboard-header">
-        {/* Admin Badge - Positioned Absolutely */}
-        {isAuthenticated && user?.user_metadata?.role === 'admin' && (
+        {/* User Role Badge - Positioned Absolutely */}
+        {isAuthenticated && (
           <div style={{ 
             position: 'absolute',
             top: '0',
             right: '0',
-            background: 'var(--success-50)',
-            border: '1px solid var(--success-200)',
+            background: userRole === 'admin' ? 'var(--success-50)' :
+                       userRole === 'premium' ? 'var(--primary-50)' :
+                       userRole === 'basic' ? 'var(--info-50)' : 'var(--gray-50)',
+            border: `1px solid ${userRole === 'admin' ? 'var(--success-200)' :
+                                userRole === 'premium' ? 'var(--primary-200)' :
+                                userRole === 'basic' ? 'var(--info-200)' : 'var(--gray-200)'}`,
             borderRadius: 'var(--radius-md)',
             padding: 'var(--space-2) var(--space-3)',
             display: 'flex',
             alignItems: 'center',
             gap: 'var(--space-2)'
           }}>
-            <i className="fas fa-crown" 
-               style={{ color: 'var(--success-600)' }}></i>
+            <i className={
+              userRole === 'admin' ? 'fas fa-crown' :
+              userRole === 'premium' ? 'fas fa-star' :
+              userRole === 'basic' ? 'fas fa-check-circle' : 'fas fa-user'
+            } style={{ 
+              color: userRole === 'admin' ? 'var(--success-600)' :
+                     userRole === 'premium' ? 'var(--primary-600)' :
+                     userRole === 'basic' ? 'var(--info-600)' : 'var(--gray-600)'
+            }}></i>
             <span style={{ 
               fontWeight: '500', 
-              color: 'var(--success-700)' 
+              color: userRole === 'admin' ? 'var(--success-700)' :
+                     userRole === 'premium' ? 'var(--primary-700)' :
+                     userRole === 'basic' ? 'var(--info-700)' : 'var(--gray-700)',
+              textTransform: 'capitalize'
             }}>
-              Admin
+              {userRole}
+              {!isSubscriptionActive && userRole !== 'free' && (
+                <span style={{ fontSize: '0.75rem', opacity: 0.7 }}> (Inactive)</span>
+              )}
             </span>
           </div>
         )}
@@ -143,55 +155,37 @@ export const DashboardPage = () => {
         
         {/* Unauthenticated Preview Banner */}
         {!isAuthenticated && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-3)',
-            marginTop: 'var(--space-4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div>
-              <strong style={{ color: '#d97706' }}>
-                <i className="fas fa-eye" style={{ marginRight: 'var(--space-2)' }}></i>
-                Preview Mode: Viewing 10 real sample opportunities
-              </strong>
-              <span style={{ color: '#92400e', marginLeft: 'var(--space-2)' }}>
-                Sign up to see profitable opportunities!
-              </span>
-            </div>
-            <a href="/pricing" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>
-              Get Started
-            </a>
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <Banner
+              variant="warning"
+              title="Preview Mode: Viewing 10 real sample opportunities"
+              icon="fas fa-eye"
+              action={{
+                text: "Get Started",
+                href: "/pricing",
+                variant: "primary"
+              }}
+            >
+              Sign up to see profitable opportunities and unlock advanced betting analytics!
+            </Banner>
           </div>
         )}
 
         {/* Free Tier Warning Banner */}
         {shouldShowFreeTierBanners() && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-3)',
-            marginTop: 'var(--space-4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div>
-              <strong style={{ color: '#d97706' }}>
-                <i className="fas fa-exclamation-triangle" style={{ marginRight: 'var(--space-2)' }}></i>
-                Free Tier: Showing 10 unprofitable bets only (-2% EV or worse)
-              </strong>
-              <span style={{ color: '#92400e', marginLeft: 'var(--space-2)' }}>
-                Upgrade to Basic ($3.99) to see profitable opportunities!
-              </span>
-            </div>
-            <a href="/pricing" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>
-              Upgrade
-            </a>
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <Banner
+              variant="warning"
+              title="Free Tier: Showing 10 unprofitable bets only (-2% EV or worse)"
+              icon="fas fa-exclamation-triangle"
+              action={{
+                text: "Upgrade",
+                href: "/pricing",
+                variant: "primary"
+              }}
+            >
+              Upgrade to Basic ($3.99) to see profitable opportunities!
+            </Banner>
           </div>
         )}
 
@@ -264,6 +258,80 @@ export const DashboardPage = () => {
         </div>
       </div>
       )}
+
+      {/* Premium Features Section - Demonstrates Role-Based Access Control */}
+      <div className="row mb-4">
+        <div className="col-12">
+          {/* Advanced Analytics - Premium Feature */}
+          <FeatureGate feature="premium" featureName="advanced analytics">
+            <div className="card mb-3">
+              <div className="card-header d-flex align-items-center">
+                <i className="fas fa-chart-bar text-primary me-2"></i>
+                <strong>Advanced Analytics</strong>
+                <span className="badge bg-primary ms-2">Premium</span>
+              </div>
+              <div className="card-body">
+                <div className="row">
+                  <div className="col-md-3 text-center">
+                    <h5 className="text-success">+12.4%</h5>
+                    <small className="text-muted">7-Day ROI</small>
+                  </div>
+                  <div className="col-md-3 text-center">
+                    <h5 className="text-info">156</h5>
+                    <small className="text-muted">Opportunities Tracked</small>
+                  </div>
+                  <div className="col-md-3 text-center">
+                    <h5 className="text-warning">68%</h5>
+                    <small className="text-muted">Win Rate</small>
+                  </div>
+                  <div className="col-md-3 text-center">
+                    <h5 className="text-primary">$2,340</h5>
+                    <small className="text-muted">Total Profit</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </FeatureGate>
+
+          {/* Data Export - Premium Feature */}
+          <FeatureGate feature="premium" featureName="data export" showPrompt={false}>
+            <div className="d-flex justify-content-end mb-3">
+              <button className="btn btn-outline-primary btn-sm">
+                <i className="fas fa-download me-1"></i>
+                Export Data
+              </button>
+            </div>
+          </FeatureGate>
+
+          {/* Basic+ Search Enhancement */}
+          <FeatureGate feature="basic" featureName="advanced search filters" showPrompt={false}>
+            <div className="row mb-3">
+              <div className="col-md-8">
+                <div className="d-flex gap-2 flex-wrap">
+                  <select className="form-select form-select-sm" style={{width: 'auto'}}>
+                    <option>All Sports</option>
+                    <option>NFL</option>
+                    <option>NBA</option>
+                    <option>MLB</option>
+                  </select>
+                  <select className="form-select form-select-sm" style={{width: 'auto'}}>
+                    <option>All Markets</option>
+                    <option>Moneyline</option>
+                    <option>Spreads</option>
+                    <option>Totals</option>
+                  </select>
+                  <input 
+                    type="number" 
+                    className="form-control form-control-sm" 
+                    placeholder="Min EV%" 
+                    style={{width: '100px'}}
+                  />
+                </div>
+              </div>
+            </div>
+          </FeatureGate>
+        </div>
+      </div>
 
       {/* Opportunities Grid */}
       {opportunities.length === 0 ? (
@@ -434,10 +502,7 @@ export const DashboardPage = () => {
       {/* Loading indicator for refresh */}
       {loading && opportunities.length > 0 && (
         <div className="text-center mt-3">
-          <div className="spinner-border spinner-border-sm text-primary" role="status">
-            <span className="visually-hidden">Refreshing...</span>
-          </div>
-          <small className="text-muted ms-2">Refreshing data...</small>
+          <InlineLoader text="Refreshing opportunities..." />
         </div>
       )}
     </div>

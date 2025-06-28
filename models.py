@@ -37,7 +37,8 @@ class Region(str, Enum):
 class UserRole(str, Enum):
     """User role types"""
     FREE = "free"
-    SUBSCRIBER = "subscriber"
+    BASIC = "basic"
+    PREMIUM = "premium"
     ADMIN = "admin"
 
 

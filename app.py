@@ -1,1927 +1,295 @@
 """
 Fair-Edge Sports Betting Analysis API
 
-DEPLOYMENT-READY FastAPI APPLICATION
+PRODUCTION-READY MODULAR FASTAPI APPLICATION
 
 This is the main FastAPI application that serves as the backend API for Fair-Edge,
 a comprehensive sports betting expected value (EV) analysis platform. The application
-provides REST API endpoints for betting opportunity analysis, user authentication,
-subscription management, and system monitoring.
+has been refactored into a modular structure for better maintainability and scalability.
 
-ARCHITECTURE OVERVIEW:
+MODULAR ARCHITECTURE:
 ===================
 
-1. API-First Design:
-   - Pure API backend serving React SPA frontend
-   - RESTful endpoints with JSON responses
-   - Role-based access control with JWT authentication
-   - Real-time data processing with Redis caching
+The application is now organized into focused router modules:
 
-2. Core Services:
-   - EV Analysis Engine: Calculates expected value opportunities
-   - Fair Odds Calculator: Implements no-vig methodology 
-   - Betting Exchange Integration: Handles commission-based platforms
-   - User Management: Role-based permissions (Free/Basic/Premium/Admin)
-   - Background Processing: Celery for heavy computations
+1. Core Routes:
+   - routes.opportunities: Betting opportunities and EV analysis
+   - routes.auth: Authentication and session management  
+   - routes.analytics: Advanced analytics for subscribers
+   - routes.admin: Administrative functionality
+   - routes.system: Cache management and system monitoring
+   - routes.debug: Health checks and debugging tools
+   - routes.billing: Subscription and payment management
+   - routes.realtime: WebSocket and real-time updates
+
+2. Startup Configuration:
+   - Environment validation and settings initialization
+   - Database connection setup with proper error handling
+   - Redis cache initialization with fallback strategies
+   - Celery background task system initialization
+   - CORS and middleware configuration
 
 3. Security Features:
    - JWT-based authentication with Supabase integration
-   - CSRF protection for state-changing operations
    - Rate limiting on all endpoints
-   - Role-based access control
-   - Secure session management with httpOnly cookies
+   - CSRF protection for state-changing operations
+   - Role-based access control throughout
+   - Secure session management
 
-4. Data Pipeline:
-   - Real-time odds data from multiple sportsbooks
-   - Redis caching for performance optimization
-   - Background task processing for CPU-intensive operations
-   - Comprehensive error handling and monitoring
+DEPLOYMENT CONFIGURATION:
+========================
 
-5. Deployment Configuration:
-   - Production-ready CORS settings
-   - Proxy header support for load balancers
-   - Graceful shutdown handling
-   - Health check endpoints
-   - Structured logging with observability
+- Production-ready CORS settings
+- Proxy header support for load balancers
+- Graceful shutdown handling
+- Comprehensive health check endpoints
+- Structured logging with observability
+- Environment-specific configuration validation
 
-ENDPOINT CATEGORIES:
-==================
+USAGE:
+======
 
-1. Core Analysis Endpoints:
-   - /api/opportunities - Main betting opportunities with role-based filtering
-   - /api/opportunities/refresh - Trigger background EV calculations
-   - /premium/opportunities - Enhanced analysis for subscribers
+Development:
+    uvicorn app:app --reload --port 8000
 
-2. Authentication & Session Management:
-   - /auth/* - JWT token validation and user info
-   - /api/session/* - Secure session management with cookies
-   - /api/logout-secure - Session cleanup
+Production:
+    uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
 
-3. User Management:
-   - /api/user-info - Current user profile and role information
-   - Role-based filtering applied automatically to all responses
+Docker:
+    docker-compose up -d
 
-4. System Administration:
-   - /api/refresh - Manual data refresh (admin only)
-   - /api/cache-status - Redis cache monitoring
-   - /api/clear-cache - Cache management (admin only)
-   - /api/celery-health - Background worker status
-
-5. Analytics & Exports:
-   - /api/analytics/advanced - Detailed market analysis (subscribers only)
-   - /api/bets/raw - Unfiltered data export (subscribers only)
-
-6. Health & Monitoring:
-   - /health - Comprehensive system health check
-   - /debug/* - Development and debugging endpoints
-
-ROLE-BASED ACCESS CONTROL:
-=========================
-
-- Free Users: Limited to main lines with worst 10 opportunities (-2% EV threshold)
-- Basic Users: All main lines with unlimited EV access
-- Premium/Subscribers: Full access to all markets and advanced features
-- Admins: Complete system access including debug and management endpoints
-
-PRODUCTION DEPLOYMENT NOTES:
-===========================
-
-1. Environment Configuration:
-   - All sensitive settings configured via environment variables
-   - Fail-fast validation for unsafe production defaults
-   - Environment-specific CORS and security settings
-
-2. Performance Optimization:
-   - Redis caching reduces database load
-   - Rate limiting prevents abuse
-   - Background processing offloads CPU-intensive tasks
-   - Connection pooling for database operations
-
-3. Monitoring & Observability:
-   - Structured logging with correlation IDs
-   - Health check endpoints for load balancer integration
-   - Comprehensive error handling and reporting
-   - Performance metrics and analytics
-
-4. Security Hardening:
-   - JWT signature validation with multiple key fallbacks
-   - CSRF tokens for state-changing operations
-   - Secure cookie configuration for session management
-   - Input validation and sanitization
-
-5. Scalability Considerations:
-   - Stateless API design for horizontal scaling
-   - Background task distribution via Celery
-   - Database connection pooling
-   - Redis for distributed caching
-
-EXTERNAL DEPENDENCIES:
-=====================
-
-- Database: Supabase (PostgreSQL) for user data and application state
-- Cache: Redis for high-performance data storage and session management
-- Task Queue: Celery with Redis broker for background processing
-- Authentication: Supabase Auth for user management and JWT validation
-- Monitoring: Built-in health checks and structured logging
-
-API VERSIONING:
-==============
-
-Current API version: 2.1.0
-- Backwards compatible with version 2.0.x
-- New batch processing capabilities in 3.1 (experimental)
-- Comprehensive role-based access control system
-
-For detailed endpoint documentation, visit /docs (OpenAPI/Swagger UI)
+The application automatically configures itself based on environment variables
+and provides comprehensive error handling and logging for production deployment.
 """
 
-from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter, Response
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
-import uvicorn
 import logging
-import signal
-import asyncio
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 import os
-import time
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
+import sys
 from contextlib import asynccontextmanager
-from jose import jwt
+from datetime import datetime
+from typing import Dict, Any
 
-# Import logging and observability setup
-from core.logging import setup_logging
-from core.observability import setup_observability
+from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+import uvicorn
 
-# Import the data processing services
-from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
-
-# Import background task services
-from services.tasks import refresh_odds_data, health_check as celery_health_check
-from services.redis_cache import get_ev_data, get_analytics_data, get_last_update, clear_cache, health_check as redis_health_check
-
-# Import database connections
-from db import get_db, get_supabase, get_database_status
-
-# Import authentication services
-from core.auth import (
-    get_current_user, 
-    require_role, 
-    require_subscription,
-    UserCtx
-)
-
-# Import session management
-from core.session import (
-    SessionManager, 
-    get_current_user_from_cookie, 
-    require_csrf_validation
-)
-
-# Import core settings
+# Import core configuration and utilities
 from core.settings import settings
-from core.security import fail_fast_on_unsafe_defaults
+from core.logging import setup_logging
 from core.rate_limit import limiter
+from core.exceptions import setup_exception_handlers
 
-# Import routes
-from routes.billing import router as billing_router
-from routes.realtime import router as realtime_router
-from routes.admin import router as admin_router
+# Import all route modules
+from routes import opportunities, auth, analytics, admin, system, debug, billing, realtime, dashboard_admin
+
+# Import services for startup/shutdown
+from services.redis_cache import initialize_redis, close_redis
+from services.celery_app import initialize_celery
+from db import initialize_database, close_database
+from utils.migrations import run_startup_migrations
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+setup_logging()
 logger = logging.getLogger(__name__)
-
-# Fail fast on unsafe defaults in production
-fail_fast_on_unsafe_defaults()
-
-# Global cleanup registry
-cleanup_functions = []
-
-def register_cleanup(func):
-    """
-    Register a cleanup function to be called on application shutdown.
-    
-    This function maintains a registry of cleanup handlers that need to be called
-    when the application shuts down gracefully. Essential for production deployment
-    to ensure proper resource cleanup and prevent connection leaks.
-    
-    Args:
-        func (callable): Cleanup function to register. Can be sync or async.
-                        Will be called with no arguments during shutdown.
-    
-    Production Notes:
-        - Used for database connection cleanup
-        - Redis connection pool cleanup  
-        - Celery worker shutdown
-        - Background task cancellation
-        - File handle cleanup
-    
-    Example:
-        >>> def cleanup_redis():
-        ...     redis_client.close()
-        >>> register_cleanup(cleanup_redis)
-    """
-    cleanup_functions.append(func)
-    logger.info(f"✅ Registered {func.__name__} cleanup")
-
-async def cleanup_background_tasks():
-    """
-    Execute all registered cleanup functions during application shutdown.
-    
-    This function is called during FastAPI's lifespan management to ensure
-    graceful shutdown of all services and proper resource cleanup. Critical
-    for production deployment to prevent resource leaks and data corruption.
-    
-    Process:
-    1. Iterate through all registered cleanup functions
-    2. Handle both synchronous and asynchronous cleanup functions
-    3. Continue cleanup even if individual functions fail
-    4. Log all cleanup operations for monitoring
-    
-    Error Handling:
-    - Individual cleanup failures are logged but don't stop the process
-    - Ensures maximum resource cleanup even during partial failures
-    - Critical for maintaining system stability during deployment updates
-    
-    Production Benefits:
-    - Prevents database connection leaks
-    - Ensures Redis connections are properly closed
-    - Stops background Celery tasks gracefully
-    - Cleans up temporary files and cache data
-    - Enables zero-downtime deployments
-    """
-    logger.info("🧹 Starting cleanup of background tasks...")
-    
-    for cleanup_func in cleanup_functions:
-        try:
-            # Handle both async and sync cleanup functions
-            if asyncio.iscoroutinefunction(cleanup_func):
-                await cleanup_func()
-            else:
-                cleanup_func()
-            logger.info(f"✅ Cleaned up {cleanup_func.__name__}")
-        except Exception as e:
-            # Log warnings but continue cleanup process
-            logger.warning(f"⚠️ Error in cleanup {cleanup_func.__name__}: {e}")
-    
-    logger.info("✅ Background tasks cleanup completed")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Handle FastAPI application lifespan events for production deployment.
-    
-    This context manager controls the application startup and shutdown sequence,
-    ensuring proper initialization and cleanup of all services. Essential for
-    production deployment stability and resource management.
-    
-    Startup Sequence:
-    1. Initialize structured logging system
-    2. Setup observability and monitoring
-    3. Clean any orphaned resources from previous runs
-    4. Application enters ready state
-    
-    Shutdown Sequence:
-    1. Gracefully stop accepting new requests
-    2. Complete processing of in-flight requests
-    3. Execute all registered cleanup functions
-    4. Close database and cache connections
-    5. Shutdown background workers
-    
-    Production Benefits:
-    - Ensures clean startup state for deployments
-    - Prevents resource leaks during shutdown
-    - Enables zero-downtime deployment strategies
-    - Provides comprehensive logging for monitoring
-    - Handles graceful shutdown during scaling events
-    
-    Error Handling:
-    - Startup failures prevent application from starting
-    - Shutdown errors are logged but don't prevent termination
-    - Comprehensive error logging for troubleshooting
+    Application lifespan manager
+    Handles startup and shutdown tasks
     """
-    # =============
-    # STARTUP PHASE
-    # =============
-    logger.info("🚀 Application starting up...")
+    # Startup
+    logger.info("Starting Fair-Edge API server...")
     
-    # Setup structured logging first - critical for monitoring
-    setup_logging()
+    try:
+        # Initialize database
+        logger.info("Initializing database connection...")
+        await initialize_database()
+        
+        # Run database migrations
+        logger.info("Running database migrations...")
+        migration_success = await run_startup_migrations()
+        if not migration_success:
+            logger.warning("Database migrations failed, but continuing startup...")
+        
+        # Initialize Redis cache
+        logger.info("Initializing Redis cache...")
+        await initialize_redis()
+        
+        # Initialize Celery (if enabled)
+        if settings.enable_background_tasks:
+            logger.info("Initializing Celery background tasks...")
+            initialize_celery()
+        
+        # Validate environment configuration
+        logger.info("Validating environment configuration...")
+        validate_environment()
+        
+        logger.info("Fair-Edge API server started successfully")
+        
+    except Exception as e:
+        logger.error(f"Failed to start server: {e}")
+        sys.exit(1)
     
-    # Setup observability and monitoring infrastructure
-    setup_observability(app)
-    
-    # Clean up any orphaned resources from previous runs
-    await cleanup_background_tasks()
-    
-    # Application is now ready to serve requests
-    logger.info("✅ Application startup completed - ready to serve requests")
-    
-    # Yield control to FastAPI to serve requests
     yield
     
-    # ==============
-    # SHUTDOWN PHASE  
-    # ==============
-    logger.info("🛑 Application shutting down...")
+    # Shutdown
+    logger.info("Shutting down Fair-Edge API server...")
     
-    # Execute graceful shutdown sequence
-    await cleanup_background_tasks()
-    
-    logger.info("✅ Application shutdown completed")
-
-
-# Create FastAPI app with lifespan context manager
-app = FastAPI(
-    title="FairEdge - Sports +EV Analysis", 
-    description="Educational sports betting analysis and odds comparison tool",
-    version="2.1.0",
-    lifespan=lifespan
-)
-
-# Add rate limiting error handler
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-# Add proxy headers middleware for proper IP detection behind load balancers
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
-
-# Configure CORS based on environment - use new config
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,  # Required for cookies
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
-    expose_headers=["X-CSRF-Token"]  # Allow frontend to read CSRF token
-)
-
-# Create auth router
-auth_router = APIRouter(prefix="/auth", tags=["auth"])
-
-@auth_router.get("/test-token")
-async def test_token(user: UserCtx = Depends(get_current_user)):
-    """Test endpoint to verify JWT token validation"""
-    return {
-        "status": "success",
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "role": user.role,
-            "subscription_status": user.subscription_status
-        },
-        "message": "Token is valid"
-    }
-
-@auth_router.get("/me")
-async def get_my_profile(current_user: UserCtx = Depends(get_current_user)):
-    """Get the current user's profile information"""
-    return {
-        "id": current_user.id,
-        "email": current_user.email,
-        "role": current_user.role,
-        "subscription_status": current_user.subscription_status
-    }
-
-# Include auth router
-app.include_router(auth_router)
-
-# Include billing router
-app.include_router(billing_router)
-
-# Include realtime router
-app.include_router(realtime_router)
-
-# Include admin router
-app.include_router(admin_router)
-
-# Register cleanup functions from other modules
-try:
-    from routes.realtime import cleanup_redis_connections
-    register_cleanup(cleanup_redis_connections)
-    logger.info("✅ Registered cleanup_redis_connections cleanup")
-except ImportError as e:
-    logger.warning(f"Could not register Redis cleanup: {e}")
-
-try:
-    from services.tasks import cleanup_celery
-    register_cleanup(cleanup_celery)
-    logger.info("✅ Registered cleanup_celery cleanup")
-except ImportError as e:
-    logger.warning(f"Could not register Celery cleanup: {e}")
-
-# Register signal handlers for graceful shutdown
-def setup_signal_handlers():
-    """Setup signal handlers for graceful shutdown"""
-    def signal_handler(signum, _frame):
-        logger.info(f"📡 Received signal {signum}")
-        # Let FastAPI handle the cleanup through the lifespan handler
-        
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-# Setup signal handlers
-setup_signal_handlers()
-
-def is_admin_mode_enabled(request: Request, admin_param: Optional[str] = None) -> bool:
-    """
-    Determine if admin mode should be enabled for this request.
-    
-    Security layers:
-    1. DEBUG_MODE environment variable must be true
-    2. Admin query parameter must be present
-    3. Optional: Admin secret verification
-    """
-    if not settings.is_debug:
-        return False
-    
-    if admin_param != "true":
-        return False
-    
-    # Additional security: check for admin secret in headers or another param
-    admin_secret = request.query_params.get("secret")
-    if admin_secret and admin_secret != settings.admin_secret:
-        return False
-    
-    return True
-
-def get_debug_metrics() -> Dict[str, Any]:
-    """Get system debug metrics"""
-    return {
-        "app_version": "2.1.0",
-        "debug_mode": settings.is_debug,
-        "timestamp": datetime.now().isoformat(),
-        "environment": settings.environment,
-        "python_version": os.sys.version.split()[0],
-        "performance": {
-            "page_generation_start": time.time()
-        }
-    }
-
-def calculate_ev_breakdown(opportunity: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Calculate detailed EV breakdown for debugging purposes
-    """
     try:
-        # Extract data from the original opportunity structure
-        original = opportunity.get('_original', {})
-        fair_odds_str = original.get('Fair Odds', '+100')
-        best_odds_str = original.get('Best Available Odds', '+100')
-        ev_raw = original.get('EV_Raw', 0)
+        # Close database connections
+        await close_database()
         
-        # Use centralized odds utilities
-        from utils.math_utils import MathUtils
+        # Close Redis connections
+        await close_redis()
         
-        # Parse American odds to integers and convert to decimal
-        fair_american = int(fair_odds_str.replace('+', '')) if fair_odds_str.startswith('+') else int(fair_odds_str)
-        best_american = int(best_odds_str.replace('+', '')) if best_odds_str.startswith('+') else int(best_odds_str)
+        logger.info("Fair-Edge API server shutdown complete")
         
-        fair_decimal = MathUtils.american_to_decimal(fair_american)
-        best_decimal = MathUtils.american_to_decimal(best_american)
-        
-        # Calculate implied probabilities
-        fair_probability = 1 / fair_decimal if fair_decimal > 1 else 0.5
-        best_probability = 1 / best_decimal if best_decimal > 1 else 0.5
-        
-        # Calculate theoretical EV
-        theoretical_ev = (fair_probability * best_decimal) - 1
-        
-        return {
-            "fair_odds": {
-                "american": fair_odds_str,
-                "decimal": round(fair_decimal, 3),
-                "implied_probability": round(fair_probability * 100, 2)
-            },
-            "best_odds": {
-                "american": best_odds_str,
-                "decimal": round(best_decimal, 3),
-                "implied_probability": round(best_probability * 100, 2)
-            },
-            "ev_calculation": {
-                "formula": f"({fair_probability:.3f} × {best_decimal:.3f}) - 1",
-                "theoretical_ev": round(theoretical_ev, 4),
-                "actual_ev_raw": ev_raw,
-                "actual_ev_percentage": round(ev_raw * 100, 2),
-                "difference": round(abs(theoretical_ev - ev_raw), 4)
-            },
-            "classification": {
-                "ev_tier": "excellent" if ev_raw >= 0.045 else "high" if ev_raw >= 0.025 else "positive" if ev_raw > 0 else "neutral",
-                "reasoning": f"EV of {ev_raw*100:.2f}% " + 
-                           ("is excellent (4.5%+)" if ev_raw >= 0.045 else
-                            "is high (2.5%+)" if ev_raw >= 0.025 else
-                            "is positive" if ev_raw > 0 else
-                            "is neutral/negative")
-            }
-        }
     except Exception as e:
-        return {"error": f"Calculation failed: {str(e)}"}
+        logger.error(f"Error during shutdown: {e}")
 
-def get_performance_metrics(start_time: float) -> Dict[str, Any]:
-    """Calculate performance metrics"""
-    current_time = time.time()
-    return {
-        "page_generation_time_ms": round((current_time - start_time) * 1000, 2),
-        "data_fetch_cached": True,  # Since we're using cached data
-        "total_processing_time": "< 50ms (typical)",
-        "memory_efficient": True
-    }
-
-def process_opportunities_for_ui(opportunities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def validate_environment():
     """
-    Transform opportunities data from the backend into UI-friendly format
-    Maps backend field names to template field names and adds UI helpers
+    Validate critical environment configuration
+    Fail fast if production requirements are not met
     """
-    ui_opportunities = []
-    
-    for opp in opportunities:
-        # Determine EV classification for UI styling
-        ev_raw = opp.get('EV_Raw', 0)
-        if ev_raw >= 0.045:  # 4.5%+ EV
-            ev_classification = "high"
-        elif ev_raw > 0:  # Positive EV
-            ev_classification = "positive" 
-        else:  # Neutral/Negative EV
-            ev_classification = "neutral"
+    if settings.environment == "production":
+        required_vars = [
+            "DATABASE_URL",
+            "REDIS_URL", 
+            "JWT_SECRET_KEY",
+            "SUPABASE_URL",
+            "SUPABASE_SERVICE_ROLE_KEY"
+        ]
         
-        # Parse available odds string into structured format
-        available_odds = []
-        all_odds_str = opp.get('All Available Odds', '')
-        if all_odds_str and all_odds_str != 'N/A':
-            # Parse "DraftKings: +110; FanDuel: +105; ..." format
-            odds_parts = all_odds_str.split('; ')
-            for part in odds_parts:
-                if ':' in part:
-                    bookmaker, odds = part.split(':', 1)
-                    available_odds.append({
-                        'bookmaker': bookmaker.strip(),
-                        'odds': odds.strip()
-                    })
+        missing_vars = [var for var in required_vars if not os.getenv(var)]
+        if missing_vars:
+            raise ValueError(f"Missing required environment variables for production: {missing_vars}")
         
-        # Sort available odds from best to worst
-        def odds_sort_key(odds_item):
-            """Sort key for odds - best odds first"""
-            odds_str = odds_item['odds']
-            try:
-                # Remove + sign and convert to int
-                odds_value = int(odds_str.replace('+', ''))
-                
-                # For positive odds: higher is better (+200 > +150)
-                # For negative odds: closer to zero is better (-110 > -150)
-                if odds_value > 0:
-                    return odds_value  # Higher positive is better
-                else:
-                    return -odds_value  # Less negative (closer to zero) is better
-            except (ValueError, TypeError):
-                return -999999  # Put invalid odds at the end
-        
-        available_odds.sort(key=odds_sort_key, reverse=True)
-        
-        # Transform to UI format
-        ui_opportunity = {
-            'event': opp.get('Event', 'Unknown Event'),
-            'bet_description': opp.get('Bet Description', 'Unknown Bet'),
-            'bet_type': _format_market_display_name(opp.get('Market', '')),
-            'ev_percentage': ev_raw * 100,  # Convert to percentage
-            'ev_classification': ev_classification,
-            'available_odds': available_odds,
-            'fair_odds': opp.get('Fair Odds', 'N/A'),
-            'best_available_odds': opp.get('Best Available Odds', 'N/A'),
-            'best_odds_source': opp.get('Best_Odds_Source', ''),
-            'recommended_posting_odds': opp.get('Proposed Posting Odds', 'N/A'),
-            'recommended_book': available_odds[0]['bookmaker'] if available_odds else opp.get('Best_Odds_Source', 'N/A'),
-            'action_link': _extract_action_link(opp.get('Links', '')),
-            # Keep original fields for debugging
-            '_original': opp
-        }
-        
-        ui_opportunities.append(ui_opportunity)
+        # Check for unsafe defaults
+        if os.getenv("JWT_SECRET_KEY") == "your-secret-key-here":
+            raise ValueError("JWT_SECRET_KEY must be changed from default value in production")
     
-    return ui_opportunities
+    logger.info(f"Environment validation passed for {settings.environment} environment")
 
-
-def _format_market_display_name(market_key: str) -> str:
-    """Convert market key to user-friendly display name"""
-    market_names = {
-        'h2h': 'Moneyline',
-        'spreads': 'Spread',
-        'totals': 'Total (O/U)',
-        'player_points': 'Player Points',
-        'player_assists': 'Player Assists', 
-        'player_rebounds': 'Player Rebounds',
-        'player_threes': 'Player 3-Pointers',
-        'player_steals': 'Player Steals',
-        'player_blocks': 'Player Blocks',
-        'player_points_rebounds_assists': 'Player PRA',
-        'batter_hits': 'Batter Hits',
-        'batter_home_runs': 'Batter Home Runs',
-        'pitcher_strikeouts': 'Pitcher Strikeouts',
-        'player_shots_on_goal': 'Player Shots on Goal',
-        'player_goals': 'Player Goals'
-    }
-    
-    # Handle period-specific markets
-    if '_q1' in market_key or '_q4' in market_key:
-        base_market = market_key.replace('_q1', '').replace('_q4', '')
-        period = 'Q1' if '_q1' in market_key else 'Q4'
-        base_name = market_names.get(base_market, base_market.replace('_', ' ').title())
-        return f"{base_name} ({period})"
-    
-    return market_names.get(market_key, market_key.replace('_', ' ').title())
-
-
-def _extract_action_link(links_str: str) -> str:
-    """Extract action link from links string"""
-    if not links_str or links_str == 'N/A':
-        return None
-    
-    # Handle "Take: url | Post: url" format
-    if 'Take:' in links_str:
-        take_part = links_str.split('|')[0] if '|' in links_str else links_str
-        link = take_part.replace('Take:', '').strip()
-        return link if link != 'N/A' else None
-    
-    # Single link
-    return links_str.strip() if links_str.strip() != 'N/A' else None
-
-
-@app.get("/")
-async def root():
+def create_app() -> FastAPI:
     """
-    Root endpoint - FastAPI backend is now pure API only
-    Frontend is handled by React SPA deployed separately
+    Create and configure FastAPI application
     """
-    return {
-        "message": "FairEdge Sports Betting Analysis API",
-        "status": "operational", 
-        "version": "2.1.0",
-        "api_endpoints": {
-            "opportunities": "/api/opportunities",
-            "health": "/health",
-            "session": "/api/session/user",
-            "docs": "/docs"
-        }
-    }
-
-@app.post("/api/logout")
-async def logout_api():
-    """API endpoint for logout (for completeness - main logout is handled client-side)"""
-    return {"status": "success", "message": "Logged out successfully"}
-
-# Define main line markets that free users can access
-MAIN_LINES = {"h2h", "spreads", "totals"}  # moneyline, game spreads, game totals
-
-def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role: str) -> Dict[str, Any]:
-    """
-    Filter opportunities based on user role using feature configuration
-    - Free users: Only main lines with ≤ -2% EV, max 10 deterministic opportunities  
-    - Basic users: All main lines (all EV values)
-    - Premium/Subscribers/Admins: All markets
-    """
-    from core.config import feature_config
+    # Create FastAPI app with lifespan manager
+    app = FastAPI(
+        title="Fair-Edge Sports Betting API",
+        description="Advanced sports betting expected value analysis platform",
+        version="2.0.0",
+        docs_url="/docs" if settings.environment != "production" else None,
+        redoc_url="/redoc" if settings.environment != "production" else None,
+        lifespan=lifespan
+    )
     
-    total_available = len(opportunities)
-    role_config = feature_config.get_user_features(user_role)
-    
-    # Get role-specific settings from config
-    markets_access = role_config.get("markets", "main_lines_only")
-    ev_threshold = role_config.get("ev_threshold", -999.0)
-    max_opportunities = role_config.get("max_opportunities", None)
-    
-    filtered_opportunities = []
-    
-    for opp in opportunities:
-        # Get the original market key from the _original data
-        original_market = opp.get('_original', {}).get('Market', '')
-        ev_percentage = opp.get('ev_percentage', 0)
-        
-        # Determine if opportunity should be included based on market access
-        include_opportunity = False
-        
-        if markets_access == "all":
-            # Premium users: all markets
-            include_opportunity = True
-        elif markets_access == "main_lines_only":
-            # Free/Basic users: only main lines
-            if original_market in MAIN_LINES:
-                # Check EV threshold (free users have -2.0, paid users have -999.0 = unlimited)
-                if ev_threshold <= -100.0:  # Paid users get all EV values (unlimited threshold)
-                    include_opportunity = True
-                elif ev_percentage <= ev_threshold:  # Free users get only opportunities <= -2.0% EV
-                    include_opportunity = True
-        
-        if include_opportunity:
-            # Mask advanced fields based on role
-            filtered_opp = opp.copy()
-            
-            # Only mask fields for free users (not basic users)
-            if feature_config.should_mask_field("kelly_factor", user_role):
-                for field in feature_config.MASK_FIELDS_FOR_FREE:
-                    filtered_opp.pop(field, None)
-                    # Also remove from _original if it exists
-                    if '_original' in filtered_opp:
-                        filtered_opp['_original'].pop(field, None)
-            
-            filtered_opportunities.append(filtered_opp)
-    
-    # Apply opportunity limit (mainly for free users)
-    if max_opportunities is not None and len(filtered_opportunities) > max_opportunities:
-        # For free users, we want the 10 worst opportunities but still display them best-to-worst
-        # So first sort by worst EV to get the bottom 10, then reverse to show best-to-worst
-        filtered_opportunities.sort(key=lambda x: (x.get('ev_percentage', 0), x.get('event', '')))
-        
-        # Take the worst N opportunities
-        filtered_opportunities = filtered_opportunities[:max_opportunities]
-    
-    # Always sort final list from best EV to worst EV for consistent user experience
-    filtered_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
-    
-    # Determine truncation status and limit description
-    truncated = len(filtered_opportunities) < total_available
-    
-    # Generate appropriate limit description
-    if user_role == "free":
-        if len(filtered_opportunities) == 0:
-            limit = "No opportunities with -2% EV or worse available"
-        else:
-            limit = "10 real sample opportunities (-2% EV or worse)"
-    elif user_role == "basic":
-        limit = "All main lines (positive EV unlocked!)"
-    elif user_role in ("premium", "subscriber"):
-        limit = "All markets & lines"
-    elif user_role == "admin":
-        limit = "Full admin access"
+    # Configure CORS
+    if settings.environment == "development":
+        origins = [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:8080",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:8080"
+        ]
     else:
-        limit = "Limited access"
+        origins = [
+            "https://fair-edge.com",
+            "https://www.fair-edge.com",
+            "https://app.fair-edge.com"
+        ]
     
-    return {
-        "role": user_role,
-        "truncated": truncated,
-        "limit": limit,
-        "total_available": total_available,
-        "shown": len(filtered_opportunities),
-        "features": role_config,
-        "opportunities": filtered_opportunities
-    }
-
-@app.get("/api/opportunities")
-@limiter.limit("60/minute")
-async def api_opportunities(
-    request: Request, 
-    search: Optional[str] = None,
-    sport: Optional[str] = None,
-    batch_id: Optional[str] = None  # Phase 3.1: Support batch polling
-):
-    """
-    CORE API ENDPOINT: Retrieve betting opportunities with comprehensive role-based filtering.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+    )
     
-    This is the primary endpoint for the Fair-Edge platform, providing expected value
-    analysis for sports betting opportunities. Implements sophisticated role-based access
-    control, intelligent caching, and real-time data fallbacks for production reliability.
+    # Add rate limiting middleware
+    app.state.limiter = limiter
     
-    FUNCTIONALITY OVERVIEW:
-    =====================
+    # Setup exception handlers
+    setup_exception_handlers(app)
     
-    1. Authentication & Authorization:
-       - JWT token validation (optional - supports guest access)
-       - Role-based data filtering (Free/Basic/Premium/Admin)
-       - Graceful degradation to guest access if authentication fails
+    # Include all route modules
+    app.include_router(opportunities.router)
+    app.include_router(auth.router)
+    app.include_router(analytics.router)
+    app.include_router(admin.router)
+    app.include_router(system.router)
+    app.include_router(debug.router)
+    app.include_router(billing.router)
+    app.include_router(realtime.router)
+    app.include_router(dashboard_admin.router)
     
-    2. Data Sources:
-       - Primary: Redis cache for fast response times
-       - Fallback: Live data processing if cache is empty
-       - Batch Processing: Support for background computation results
-    
-    3. Role-Based Access Control:
-       - Free Users: 10 worst opportunities, main lines only, -2% EV threshold
-       - Basic Users: All main lines, unlimited EV values
-       - Premium/Subscribers: All markets and advanced features
-       - Admins: Complete access with debug information
-    
-    4. Performance Optimizations:
-       - 60 requests/minute rate limiting
-       - Redis caching reduces computation overhead
-       - Background batch processing for CPU-intensive calculations
-       - Intelligent fallback strategies
-    
-    QUERY PARAMETERS:
-    ================
-    
-    search (Optional[str]): Filter opportunities by search term
-        - Searches across: team names, event descriptions, bet types, bookmaker names
-        - Case-insensitive matching
-        - Example: "Lakers" finds all Lakers-related opportunities
-    
-    sport (Optional[str]): Filter by specific sport
-        - Supported values: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl
-        - Maps to sport-specific keywords for intelligent filtering
-        - Example: basketball_nba filters to NBA games only
-    
-    batch_id (Optional[str]): Poll for batch computation results
-        - Used with /api/opportunities/refresh for background processing
-        - Returns 202 if batch is still processing
-        - Returns 404 if batch not found or expired
-        - Enables CPU-intensive calculations without blocking API
-    
-    RESPONSE STRUCTURE:
-    ===================
-    
-    Success Response (200):
-    {
-        "role": "free|basic|premium|admin",
-        "truncated": boolean,
-        "limit": "Description of access limits",
-        "total_available": integer,
-        "shown": integer,
-        "features": {role-specific feature flags},
-        "opportunities": [
-            {
-                "event": "Team A vs Team B",
-                "bet_description": "Player Over 25.5 Points",
-                "bet_type": "Player Points",
-                "ev_percentage": 5.75,
-                "ev_classification": "high|positive|neutral",
-                "available_odds": [
-                    {"bookmaker": "DraftKings", "odds": "+120"}
-                ],
-                "fair_odds": "+110",
-                "best_available_odds": "+120",
-                "best_odds_source": "DraftKings",
-                "recommended_book": "DraftKings",
-                "action_link": "https://sportsbook.draftkings.com/...",
-                "_original": {original_data_for_debugging}
-            }
-        ],
-        "analytics": {
-            "total_opportunities": integer,
-            "positive_ev_count": integer,
-            "high_ev_count": integer,
-            "max_ev_percentage": float
-        },
-        "last_update": "ISO timestamp",
-        "data_source": "cache|live|batch_cache",
-        "is_guest": boolean,
-        "filters_applied": {
-            "search": "search_term_or_null",
-            "sport": "sport_filter_or_null",
-            "has_filters": boolean
-        }
-    }
-    
-    Batch Processing Response (202):
-    {
-        "status": "processing",
-        "batch_id": "unique_batch_identifier",
-        "batch_status": "calculation_status",
-        "message": "Batch calculation in progress",
-        "retry_after": 30
-    }
-    
-    Error Response (500):
-    {
-        "status": "error",
-        "error": "Error description",
-        "opportunities": [],
-        "analytics": {},
-        "role": "free",
-        "is_guest": true
-    }
-    
-    RATE LIMITING:
-    ==============
-    - 60 requests per minute per IP address
-    - Prevents abuse and ensures fair resource allocation
-    - Rate limit headers included in response
-    - 429 status code returned when limit exceeded
-    
-    CACHING STRATEGY:
-    =================
-    - Primary: Redis cache with TTL-based expiration
-    - Cache hit: Sub-100ms response times
-    - Cache miss: Automatic fallback to live data processing
-    - Background refresh: Celery tasks update cache periodically
-    
-    PRODUCTION DEPLOYMENT NOTES:
-    ============================
-    - Horizontally scalable (stateless design)
-    - Database connection pooling for concurrent requests
-    - Comprehensive error handling with graceful degradation
-    - Extensive logging for monitoring and debugging
-    - Health check integration for load balancer compatibility
-    
-    SECURITY CONSIDERATIONS:
-    ========================
-    - JWT token validation with multiple secret fallbacks
-    - No sensitive data exposed in error messages
-    - Input sanitization for search parameters
-    - Rate limiting prevents denial-of-service attacks
-    - Role-based data masking for unauthorized access
-    """
-    try:
-        # Phase 3.1: Handle batch polling
-        if batch_id:
-            from tasks.ev import get_batch_results, get_batch_status
-            
-            # Check if batch results are ready
-            batch_results = get_batch_results(batch_id)
-            if batch_results:
-                logger.info(f"📦 Serving batch results for {batch_id}")
-                
-                # Extract opportunities and apply same filtering as normal flow
-                opportunities = batch_results.get('opportunities', [])
-                analytics = batch_results.get('analytics', {})
-                
-                # Get user context for role-based filtering
-                user = None
-                try:
-                    # Check for Authorization header
-                    auth_header = request.headers.get("Authorization")
-                    if auth_header and auth_header.startswith("Bearer "):
-                        from fastapi.security import HTTPAuthorizationCredentials
-                        from core.auth import get_current_user
-                        from db import get_db
-                        
-                        # Extract token and get user
-                        token = auth_header.replace("Bearer ", "")
-                        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
-                        
-                        # Get database session
-                        db_session = await anext(get_db())
-                        
-                        try:
-                            user = await get_current_user(credentials, db_session)
-                            logger.info(f"Batch: Authenticated user: {user.email} (role: {user.role})")
-                        finally:
-                            await db_session.close()
-                except Exception as e:
-                    logger.debug(f"Batch: JWT authentication failed: {e}")
-                
-                if not user:
-                    from types import SimpleNamespace
-                    user = SimpleNamespace(
-                        id="guest",
-                        email="guest@example.com", 
-                        role="free",
-                        subscription_status="none"
-                    )
-                
-                # Process and filter the batch results
-                ui_opportunities = process_opportunities_for_ui(opportunities)
-                
-                # Apply search/sport filters if provided
-                if search:
-                    search_term = search.lower()
-                    ui_opportunities = [
-                        opp for opp in ui_opportunities
-                        if search_term in " ".join([
-                            opp.get('event', ''),
-                            opp.get('bet_description', ''),
-                            opp.get('bet_type', ''),
-                            opp.get('best_odds_source', '')
-                        ]).lower()
-                    ]
-                
-                if sport:
-                    sport_keywords = {
-                        'americanfootball_nfl': ['nfl', 'football'],
-                        'basketball_nba': ['nba', 'basketball'],
-                        'baseball_mlb': ['mlb', 'baseball'],
-                        'icehockey_nhl': ['nhl', 'hockey']
-                    }
-                    keywords = sport_keywords.get(sport, [sport])
-                    ui_opportunities = [
-                        opp for opp in ui_opportunities
-                        if any(keyword in opp.get('event', '').lower() for keyword in keywords)
-                    ]
-                
-                # Apply role-based filtering
-                logger.info(f"Applying role-based filtering for user role: {user.role}")
-                logger.info(f"Total opportunities before filtering: {len(ui_opportunities)}")
-                
-                # Debug: Log some sample market types
-                if ui_opportunities:
-                    sample_markets = [opp.get('_original', {}).get('Market', 'no_market') for opp in ui_opportunities[:5]]
-                    logger.info(f"Sample market types: {sample_markets}")
-                
-                filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
-                
-                logger.info(f"Opportunities after role filtering: {filtered_response.get('shown', 0)}/{filtered_response.get('total_available', 0)}")
-                logger.info(f"Truncated: {filtered_response.get('truncated', False)}, Limit: {filtered_response.get('limit', 'none')}")
-                
-                # Build response with batch metadata
-                response_data = {
-                    **filtered_response,
-                    "analytics": analytics,
-                    "last_update": batch_results.get('generated_at'),
-                    "data_source": "batch_cache",
-                    "is_guest": user.id == "guest",
-                    "batch_info": {
-                        "batch_id": batch_id,
-                        "processing_time_ms": batch_results.get('processing_time_ms'),
-                        "cache_hit": True
-                    },
-                    "filters_applied": {
-                        "search": search,
-                        "sport": sport,
-                        "has_filters": bool(search or sport)
-                    }
-                }
-                
-                return JSONResponse(content=response_data)
-            
-            else:
-                # Check batch status
-                batch_status = get_batch_status(batch_id)
-                if batch_status:
-                    return JSONResponse(
-                        content={
-                            "status": "processing",
-                            "batch_id": batch_id,
-                            "batch_status": batch_status,
-                            "message": "Batch calculation in progress",
-                            "retry_after": 30  # Suggest retry in 30 seconds
-                        },
-                        status_code=202
-                    )
-                else:
-                    return JSONResponse(
-                        content={
-                            "status": "error",
-                            "batch_id": batch_id,
-                            "error": "Batch not found or expired",
-                            "message": "Please trigger a new batch calculation"
-                        },
-                        status_code=404
-                    )
-        
-        # Regular flow (non-batch) - existing logic
-        # Get user context from JWT token (if present) or default to guest
-        user = None
-        try:
-            # Check for Authorization header
-            auth_header = request.headers.get("Authorization")
-            if auth_header and auth_header.startswith("Bearer "):
-                from fastapi.security import HTTPAuthorizationCredentials
-                from core.auth import get_current_user
-                from db import get_db
-                
-                # Extract token and get user
-                token = auth_header.replace("Bearer ", "")
-                credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
-                
-                # Get database session
-                db_session = await anext(get_db())
-                
-                try:
-                    user = await get_current_user(credentials, db_session)
-                    logger.info(f"Authenticated user: {user.email} (role: {user.role})")
-                finally:
-                    await db_session.close()
-        except Exception as e:
-            logger.debug(f"JWT authentication failed: {e}")
-        
-        # If no authenticated user, create a guest user context for free tier
-        if not user:
-            from types import SimpleNamespace
-            user = SimpleNamespace(
-                id="guest",
-                email="guest@example.com", 
-                role="free",
-                subscription_status="none"
-            )
-            logger.info("Using guest user context (free tier)")
-        
-        # Get data using existing functions
-        logger.info("Loading betting opportunities from cache...")
-        cached_opportunities = get_ev_data()
-        cached_analytics = get_analytics_data()
-        last_update = get_last_update()
-        
-        if cached_opportunities and cached_analytics:
-            opportunities = cached_opportunities
-            analytics = cached_analytics
-            data_source = "cache"
-            logger.info(f"Serving {len(opportunities)} cached opportunities")
-        else:
-            logger.info("Cache empty, fetching live betting opportunities data...")
-            raw_data = fetch_raw_odds_data()
-            opportunities, analytics = process_opportunities(raw_data)
-            data_source = "live"
-            logger.info(f"Serving {len(opportunities)} live opportunities")
-        
-        # Process opportunities for UI
-        ui_opportunities = process_opportunities_for_ui(opportunities)
-        
-        # Apply search filter if provided
-        if search:
-            search_term = search.lower()
-            filtered_opps = []
-            for opp in ui_opportunities:
-                searchable_text = " ".join([
-                    opp.get('event', ''),
-                    opp.get('bet_description', ''),
-                    opp.get('bet_type', ''),
-                    opp.get('best_odds_source', '')
-                ]).lower()
-                
-                if search_term in searchable_text:
-                    filtered_opps.append(opp)
-            ui_opportunities = filtered_opps
-        
-        # Apply sport filter if provided
-        if sport:
-            sport_keywords = {
-                'americanfootball_nfl': ['nfl', 'football'],
-                'basketball_nba': ['nba', 'basketball'],
-                'baseball_mlb': ['mlb', 'baseball'],
-                'icehockey_nhl': ['nhl', 'hockey']
-            }
-            keywords = sport_keywords.get(sport, [sport])
-            filtered_opps = []
-            for opp in ui_opportunities:
-                event_text = opp.get('event', '').lower()
-                if any(keyword in event_text for keyword in keywords):
-                    filtered_opps.append(opp)
-            ui_opportunities = filtered_opps
-        
-        # Apply role-based filtering
-        logger.info(f"Applying role-based filtering for user role: {user.role}")
-        logger.info(f"Total opportunities before filtering: {len(ui_opportunities)}")
-        
-        # Debug: Log some sample market types
-        if ui_opportunities:
-            sample_markets = [opp.get('_original', {}).get('Market', 'no_market') for opp in ui_opportunities[:5]]
-            logger.info(f"Sample market types: {sample_markets}")
-        
-        filtered_response = filter_opportunities_by_role(ui_opportunities, user.role)
-        
-        logger.info(f"Opportunities after role filtering: {filtered_response.get('shown', 0)}/{filtered_response.get('total_available', 0)}")
-        logger.info(f"Truncated: {filtered_response.get('truncated', False)}, Limit: {filtered_response.get('limit', 'none')}")
-        
-        # Update analytics for filtered data
-        filtered_opportunities = filtered_response['opportunities']
-        ui_analytics = {
-            'total_opportunities': len(filtered_opportunities),
-            'positive_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) > 0]),
-            'high_ev_count': len([op for op in filtered_opportunities if op.get('ev_percentage', 0) >= 4.5]),
-            'max_ev_percentage': round(max([op.get('ev_percentage', 0) for op in filtered_opportunities], default=0), 2)
-        }
-        
-        # Build response
-        response_data = {
-            **filtered_response,
-            "analytics": ui_analytics,
-            "last_update": last_update,
-            "data_source": data_source,
-            "is_guest": user.id == "guest",
-            "filters_applied": {
-                "search": search,
-                "sport": sport,
-                "has_filters": bool(search or sport)
+    # Root endpoint
+    @app.get("/")
+    async def root():
+        """
+        API root endpoint with service information
+        """
+        return {
+            "service": "Fair-Edge Sports Betting API",
+            "version": "2.0.0",
+            "status": "operational",
+            "environment": settings.environment,
+            "documentation": "/docs" if settings.environment != "production" else "Contact support",
+            "timestamp": datetime.now().isoformat(),
+            "endpoints": {
+                "opportunities": "/api/opportunities",
+                "authentication": "/api/session",
+                "health": "/health",
+                "admin": "/api/admin" if settings.environment != "production" else "Admin access restricted"
             }
         }
-        
-        # Return JSONResponse for proper slowapi compatibility
-        return JSONResponse(content=response_data)
-        
-    except Exception as e:
-        logger.error(f"Error in API route: {e}")
-        error_response = {
-            "status": "error",
-            "error": str(e),
-            "opportunities": [],
-            "analytics": {},
-            "role": "free",
-            "is_guest": True
-        }
-        
-        # Return JSONResponse for proper slowapi compatibility
-        return JSONResponse(content=error_response, status_code=500)
-
-@app.post("/api/opportunities/refresh", tags=["opportunities"])
-@limiter.limit("10/minute")  # Lower limit for compute-intensive operations
-async def trigger_ev_refresh(request: Request):
-    """
-    Trigger EV calculation batch processing - Phase 3.1 implementation
     
-    This endpoint:
-    1. Schedules calc_ev_batch.delay(...) 
-    2. Returns 202 with batch ID
-    3. Clients poll /api/opportunities?batch_id=... for results
-    
-    Heavy CPU work moved off FastAPI event loop per Phase 3 plan
-    """
-    try:
-        from tasks.ev import calc_ev_batch, generate_batch_id
+    # Request logging middleware
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        """
+        Log all incoming requests for monitoring
+        """
+        start_time = datetime.now()
         
-        # Generate unique batch ID for tracking
-        batch_id = generate_batch_id()
+        # Process request
+        response = await call_next(request)
         
-        logger.info(f"🚀 Triggering EV batch calculation: {batch_id}")
+        # Calculate processing time
+        process_time = (datetime.now() - start_time).total_seconds()
         
-        # Schedule the heavy computation task
-        task = calc_ev_batch.delay(batch_id)
-        
-        # Return 202 Accepted with batch tracking info
-        return JSONResponse(
-            content={
-                "status": "accepted",
-                "message": "EV calculation batch scheduled",
-                "batch_id": batch_id,
-                "task_id": task.id,
-                "poll_url": f"/api/opportunities?batch_id={batch_id}",
-                "estimated_completion": "2-5 minutes"
-            },
-            status_code=202
+        # Log request details
+        logger.info(
+            f"{request.method} {request.url.path} - "
+            f"Status: {response.status_code} - "
+            f"Time: {process_time:.3f}s - "
+            f"Client: {request.client.host if request.client else 'unknown'}"
         )
         
-    except Exception as e:
-        logger.error(f"Failed to schedule EV batch: {e}")
-        return JSONResponse(
-            content={
-                "status": "error",
-                "error": "Failed to schedule batch calculation",
-                "details": str(e)
-            },
-            status_code=500
-        )
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint with data pipeline and Redis cache validation"""
-    try:
-        # Check Redis cache status
-        redis_status = redis_health_check()
-        
-        # Try cached data first, fallback to live data
-        cached_opportunities = get_ev_data()
-        if cached_opportunities:
-            data_status = "healthy"
-            total_events = len(cached_opportunities)
-            last_update = get_last_update()
-            data_source = "cache"
-        else:
-            # Fallback to live data check
-            raw_data = fetch_raw_odds_data()
-            data_status = "healthy" if raw_data['status'] == 'success' else "degraded"
-            total_events = raw_data.get('total_events', 0)
-            last_update = raw_data.get('fetch_time', '').isoformat() if raw_data.get('fetch_time') else None
-            data_source = "live"
-        
-        # Include database status
-        db_status = await get_database_status()
-        
-        return {
-            "status": "healthy" if data_status == "healthy" and redis_status.get('status') == 'healthy' else "degraded",
-            "version": "2.1.0",
-            "data_status": data_status,
-            "data_source": data_source,
-            "total_events": total_events,
-            "last_update": last_update,
-            "redis": redis_status,
-            "database": db_status
-        }
-    except Exception as e:
-        return {
-            "status": "unhealthy", 
-            "version": "2.1.0",
-            "error": str(e)
-        }
-
-
-@app.get("/debug/profiles")
-async def get_profiles_debug(
-    db: AsyncSession = Depends(get_db),
-    admin_user: UserCtx = Depends(require_role("admin"))
-):
-    """
-    Debug endpoint to verify Supabase database integration - ADMIN ONLY
-    Shows all user profiles from the database
-    """
-    try:
-        # Query profiles using raw SQL (since we don't have SQLAlchemy models yet)
-        result = await db.execute(text("SELECT id, email, role, subscription_status, created_at FROM profiles ORDER BY created_at DESC LIMIT 10"))
-        profiles = result.fetchall()
-        
-        # Convert to list of dicts for JSON response
-        profiles_data = []
-        for profile in profiles:
-            profiles_data.append({
-                "id": str(profile[0]),
-                "email": profile[1],
-                "role": profile[2],
-                "subscription_status": profile[3],
-                "created_at": profile[4].isoformat() if profile[4] else None
-            })
-        
-        return {
-            "status": "success",
-            "total_profiles": len(profiles_data),
-            "profiles": profiles_data,
-            "message": "Successfully connected to Supabase database",
-            "admin_user": admin_user.email
-        }
-    except Exception as e:
-        logger.error(f"Error querying profiles: {e}")
-        return {
-            "status": "error",
-            "error": str(e),
-            "message": "Failed to connect to Supabase database"
-        }
-
-
-@app.get("/debug/supabase")
-async def test_supabase_client():
-    """
-    Debug endpoint to test Supabase client functionality
-    """
-    try:
-        supabase = get_supabase()
-        
-        # Test connection by querying profiles table
-        response = supabase.table('profiles').select('id, email, role').limit(5).execute()
-        
-        return {
-            "status": "success",
-            "supabase_connected": True,
-            "profiles_count": len(response.data),
-            "sample_profiles": response.data,
-            "message": "Supabase client working correctly"
-        }
-    except Exception as e:
-        logger.error(f"Supabase client error: {e}")
-        return {
-            "status": "error",
-            "supabase_connected": False,
-            "error": str(e),
-            "message": "Failed to connect using Supabase client"
-        }
-
-
-@app.get("/debug/database-status")
-async def database_status_debug():
-    """
-    Comprehensive database status check
-    """
-    try:
-        status = await get_database_status()
-        return {
-            "timestamp": datetime.now().isoformat(),
-            "database_status": status
-        }
-    except Exception as e:
-        logger.error(f"Database status check error: {e}")
-        return {
-            "timestamp": datetime.now().isoformat(),
-            "error": str(e),
-            "status": "failed"
-        }
-
-
-@app.get("/premium/opportunities")
-async def get_premium_opportunities(
-    subscriber: UserCtx = Depends(require_subscription())
-):
-    """
-    Premium endpoint for subscribers - enhanced opportunities with additional analysis
-    """
-    try:
-        # Get basic opportunities
-        raw_data = fetch_raw_odds_data()
-        opportunities, analytics = process_opportunities(raw_data)
-        
-        # Add premium features for subscribers
-        enhanced_opportunities = []
-        for opp in opportunities:
-            enhanced = opp.copy()
-            # Add premium data analysis
-            enhanced['premium_analysis'] = {
-                'confidence_score': round((opp.get('EV_Raw', 0) * 100 + 50), 1),
-                'risk_assessment': 'low' if opp.get('EV_Raw', 0) > 0.03 else 'medium',
-                'historical_performance': 'Not available in demo'
-            }
-            enhanced_opportunities.append(enhanced)
-        
-        return {
-            "opportunities": enhanced_opportunities,
-            "analytics": analytics,
-            "premium_features": {
-                "confidence_scoring": True,
-                "risk_assessment": True,
-                "historical_tracking": True,
-                "advanced_filters": True
-            },
-            "subscriber_info": {
-                "id": subscriber.id,
-                "role": subscriber.role,
-                "subscription_status": subscriber.subscription_status
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in premium opportunities: {e}")
-        raise HTTPException(status_code=500, detail="Unable to fetch premium opportunities")
-
-
-@app.get("/api/user-info")
-async def get_user_info(user: UserCtx = Depends(get_current_user)):
-    """
-    Get basic user info including role and subscription status from database
-    Useful for frontend role-based UI logic
-    Rate limited to prevent abuse
-    """
-    try:
-        logger.info(f"📋 User-info request for user: {user.email} (role: {user.role})")
-        
-        response_data = {
-            "user_id": user.id,
-            "email": user.email,
-            "role": user.role,
-            "subscription_status": user.subscription_status,
-            "authenticated": True
-        }
-        
-        logger.info(f"✅ User-info response: {response_data}")
-        return response_data
-        
-    except Exception as e:
-        logger.error(f"❌ Error in get_user_info: {e}")
-        raise HTTPException(status_code=500, detail=f"Error getting user info: {str(e)}")
-
-
-# Background Task Endpoints
-@app.post("/api/refresh", tags=["background-tasks"])
-@limiter.limit("5/minute")  # Lower limit for admin operations
-async def manual_refresh(request: Request, admin_user: UserCtx = Depends(require_role("admin")), _csrf_valid: bool = Depends(require_csrf_validation)):
-    """
-    Manually trigger odds data refresh using Celery background task - ADMIN ONLY
-    Requires CSRF token validation
-    """
-    try:
-        # Schedule the task
-        task = refresh_odds_data.delay()
-        
-        return {
-            "status": "scheduled",
-            "task_id": task.id,
-            "message": "Odds refresh task has been scheduled",
-            "admin_user": admin_user.email
-        }
-    except Exception as e:
-        logger.error(f"Failed to schedule refresh task: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to schedule task: {str(e)}")
-
-
-@app.get("/api/task-status/{task_id}", tags=["background-tasks"])
-@limiter.limit("20/minute")
-async def get_task_status(task_id: str, request: Request, admin_user: UserCtx = Depends(require_role("admin"))):
-    """
-    Get the status of a background task - ADMIN ONLY
-    Rate limited to prevent abuse
-    """
-    try:
-        from services.celery_app import celery_app
-        result = celery_app.AsyncResult(task_id)
-        
-        if result.state == 'PENDING':
-            response = {
-                'state': result.state,
-                'status': 'Task is waiting to be processed'
-            }
-        elif result.state == 'PROGRESS':
-            response = {
-                'state': result.state,
-                'current': result.info.get('current', 0),
-                'total': result.info.get('total', 1),
-                'status': result.info.get('status', '')
-            }
-        elif result.state == 'SUCCESS':
-            response = {
-                'state': result.state,
-                'result': result.result
-            }
-        else:  # FAILURE
-            response = {
-                'state': result.state,
-                'error': str(result.info)
-            }
+        # Add processing time header
+        response.headers["X-Process-Time"] = str(process_time)
         
         return response
-    except Exception as e:
-        logger.error(f"Failed to get task status: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
-
-
-@app.get("/api/cache-status", tags=["system"])
-@limiter.limit("30/minute")
-async def get_cache_status(request: Request):
-    """
-    Get Redis cache health and status information
-    Rate limited to prevent abuse
-    """
-    try:
-        redis_status = redis_health_check()
-        return {
-            "timestamp": datetime.now().isoformat(),
-            "redis": redis_status
-        }
-    except Exception as e:
-        logger.error(f"Failed to get cache status: {e}")
-        return {
-            "timestamp": datetime.now().isoformat(),
-            "redis": {
-                "status": "error",
-                "message": str(e)
-            }
-        }
-
-
-@app.post("/api/clear-cache", tags=["system"])
-@limiter.limit("10/minute")
-async def clear_redis_cache(request: Request, admin_user: UserCtx = Depends(require_role("admin")), _csrf_valid: bool = Depends(require_csrf_validation)):
-    """
-    Clear Redis cache - ADMIN ONLY
-    Requires CSRF token validation
-    """
-    try:
-        success = clear_cache()
-        if success:
-            return {
-                "status": "success",
-                "message": "Cache cleared successfully",
-                "admin_user": admin_user.email
-            }
-        else:
-            return {
-                "status": "error",
-                "message": "Failed to clear cache"
-            }
-    except Exception as e:
-        logger.error(f"Failed to clear cache: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {str(e)}")
-
-
-@app.get("/api/celery-health", tags=["system"])
-@limiter.limit("10/minute")
-async def get_celery_health(request: Request, admin_user: UserCtx = Depends(require_role("admin"))):
-    """
-    Test Celery worker health - ADMIN ONLY
-    Rate limited to prevent abuse
-    """
-    try:
-        # Schedule a simple health check task
-        task = celery_health_check.delay()
-        # Wait briefly for result
-        result = task.get(timeout=10)
-        
-        return {
-            "status": "healthy",
-            "celery_result": result,
-            "admin_user": admin_user.email
-        }
-    except Exception as e:
-        logger.error(f"Celery health check failed: {e}")
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "message": "Celery worker is not responding"
-        }
-
-
-# Debug endpoint to manually trigger data refresh in development
-@app.post("/debug/trigger-refresh")
-async def trigger_manual_refresh(request: Request):
-    """
-    Manual refresh endpoint for development/debugging
-    Triggers immediate data refresh and returns the updated opportunities
-    Only active when DEBUG_MODE is enabled
-    """
-    if not settings.is_debug:
-        raise HTTPException(status_code=404, detail="Debug endpoint not available in production")
     
-    try:
-        # Use centralized user service
-        from services.user_service import UserContextManager
-        from services.data_service import OpportunityProcessor
-        
-        user_ctx = UserContextManager(request)
-        
-        logger.info(f"🔄 Manual refresh triggered for user role: {user_ctx.role}")
-        
-        # Trigger the background task for cache refresh
-        task = refresh_odds_data.delay()
-        
-        # Wait a moment for the task to start
-        time.sleep(1)
-        
-        # Process opportunities with current data
-        processor = OpportunityProcessor(user_ctx.role)
-        result = processor.process()
-        
-        if result["filtered_response"].get("opportunities"):
-            filtered_response = result["filtered_response"]
-            
-            return {
-                "status": "success",
-                "message": f"Refresh triggered for {user_ctx.role} user",
-                "task_id": task.id,
-                "task_state": task.state,
-                "opportunities_count": len(filtered_response.get('opportunities', [])),
-                "total_available": filtered_response.get('total_available', 0),
-                "role": user_ctx.role,
-                "filtered_data": filtered_response,
-                "timestamp": datetime.now().isoformat()
-            }
-        else:
-            return {
-                "status": "pending",
-                "message": "Refresh triggered, data processing in progress",
-                "task_id": task.id,
-                "task_state": task.state,
-                "role": user_ctx.role,
-                "timestamp": datetime.now().isoformat()
-            }
-            
-    except Exception as e:
-        logger.error(f"Manual refresh failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Refresh failed: {str(e)}")
+    return app
 
+# Create the FastAPI application
+app = create_app()
 
-# Session Management Endpoints (Production Cookie-based Auth)
-@app.post("/api/session")
-@limiter.limit("20/minute")  # Rate limit session creation
-async def create_session(request: Request, response: Response):
-    """
-    Create secure session with httpOnly cookies
-    Called after successful Supabase authentication on frontend
-    Rate limited to prevent abuse
-    """
-    try:
-        # Parse request body
-        body = await request.json()
-        access_token = body.get("access_token")
-        user_data = body.get("user_data", {})
-        
-        if not access_token:
-            logger.error("Session creation failed: Missing access_token")
-            raise HTTPException(status_code=400, detail="Missing access_token")
-        
-        # Validate the token by attempting to decode it
-        try:
-            # First try to decode without verification to get the payload for debugging
-            # When verify_signature=False, we still need to provide a key (can be dummy)
-            unverified_payload = jwt.decode(
-                access_token, 
-                "dummy_key",  # Dummy key since we're not verifying signature
-                algorithms=["HS256"],
-                options={
-                    "verify_signature": False,
-                    "verify_aud": False,
-                    "verify_iss": False, 
-                    "verify_exp": False,
-                    "verify_iat": False
-                }
-            )
-            logger.info(f"Token payload (unverified): {unverified_payload}")
-            
-            # Try multiple possible JWT secrets
-            jwt_secrets_to_try = [
-                settings.supabase_jwt_secret,  # Primary JWT secret
-                settings.supabase_anon_key.split('.')[-1],  # Signature part of anon key
-                settings.supabase_anon_key,  # Full anon key
-            ]
-            
-            payload = None
-            for secret in jwt_secrets_to_try:
-                try:
-                    payload = jwt.decode(
-                        access_token, 
-                        secret, 
-                        algorithms=["HS256"],
-                        options={"verify_aud": False, "verify_iss": False}  # Disable both audience and issuer verification
-                    )
-                    logger.info(f"JWT validated successfully with secret: {secret[:10]}...")
-                    break
-                except jwt.JWTError as e:
-                    logger.warning(f"JWT validation failed with secret {secret[:10]}...: {str(e)}")
-                    continue
-            
-            if not payload:
-                # If all secrets fail, just use the unverified payload for development
-                logger.warning("All JWT validation attempts failed, using unverified payload for development")
-                payload = unverified_payload
-            
-            # Extract user info from token
-            user_id = payload.get("sub")
-            email = payload.get("email")
-            
-            if not user_id:
-                logger.error(f"Invalid token payload - missing sub: {payload}")
-                raise HTTPException(status_code=400, detail="Invalid token payload - missing user ID")
-            
-            if not email:
-                logger.warning(f"Token missing email, will try to get from user_data: {payload}")
-                email = user_data.get("email")
-            
-            # Update user_data with token info
-            user_data.update({
-                "id": user_id,
-                "email": email or user_data.get("email", "unknown@example.com")
-            })
-            
-        except Exception as e:
-            logger.error(f"JWT processing error: {str(e)}")
-            raise HTTPException(status_code=400, detail=f"Token processing failed: {str(e)}")
-        
-        # Set secure cookies and get CSRF token
-        csrf_token = SessionManager.set_auth_cookie(response, access_token, user_data)
-        
-        logger.info(f"Session created successfully for user: {user_data.get('email')}")
-        logger.info(f"Cookies being set - Auth: {SessionManager.AUTH_COOKIE}, CSRF: {SessionManager.CSRF_COOKIE}")
-        
-        # Create response content
-        response_content = {
-            "status": "success",
-            "csrf_token": csrf_token,
-            "user": {
-                "id": user_data.get("id"),
-                "email": user_data.get("email"),
-                "role": user_data.get("role", "free")
-            }
-        }
-        
-        # Set headers and return the response object (which now has cookies)
-        response.headers["X-CSRF-Token"] = csrf_token
-        response.headers["Content-Type"] = "application/json"
-        
-        # Use the response object we've been setting cookies on
-        import json
-        response.body = json.dumps(response_content).encode()
-        response.status_code = 200
-        
-        return response
-        
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions as-is
-    except Exception as e:
-        logger.error(f"Session creation error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create session")
-
-@app.post("/api/logout-secure")
-@limiter.limit("30/minute")  # Rate limit logout attempts
-async def logout_secure(request: Request, response: Response):
-    """
-    Secure logout that clears httpOnly cookies
-    No CSRF validation required for logout (as specified)
-    Rate limited to prevent abuse
-    """
-    try:
-        # Clear session cookies
-        SessionManager.clear_auth_cookies(response)
-        
-        return {"status": "success", "message": "Session cleared successfully"}
-        
-    except Exception as e:
-        logger.error(f"Logout error: {e}")
-        raise HTTPException(status_code=500, detail="Logout failed")
-
-@app.get("/api/session/user")
-@limiter.limit("30/minute")
-async def get_session_user(request: Request):
-    """
-    Get current user from session cookie
-    Rate limited to prevent abuse
-    """
-    logger.info(f"Session user endpoint called. Cookies: {dict(request.cookies)}")
-    
-    user = get_current_user_from_cookie(request)
-    if not user:
-        logger.warning("No user found from session cookie")
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    logger.info(f"User found from cookie: {user.email} ({user.role})")
-    
-    return {
-        "id": user.id,
-        "email": user.email,
-        "role": user.role,
-        "subscription_status": user.subscription_status
-    }
-
-@app.get("/api/bets/raw", tags=["opportunities"])
-@limiter.limit("30/minute")
-async def raw_betting_export(request: Request, subscriber: UserCtx = Depends(require_subscription())):
-    """
-    Raw betting data export - SUBSCRIBERS AND ADMINS ONLY
-    Returns unfiltered, unmasked data for analysis
-    """
-    try:
-        opportunities = get_ev_data()
-        analytics = get_analytics_data()
-        last_update = get_last_update()
-        
-        if opportunities:
-            ui_opportunities = process_opportunities_for_ui(opportunities)
-            ui_opportunities.sort(key=lambda x: x.get('ev_percentage', 0), reverse=True)
-        else:
-            ui_opportunities = []
-        
-        return {
-            "role": subscriber.role,
-            "export_type": "raw",
-            "total_opportunities": len(ui_opportunities),
-            "opportunities": ui_opportunities,
-            "analytics": analytics,
-            "last_update": last_update,
-            "exported_at": datetime.now().isoformat(),
-            "subscriber_email": subscriber.email
-        }
-        
-    except Exception as e:
-        logger.error(f"Raw export error for {subscriber.email}: {e}")
-        raise HTTPException(status_code=500, detail="Export failed")
-
-@app.get("/api/analytics/advanced", tags=["analytics"])
-@limiter.limit("30/minute") 
-async def advanced_analytics(request: Request, subscriber: UserCtx = Depends(require_subscription())):
-    """
-    Advanced analytics endpoint - SUBSCRIBERS AND ADMINS ONLY
-    Provides detailed market analysis and trends
-    """
-    try:
-        analytics = get_analytics_data()
-        opportunities = get_ev_data()
-        
-        # Calculate advanced metrics for subscribers
-        if opportunities:
-            ev_values = [opp.get('EV_Raw', 0) for opp in opportunities if opp.get('EV_Raw')]
-            
-            advanced_metrics = {
-                "market_efficiency": {
-                    "avg_ev": sum(ev_values) / len(ev_values) if ev_values else 0,
-                    "ev_variance": sum([(x - sum(ev_values) / len(ev_values)) ** 2 for x in ev_values]) / len(ev_values) if len(ev_values) > 1 else 0,
-                    "total_opportunities": len(opportunities)
-                },
-                "value_distribution": {
-                    "excellent_4_5_plus": len([x for x in ev_values if x >= 0.045]),
-                    "high_2_5_to_4_5": len([x for x in ev_values if 0.025 <= x < 0.045]),
-                    "positive_0_to_2_5": len([x for x in ev_values if 0 < x < 0.025]),
-                    "neutral_negative": len([x for x in ev_values if x <= 0])
-                }
-            }
-        else:
-            advanced_metrics = {"error": "No data available"}
-        
-        return {
-            "role": subscriber.role,
-            "analytics_type": "advanced",
-            "basic_analytics": analytics,
-            "advanced_metrics": advanced_metrics,
-            "generated_at": datetime.now().isoformat(),
-            "subscription_status": subscriber.subscription_status
-        }
-        
-    except Exception as e:
-        logger.error(f"Advanced analytics error for {subscriber.email}: {e}")
-        raise HTTPException(status_code=500, detail="Analytics generation failed")
-
-@app.get("/debug/cookies")
-async def debug_cookies(request: Request):
-    """Debug endpoint to inspect cookies and session state"""
-    from core.session import SessionManager, get_current_user_from_cookie
-    
-    debug_info = {
-        "all_cookies": dict(request.cookies),
-        "auth_cookie_name": SessionManager.AUTH_COOKIE,
-        "csrf_cookie_name": SessionManager.CSRF_COOKIE,
-        "auth_cookie_value": request.cookies.get(SessionManager.AUTH_COOKIE),
-        "csrf_cookie_value": request.cookies.get(SessionManager.CSRF_COOKIE),
-        "user_from_cookie": None,
-        "jwt_decode_error": None
-    }
-    
-    # Try to get user from cookie
-    try:
-        user = get_current_user_from_cookie(request)
-        if user:
-            debug_info["user_from_cookie"] = {
-                "id": user.id,
-                "email": user.email,
-                "role": user.role,
-                "subscription_status": user.subscription_status
-            }
-        else:
-            debug_info["user_from_cookie"] = "No user found"
-    except Exception as e:
-        debug_info["jwt_decode_error"] = str(e)
-    
-    return debug_info
-
-
+# Development server runner
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.environment == "development",
+        log_level="info",
+        access_log=True
+    )
