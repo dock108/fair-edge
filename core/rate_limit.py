@@ -19,8 +19,8 @@ def _real_ip(request: Request) -> str:
     return request.client.host or "unknown"
 
 
-# Create limiter instance with real IP detection and response headers enabled
+# Create limiter instance with real IP detection (headers disabled to fix 500 errors)
 limiter = Limiter(
     key_func=_real_ip,
-    headers_enabled=True  # Enable X-RateLimit-* headers in responses
+    headers_enabled=False  # Disabled to prevent slowapi response type conflicts
 ) 

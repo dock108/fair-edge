@@ -11,8 +11,8 @@ RUN apk add --no-cache git
 # Copy package files for better layer caching
 COPY frontend/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production --silent
+# Install dependencies (including dev dependencies for build)
+RUN npm ci --silent
 
 # Copy frontend source code
 COPY frontend/ .
