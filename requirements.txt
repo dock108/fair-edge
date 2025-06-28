@@ -11,7 +11,9 @@ requests==2.32.4
 
 # Database & Supabase Integration - UPDATED
 asyncpg==0.30.0
+psycopg2-binary==2.9.9
 sqlalchemy[asyncio]==2.0.41
+alembic==1.13.2
 supabase==2.15.2
 
 # Authentication & JWT - UPDATED
