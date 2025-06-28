@@ -60,7 +60,7 @@ celery_app.conf.update(
     # Beat Schedule Configuration - Use exact task names from @shared_task decorators
     beat_schedule={
         'refresh-ev-data': {
-            'task': 'refresh_odds_data',  # Matches @shared_task(name="refresh_odds_data")
+            'task': 'tasks.odds.refresh_data',  # Matches @shared_task(name="tasks.odds.refresh_data")
             'schedule': crontab(minute=f"*/{REFRESH_INTERVAL_MINUTES}"),
             'options': {
                 'expires': 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up
@@ -76,7 +76,7 @@ celery_app.conf.update(
             }
         },
         'health-check': {
-            'task': 'health_check',  # Matches @shared_task(name="health_check")
+            'task': 'tasks.system.health_check',  # Matches @shared_task(name="tasks.system.health_check")
             'schedule': crontab(minute='*/5'),
             'options': {
                 'expires': 300,
