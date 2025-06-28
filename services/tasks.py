@@ -375,7 +375,9 @@ def generate_analytics(opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
 def store_role_based_cache(opportunities: List[Dict[str, Any]], analytics: Dict[str, Any]):
     """Store pre-filtered data for different user roles to improve performance"""
     try:
-        from core.constants import MASK_FIELDS_FOR_FREE
+        from core.config.features import FeatureConfig
+        feature_config = FeatureConfig()
+        MASK_FIELDS_FOR_FREE = feature_config.MASK_FIELDS_FOR_FREE
         
         # Free tier cache (market-filtered and masked, no quantity limit)
         free_opportunities = []

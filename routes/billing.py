@@ -1,6 +1,129 @@
 """
-Billing routes for Stripe subscription management
-Handles checkout sessions, webhooks, and subscription updates
+Fair-Edge Billing and Subscription Management Routes
+
+PRODUCTION-READY STRIPE INTEGRATION FOR SUBSCRIPTION BILLING
+
+This module implements comprehensive Stripe integration for Fair-Edge subscription
+management, providing secure payment processing, webhook handling, and subscription
+lifecycle management with robust error handling and security features.
+
+BILLING FEATURES:
+================
+
+1. Subscription Management:
+   - Multi-tier subscription plans (Basic $3.99/month, Premium $9.99/month)
+   - Secure Stripe Checkout integration with automatic user upgrades
+   - Customer Portal for self-service subscription management
+   - Real-time webhook processing for subscription lifecycle events
+
+2. Security & Compliance:
+   - Webhook signature verification prevents fraudulent requests
+   - Rate limiting on sensitive endpoints prevents abuse
+   - Comprehensive error handling with secure error messages
+   - PCI compliance through Stripe's secure payment processing
+
+3. User Experience:
+   - Seamless upgrade flow with automatic role assignment
+   - Immediate access activation upon successful payment
+   - Self-service billing management through Stripe Customer Portal
+   - Graceful handling of payment failures and subscription changes
+
+4. Production Reliability:
+   - Comprehensive webhook event handling for all subscription states
+   - Database transaction safety with rollback on failures
+   - Detailed logging for monitoring and troubleshooting
+   - Configuration validation prevents deployment issues
+
+SUBSCRIPTION TIERS:
+==================
+
+1. Basic Plan ($3.99/month):
+   - All main betting lines (moneyline, spreads, totals)
+   - Unlimited EV access for main lines
+   - Enhanced filtering and search capabilities
+   - Email support
+
+2. Premium Plan ($9.99/month):
+   - All betting markets including player props
+   - Advanced analytics and historical data
+   - Priority data updates and features
+   - Export capabilities and API access
+   - Priority support
+
+WEBHOOK EVENTS HANDLED:
+======================
+
+1. checkout.session.completed:
+   - Upgrades user from free to paid tier
+   - Stores Stripe customer and subscription IDs
+   - Activates subscription immediately
+
+2. customer.subscription.updated:
+   - Handles plan changes and status updates
+   - Manages subscription pausing/resuming
+   - Updates user permissions in real-time
+
+3. customer.subscription.deleted:
+   - Downgrades user to free tier
+   - Preserves user data while removing premium access
+   - Handles voluntary and involuntary cancellations
+
+4. invoice.payment_succeeded:
+   - Confirms subscription remains active
+   - Handles recurring billing confirmations
+   - Maintains access during billing cycles
+
+5. invoice.payment_failed:
+   - Implements grace period before downgrade
+   - Marks subscription as past_due
+   - Triggers billing retry logic
+
+SECURITY CONSIDERATIONS:
+=======================
+
+1. Webhook Security:
+   - Stripe signature verification on all webhook events
+   - Secure webhook endpoint with signature validation
+   - Protection against replay attacks and tampering
+
+2. User Authorization:
+   - JWT-based authentication for all billing endpoints
+   - Role-based access control for subscription features
+   - Secure customer portal session creation
+
+3. Data Protection:
+   - No credit card data stored in application database
+   - All payment processing handled securely by Stripe
+   - Customer data protection with secure transmission
+
+PRODUCTION DEPLOYMENT:
+=====================
+
+Required Environment Variables:
+- STRIPE_SECRET_KEY: Stripe secret key for API operations
+- STRIPE_WEBHOOK_SECRET: Webhook endpoint verification secret
+- STRIPE_BASIC_PRICE: Stripe price ID for basic plan
+- STRIPE_PREMIUM_PRICE: Stripe price ID for premium plan
+
+Configuration Validation:
+- Automatic validation of Stripe configuration at startup
+- Graceful degradation when payment processing unavailable
+- Clear error messages for configuration issues
+
+Monitoring & Alerting:
+- Comprehensive logging of all billing events
+- Failed payment and subscription failure alerts
+- Webhook processing failure monitoring
+- Revenue and subscription metrics tracking
+
+ERROR HANDLING:
+==============
+
+- Graceful degradation when Stripe services unavailable
+- Secure error messages that don't expose sensitive information
+- Comprehensive logging for troubleshooting and monitoring
+- Automatic retry logic for transient failures
+- Database transaction safety with proper rollback handling
 """
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession

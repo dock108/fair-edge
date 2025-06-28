@@ -465,17 +465,17 @@ def test_api_connection():
     try:
         client = OddsAPIClient()
         
-        print("Testing API connection...")
+        logger.info("Testing API connection...")
         sports = client.get_active_sports()
-        print(f"✓ Successfully connected. Found {len(sports)} active sports.")
+        logger.info(f"Successfully connected. Found {len(sports)} active sports.")
         
         quota = client.get_quota_status()
-        print(f"✓ Quota status: {quota}")
+        logger.info(f"Quota status: {quota}")
         
         return True
         
     except Exception as e:
-        print(f"✗ API connection failed: {e}")
+        logger.error(f"API connection failed: {e}")
         return False
 
 

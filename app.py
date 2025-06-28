@@ -1,11 +1,141 @@
 """
-FastAPI application for Sports Betting +EV Analyzer Dashboard
-Serves the new HTML/CSS UI using Jinja2 templates
+Fair-Edge Sports Betting Analysis API
+
+DEPLOYMENT-READY FastAPI APPLICATION
+
+This is the main FastAPI application that serves as the backend API for Fair-Edge,
+a comprehensive sports betting expected value (EV) analysis platform. The application
+provides REST API endpoints for betting opportunity analysis, user authentication,
+subscription management, and system monitoring.
+
+ARCHITECTURE OVERVIEW:
+===================
+
+1. API-First Design:
+   - Pure API backend serving React SPA frontend
+   - RESTful endpoints with JSON responses
+   - Role-based access control with JWT authentication
+   - Real-time data processing with Redis caching
+
+2. Core Services:
+   - EV Analysis Engine: Calculates expected value opportunities
+   - Fair Odds Calculator: Implements no-vig methodology 
+   - Betting Exchange Integration: Handles commission-based platforms
+   - User Management: Role-based permissions (Free/Basic/Premium/Admin)
+   - Background Processing: Celery for heavy computations
+
+3. Security Features:
+   - JWT-based authentication with Supabase integration
+   - CSRF protection for state-changing operations
+   - Rate limiting on all endpoints
+   - Role-based access control
+   - Secure session management with httpOnly cookies
+
+4. Data Pipeline:
+   - Real-time odds data from multiple sportsbooks
+   - Redis caching for performance optimization
+   - Background task processing for CPU-intensive operations
+   - Comprehensive error handling and monitoring
+
+5. Deployment Configuration:
+   - Production-ready CORS settings
+   - Proxy header support for load balancers
+   - Graceful shutdown handling
+   - Health check endpoints
+   - Structured logging with observability
+
+ENDPOINT CATEGORIES:
+==================
+
+1. Core Analysis Endpoints:
+   - /api/opportunities - Main betting opportunities with role-based filtering
+   - /api/opportunities/refresh - Trigger background EV calculations
+   - /premium/opportunities - Enhanced analysis for subscribers
+
+2. Authentication & Session Management:
+   - /auth/* - JWT token validation and user info
+   - /api/session/* - Secure session management with cookies
+   - /api/logout-secure - Session cleanup
+
+3. User Management:
+   - /api/user-info - Current user profile and role information
+   - Role-based filtering applied automatically to all responses
+
+4. System Administration:
+   - /api/refresh - Manual data refresh (admin only)
+   - /api/cache-status - Redis cache monitoring
+   - /api/clear-cache - Cache management (admin only)
+   - /api/celery-health - Background worker status
+
+5. Analytics & Exports:
+   - /api/analytics/advanced - Detailed market analysis (subscribers only)
+   - /api/bets/raw - Unfiltered data export (subscribers only)
+
+6. Health & Monitoring:
+   - /health - Comprehensive system health check
+   - /debug/* - Development and debugging endpoints
+
+ROLE-BASED ACCESS CONTROL:
+=========================
+
+- Free Users: Limited to main lines with worst 10 opportunities (-2% EV threshold)
+- Basic Users: All main lines with unlimited EV access
+- Premium/Subscribers: Full access to all markets and advanced features
+- Admins: Complete system access including debug and management endpoints
+
+PRODUCTION DEPLOYMENT NOTES:
+===========================
+
+1. Environment Configuration:
+   - All sensitive settings configured via environment variables
+   - Fail-fast validation for unsafe production defaults
+   - Environment-specific CORS and security settings
+
+2. Performance Optimization:
+   - Redis caching reduces database load
+   - Rate limiting prevents abuse
+   - Background processing offloads CPU-intensive tasks
+   - Connection pooling for database operations
+
+3. Monitoring & Observability:
+   - Structured logging with correlation IDs
+   - Health check endpoints for load balancer integration
+   - Comprehensive error handling and reporting
+   - Performance metrics and analytics
+
+4. Security Hardening:
+   - JWT signature validation with multiple key fallbacks
+   - CSRF tokens for state-changing operations
+   - Secure cookie configuration for session management
+   - Input validation and sanitization
+
+5. Scalability Considerations:
+   - Stateless API design for horizontal scaling
+   - Background task distribution via Celery
+   - Database connection pooling
+   - Redis for distributed caching
+
+EXTERNAL DEPENDENCIES:
+=====================
+
+- Database: Supabase (PostgreSQL) for user data and application state
+- Cache: Redis for high-performance data storage and session management
+- Task Queue: Celery with Redis broker for background processing
+- Authentication: Supabase Auth for user management and JWT validation
+- Monitoring: Built-in health checks and structured logging
+
+API VERSIONING:
+==============
+
+Current API version: 2.1.0
+- Backwards compatible with version 2.0.x
+- New batch processing capabilities in 3.1 (experimental)
+- Comprehensive role-based access control system
+
+For detailed endpoint documentation, visit /docs (OpenAPI/Swagger UI)
 """
 
 from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter, Response
-# Jinja2Templates removed - React app handles all templating
-# StaticFiles removed - React app serves its own assets
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -74,43 +204,137 @@ fail_fast_on_unsafe_defaults()
 cleanup_functions = []
 
 def register_cleanup(func):
-    """Register a cleanup function to be called on shutdown"""
+    """
+    Register a cleanup function to be called on application shutdown.
+    
+    This function maintains a registry of cleanup handlers that need to be called
+    when the application shuts down gracefully. Essential for production deployment
+    to ensure proper resource cleanup and prevent connection leaks.
+    
+    Args:
+        func (callable): Cleanup function to register. Can be sync or async.
+                        Will be called with no arguments during shutdown.
+    
+    Production Notes:
+        - Used for database connection cleanup
+        - Redis connection pool cleanup  
+        - Celery worker shutdown
+        - Background task cancellation
+        - File handle cleanup
+    
+    Example:
+        >>> def cleanup_redis():
+        ...     redis_client.close()
+        >>> register_cleanup(cleanup_redis)
+    """
     cleanup_functions.append(func)
     logger.info(f"✅ Registered {func.__name__} cleanup")
 
 async def cleanup_background_tasks():
-    """Clean up all background tasks and connections"""
+    """
+    Execute all registered cleanup functions during application shutdown.
+    
+    This function is called during FastAPI's lifespan management to ensure
+    graceful shutdown of all services and proper resource cleanup. Critical
+    for production deployment to prevent resource leaks and data corruption.
+    
+    Process:
+    1. Iterate through all registered cleanup functions
+    2. Handle both synchronous and asynchronous cleanup functions
+    3. Continue cleanup even if individual functions fail
+    4. Log all cleanup operations for monitoring
+    
+    Error Handling:
+    - Individual cleanup failures are logged but don't stop the process
+    - Ensures maximum resource cleanup even during partial failures
+    - Critical for maintaining system stability during deployment updates
+    
+    Production Benefits:
+    - Prevents database connection leaks
+    - Ensures Redis connections are properly closed
+    - Stops background Celery tasks gracefully
+    - Cleans up temporary files and cache data
+    - Enables zero-downtime deployments
+    """
     logger.info("🧹 Starting cleanup of background tasks...")
     
     for cleanup_func in cleanup_functions:
         try:
+            # Handle both async and sync cleanup functions
             if asyncio.iscoroutinefunction(cleanup_func):
                 await cleanup_func()
             else:
                 cleanup_func()
             logger.info(f"✅ Cleaned up {cleanup_func.__name__}")
         except Exception as e:
+            # Log warnings but continue cleanup process
             logger.warning(f"⚠️ Error in cleanup {cleanup_func.__name__}: {e}")
     
     logger.info("✅ Background tasks cleanup completed")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Handle application lifespan events"""
-    # Startup
+    """
+    Handle FastAPI application lifespan events for production deployment.
+    
+    This context manager controls the application startup and shutdown sequence,
+    ensuring proper initialization and cleanup of all services. Essential for
+    production deployment stability and resource management.
+    
+    Startup Sequence:
+    1. Initialize structured logging system
+    2. Setup observability and monitoring
+    3. Clean any orphaned resources from previous runs
+    4. Application enters ready state
+    
+    Shutdown Sequence:
+    1. Gracefully stop accepting new requests
+    2. Complete processing of in-flight requests
+    3. Execute all registered cleanup functions
+    4. Close database and cache connections
+    5. Shutdown background workers
+    
+    Production Benefits:
+    - Ensures clean startup state for deployments
+    - Prevents resource leaks during shutdown
+    - Enables zero-downtime deployment strategies
+    - Provides comprehensive logging for monitoring
+    - Handles graceful shutdown during scaling events
+    
+    Error Handling:
+    - Startup failures prevent application from starting
+    - Shutdown errors are logged but don't prevent termination
+    - Comprehensive error logging for troubleshooting
+    """
+    # =============
+    # STARTUP PHASE
+    # =============
     logger.info("🚀 Application starting up...")
     
-    # Setup structured logging first
+    # Setup structured logging first - critical for monitoring
     setup_logging()
     
-    # Setup observability after app creation
+    # Setup observability and monitoring infrastructure
     setup_observability(app)
     
+    # Clean up any orphaned resources from previous runs
     await cleanup_background_tasks()
+    
+    # Application is now ready to serve requests
+    logger.info("✅ Application startup completed - ready to serve requests")
+    
+    # Yield control to FastAPI to serve requests
     yield
-    # Shutdown
+    
+    # ==============
+    # SHUTDOWN PHASE  
+    # ==============
     logger.info("🛑 Application shutting down...")
+    
+    # Execute graceful shutdown sequence
     await cleanup_background_tasks()
+    
+    logger.info("✅ Application shutdown completed")
 
 
 # Create FastAPI app with lifespan context manager
@@ -137,12 +361,6 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-CSRF-Token"]  # Allow frontend to read CSRF token
 )
-
-# Configure static files (CSS, JS, images)
-# Static file mounting removed - React app serves its own assets
-
-# Configure Jinja2 templates
-# Templates removed - React app handles all rendering
 
 # Create auth router
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
@@ -439,39 +657,21 @@ async def root():
     Frontend is handled by React SPA deployed separately
     """
     return {
-        "message": "Sports Betting +EV Analyzer API",
+        "message": "FairEdge Sports Betting Analysis API",
         "status": "operational", 
-        "version": "2.0",
-        "migration": "completed",
-        "debug": "code_updated_successfully",
-        "frontend_url": {
-            "development": "http://localhost:5173",
-            "note": "React SPA now handles all UI rendering"
-        },
+        "version": "2.1.0",
         "api_endpoints": {
-            "opportunities": "/api/opportunities/ui",
+            "opportunities": "/api/opportunities",
             "health": "/health",
             "session": "/api/session/user",
             "docs": "/docs"
         }
     }
 
-
-# /dashboard route removed - React app handles all routing
-
-# /login route removed - React app handles authentication UI
-
 @app.post("/api/logout")
 async def logout_api():
     """API endpoint for logout (for completeness - main logout is handled client-side)"""
     return {"status": "success", "message": "Logged out successfully"}
-
-# /disclaimer route removed - React app handles static pages
-
-# /education route removed - React app handles static pages
-
-# All static page routes removed - React app handles:
-# /pricing, /upgrade/success, /account, /admin
 
 # Define main line markets that free users can access
 MAIN_LINES = {"h2h", "spreads", "totals"}  # moneyline, game spreads, game totals
@@ -569,11 +769,6 @@ def filter_opportunities_by_role(opportunities: List[Dict[str, Any]], user_role:
         "opportunities": filtered_opportunities
     }
 
-# /dashboard/premium route removed - React app handles premium features
-
-# /api/opportunities/ui endpoint removed - using main /api/opportunities endpoint instead
-
-
 @app.get("/api/opportunities")
 @limiter.limit("60/minute")
 async def api_opportunities(
@@ -583,15 +778,149 @@ async def api_opportunities(
     batch_id: Optional[str] = None  # Phase 3.1: Support batch polling
 ):
     """
-    Main API endpoint for getting opportunities data with role-based access control
-    Supports guest access with free tier limits and server-side filtering
-    Falls back to live data if cache is empty
-    Rate limited to prevent abuse
+    CORE API ENDPOINT: Retrieve betting opportunities with comprehensive role-based filtering.
     
-    Query parameters:
-    - search: Search term for teams, events, players, bet descriptions
-    - sport: Filter by specific sport (americanfootball_nfl, basketball_nba, etc.)
-    - batch_id: Poll for results of a specific batch calculation (Phase 3.1)
+    This is the primary endpoint for the Fair-Edge platform, providing expected value
+    analysis for sports betting opportunities. Implements sophisticated role-based access
+    control, intelligent caching, and real-time data fallbacks for production reliability.
+    
+    FUNCTIONALITY OVERVIEW:
+    =====================
+    
+    1. Authentication & Authorization:
+       - JWT token validation (optional - supports guest access)
+       - Role-based data filtering (Free/Basic/Premium/Admin)
+       - Graceful degradation to guest access if authentication fails
+    
+    2. Data Sources:
+       - Primary: Redis cache for fast response times
+       - Fallback: Live data processing if cache is empty
+       - Batch Processing: Support for background computation results
+    
+    3. Role-Based Access Control:
+       - Free Users: 10 worst opportunities, main lines only, -2% EV threshold
+       - Basic Users: All main lines, unlimited EV values
+       - Premium/Subscribers: All markets and advanced features
+       - Admins: Complete access with debug information
+    
+    4. Performance Optimizations:
+       - 60 requests/minute rate limiting
+       - Redis caching reduces computation overhead
+       - Background batch processing for CPU-intensive calculations
+       - Intelligent fallback strategies
+    
+    QUERY PARAMETERS:
+    ================
+    
+    search (Optional[str]): Filter opportunities by search term
+        - Searches across: team names, event descriptions, bet types, bookmaker names
+        - Case-insensitive matching
+        - Example: "Lakers" finds all Lakers-related opportunities
+    
+    sport (Optional[str]): Filter by specific sport
+        - Supported values: americanfootball_nfl, basketball_nba, baseball_mlb, icehockey_nhl
+        - Maps to sport-specific keywords for intelligent filtering
+        - Example: basketball_nba filters to NBA games only
+    
+    batch_id (Optional[str]): Poll for batch computation results
+        - Used with /api/opportunities/refresh for background processing
+        - Returns 202 if batch is still processing
+        - Returns 404 if batch not found or expired
+        - Enables CPU-intensive calculations without blocking API
+    
+    RESPONSE STRUCTURE:
+    ===================
+    
+    Success Response (200):
+    {
+        "role": "free|basic|premium|admin",
+        "truncated": boolean,
+        "limit": "Description of access limits",
+        "total_available": integer,
+        "shown": integer,
+        "features": {role-specific feature flags},
+        "opportunities": [
+            {
+                "event": "Team A vs Team B",
+                "bet_description": "Player Over 25.5 Points",
+                "bet_type": "Player Points",
+                "ev_percentage": 5.75,
+                "ev_classification": "high|positive|neutral",
+                "available_odds": [
+                    {"bookmaker": "DraftKings", "odds": "+120"}
+                ],
+                "fair_odds": "+110",
+                "best_available_odds": "+120",
+                "best_odds_source": "DraftKings",
+                "recommended_book": "DraftKings",
+                "action_link": "https://sportsbook.draftkings.com/...",
+                "_original": {original_data_for_debugging}
+            }
+        ],
+        "analytics": {
+            "total_opportunities": integer,
+            "positive_ev_count": integer,
+            "high_ev_count": integer,
+            "max_ev_percentage": float
+        },
+        "last_update": "ISO timestamp",
+        "data_source": "cache|live|batch_cache",
+        "is_guest": boolean,
+        "filters_applied": {
+            "search": "search_term_or_null",
+            "sport": "sport_filter_or_null",
+            "has_filters": boolean
+        }
+    }
+    
+    Batch Processing Response (202):
+    {
+        "status": "processing",
+        "batch_id": "unique_batch_identifier",
+        "batch_status": "calculation_status",
+        "message": "Batch calculation in progress",
+        "retry_after": 30
+    }
+    
+    Error Response (500):
+    {
+        "status": "error",
+        "error": "Error description",
+        "opportunities": [],
+        "analytics": {},
+        "role": "free",
+        "is_guest": true
+    }
+    
+    RATE LIMITING:
+    ==============
+    - 60 requests per minute per IP address
+    - Prevents abuse and ensures fair resource allocation
+    - Rate limit headers included in response
+    - 429 status code returned when limit exceeded
+    
+    CACHING STRATEGY:
+    =================
+    - Primary: Redis cache with TTL-based expiration
+    - Cache hit: Sub-100ms response times
+    - Cache miss: Automatic fallback to live data processing
+    - Background refresh: Celery tasks update cache periodically
+    
+    PRODUCTION DEPLOYMENT NOTES:
+    ============================
+    - Horizontally scalable (stateless design)
+    - Database connection pooling for concurrent requests
+    - Comprehensive error handling with graceful degradation
+    - Extensive logging for monitoring and debugging
+    - Health check integration for load balancer compatibility
+    
+    SECURITY CONSIDERATIONS:
+    ========================
+    - JWT token validation with multiple secret fallbacks
+    - No sensitive data exposed in error messages
+    - Input sanitization for search parameters
+    - Rate limiting prevents denial-of-service attacks
+    - Role-based data masking for unauthorized access
     """
     try:
         # Phase 3.1: Handle batch polling

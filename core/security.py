@@ -13,13 +13,13 @@ def set_auth_cookie(resp: Response, token: str, max_age_seconds: int = None):
     Args:
         resp: FastAPI Response object
         token: JWT token to store in cookie
-        max_age_seconds: Cookie lifetime in seconds (defaults to JWT expiry)
+        max_age_seconds: Cookie lifetime in seconds (defaults to 1 hour)
     """
     cfg = get_settings()
     secure = cfg.app_env == "prod"
     
     if max_age_seconds is None:
-        max_age_seconds = cfg.jwt_expires_minutes * 60
+        max_age_seconds = 3600  # Default 1 hour
     
     resp.set_cookie(
         "access_token",
@@ -56,14 +56,14 @@ def fail_fast_on_unsafe_defaults():
     if cfg.app_env == "prod":
         unsafe_defaults = []
         
-        if cfg.jwt_secret == "CHANGE_ME":
-            unsafe_defaults.append("JWT_SECRET")
         if cfg.admin_secret == "CHANGE_ME":
             unsafe_defaults.append("ADMIN_SECRET")
-        if "CHANGE_ME" in str(cfg.database_url):
-            unsafe_defaults.append("DATABASE_URL")
         if "CHANGE_ME" in str(cfg.supabase_url):
             unsafe_defaults.append("SUPABASE_URL")
+        if cfg.supabase_jwt_secret == "CHANGE_ME":
+            unsafe_defaults.append("SUPABASE_JWT_SECRET")
+        if cfg.odds_api_key == "CHANGE_ME":
+            unsafe_defaults.append("ODDS_API_KEY")
         
         if unsafe_defaults:
             raise RuntimeError(
