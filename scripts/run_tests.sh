@@ -44,6 +44,7 @@ COMMANDS:
     smoke           Run smoke tests (quick health checks)
     load            Run load tests with Locust
     integration     Run full integration test suite
+    sprint6         Run Sprint 6 specific feature tests
     docker-smoke    Run smoke tests in Docker containers
     docker-load     Run load tests in Docker containers
     ci-simulation   Simulate full CI pipeline locally
@@ -86,7 +87,7 @@ while [[ $# -gt 0 ]]; do
             show_help
             exit 0
             ;;
-        smoke|load|integration|docker-smoke|docker-load|ci-simulation|cleanup|install-deps)
+        smoke|load|integration|sprint6|docker-smoke|docker-load|ci-simulation|cleanup|install-deps)
             COMMAND=$1
             shift
             ;;
@@ -335,6 +336,50 @@ run_integration_tests() {
     fi
 }
 
+run_sprint6_tests() {
+    log_info "Running Sprint 6 feature tests..."
+    
+    setup_test_env
+    start_background_services
+    
+    # Start application in background
+    export $(cat .env.test | xargs)
+    python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
+    APP_PID=$!
+    echo $APP_PID > app.pid
+    
+    # Wait for app to start
+    log_info "Waiting for application to start..."
+    timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null; do sleep 2; done' || {
+        log_error "Application failed to start"
+        kill $APP_PID 2>/dev/null || true
+        stop_background_services
+        exit 1
+    }
+    
+    # Run Sprint 6 specific tests
+    log_info "Executing Sprint 6 feature tests..."
+    if [[ "$VERBOSE" == "true" ]]; then
+        pytest tests/test_stripe_webhooks.py tests/test_route_protection.py tests/test_sprint6_integration.py -v --tb=short --durations=10
+    else
+        pytest tests/test_stripe_webhooks.py tests/test_route_protection.py tests/test_sprint6_integration.py -v --tb=short
+    fi
+    
+    SPRINT6_EXIT_CODE=$?
+    
+    # Cleanup
+    kill $APP_PID 2>/dev/null || true
+    rm -f app.pid
+    stop_background_services
+    
+    if [[ $SPRINT6_EXIT_CODE -eq 0 ]]; then
+        log_success "Sprint 6 tests passed"
+    else
+        log_error "Sprint 6 tests failed"
+        exit $SPRINT6_EXIT_CODE
+    fi
+}
+
 run_docker_smoke() {
     log_info "Running smoke tests in Docker..."
     
@@ -387,13 +432,16 @@ run_ci_simulation() {
     log_info "Step 1: Smoke tests"
     run_smoke_tests
     
-    log_info "Step 2: Load tests"
+    log_info "Step 2: Sprint 6 feature tests"
+    run_sprint6_tests
+    
+    log_info "Step 3: Load tests"
     run_load_tests
     
-    log_info "Step 3: Integration tests"
+    log_info "Step 4: Integration tests"
     run_integration_tests
     
-    log_info "Step 4: Docker smoke tests"
+    log_info "Step 5: Docker smoke tests"
     run_docker_smoke
     
     log_success "🎉 Full CI simulation completed successfully!"
@@ -433,6 +481,10 @@ case $COMMAND in
     integration)
         check_dependencies
         run_integration_tests
+        ;;
+    sprint6)
+        check_dependencies
+        run_sprint6_tests
         ;;
     docker-smoke)
         check_dependencies

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { LoadingSpinner } from './common/LoadingSpinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -17,12 +18,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
           display: 'flex', 
           justifyContent: 'center', 
           alignItems: 'center', 
-          minHeight: '50vh',
-          flexDirection: 'column',
-          gap: 'var(--space-4)'
+          minHeight: '50vh'
         }}>
-          <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: 'var(--brand-600)' }}></i>
-          <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+          <LoadingSpinner size="lg" text="Loading..." />
         </div>
       </div>
     );

@@ -1,6 +1,9 @@
 /* Import design tokens first */
 @import './styles/_tokens.css';
 
+/* Import typography utilities */
+@import './styles/_typography.css';
+
 /* ===========================
    LOADING ANIMATIONS
    =========================== */

@@ -258,8 +258,8 @@ async def get_session_user(
                 "role": user.role,
                 "subscription_status": getattr(user, 'subscription_status', 'free'),
                 "permissions": {
-                    "can_access_premium": user.role in ["subscriber", "admin"],
-                    "can_export_data": user.role in ["subscriber", "admin"],
+                    "can_access_premium": user.role in ["basic", "premium", "admin"],
+                    "can_export_data": user.role in ["premium", "admin"],
                     "can_access_admin": user.role == "admin",
                     "api_rate_limit": "unlimited" if user.role == "admin" else "standard"
                 }
@@ -314,14 +314,14 @@ async def get_user_info(
             "basic": {
                 "max_opportunities": None,
                 "ev_threshold": None,
-                "market_access": ["main_lines"],
+                "market_access": ["main_lines", "spreads", "totals"],
                 "export_access": False,
                 "refresh_access": False
             },
-            "subscriber": {
+            "premium": {
                 "max_opportunities": None,
                 "ev_threshold": None,
-                "market_access": ["main_lines", "props", "totals", "spreads"],
+                "market_access": ["main_lines", "spreads", "totals", "props", "futures"],
                 "export_access": True,
                 "refresh_access": False
             },
