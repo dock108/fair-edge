@@ -3,6 +3,7 @@ import { BetCard } from '../components/BetCard';
 import { useAuth } from '../contexts/AuthContext';
 import PremiumPrompt from '../components/PremiumPrompt';
 import { useEffect } from 'react';
+import { DashboardSkeleton, LoadingSpinner, InlineLoader } from '../components/common';
 
 export const DashboardPage = () => {
   const {
@@ -63,16 +64,7 @@ export const DashboardPage = () => {
   }, [user, isAuthenticated, authLoading]);
 
   if (loading && opportunities.length === 0) {
-    return (
-      <div className="main-container">
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-3">Loading betting opportunities...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {
@@ -434,10 +426,7 @@ export const DashboardPage = () => {
       {/* Loading indicator for refresh */}
       {loading && opportunities.length > 0 && (
         <div className="text-center mt-3">
-          <div className="spinner-border spinner-border-sm text-primary" role="status">
-            <span className="visually-hidden">Refreshing...</span>
-          </div>
-          <small className="text-muted ms-2">Refreshing data...</small>
+          <InlineLoader text="Refreshing opportunities..." />
         </div>
       )}
     </div>

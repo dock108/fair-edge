@@ -91,7 +91,7 @@ def cleanup_celery():
 
 @shared_task(
     bind=True,
-    name="refresh_odds_data",
+    name="tasks.odds.refresh_data",
     autoretry_for=(TransientError,),  # Only retry transient errors
     retry_backoff=True,  # Exponential backoff
     retry_kwargs={"max_retries": 5},
@@ -450,7 +450,7 @@ def publish_realtime_update(opportunities: List[Dict[str, Any]]):
 
 @shared_task(
     bind=True,
-    name="health_check",
+    name="tasks.system.health_check",
     autoretry_for=(Exception,),
     retry_kwargs={"max_retries": 2},
     soft_time_limit=30,  # 30 seconds
@@ -498,7 +498,7 @@ def health_check(self):
 
 @shared_task(
     bind=True,
-    name="cleanup_old_data",
+    name="tasks.maintenance.cleanup_old_data",
     autoretry_for=(Exception,),
     retry_kwargs={"max_retries": 2},
     ignore_result=True,  # Don't store results in backend

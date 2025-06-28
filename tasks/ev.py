@@ -28,7 +28,7 @@ PROCESSING_STATUS_TTL = 600  # 10 minutes for status tracking
 
 @shared_task(
     bind=True,
-    name="ev.calc_batch",
+    name="tasks.ev.calculate_batch",
     autoretry_for=(Exception,),
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
@@ -190,7 +190,7 @@ def calc_ev_batch(self, batch_id: str, _options: Optional[Dict[str, Any]] = None
 
 @shared_task(
     bind=True,
-    name="ev.calc_incremental",
+    name="tasks.ev.calculate_incremental",
     autoretry_for=(Exception,),
     retry_kwargs={"max_retries": 2}
 )
