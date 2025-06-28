@@ -7,7 +7,7 @@ jinja2==3.1.4
 python-multipart==0.0.12
 
 # Core Dependencies - UPDATED
-requests==2.32.3
+requests==2.32.4
 
 # Database & Supabase Integration - UPDATED
 asyncpg==0.30.0
