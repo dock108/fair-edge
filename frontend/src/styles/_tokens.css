@@ -72,8 +72,9 @@
   /* ===== TYPOGRAPHY ===== */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', monospace;
+  --font-display: 'Inter', Georgia, 'Times New Roman', serif;
 
-  /* Font sizes */
+  /* Font sizes - Extended scale */
   --text-xs:   0.75rem;   /* 12px */
   --text-sm:   0.875rem;  /* 14px */
   --text-base: 1rem;      /* 16px */
@@ -81,17 +82,45 @@
   --text-xl:   1.25rem;   /* 20px */
   --text-2xl:  1.5rem;    /* 24px */
   --text-3xl:  1.875rem;  /* 30px */
+  --text-4xl:  2.25rem;   /* 36px */
+  --text-5xl:  3rem;      /* 48px */
+  --text-6xl:  3.75rem;   /* 60px */
 
   /* Font weights */
+  --font-light:     300;
   --font-normal:    400;
   --font-medium:    500;
   --font-semibold:  600;
   --font-bold:      700;
+  --font-extrabold: 800;
 
-  /* Line heights */
-  --leading-tight:  1.25;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.75;
+  /* Line heights - Extended */
+  --leading-none:    1;
+  --leading-tight:   1.25;
+  --leading-snug:    1.375;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose:   2;
+
+  /* Letter spacing */
+  --tracking-tighter: -0.05em;
+  --tracking-tight:   -0.025em;
+  --tracking-normal:  0em;
+  --tracking-wide:    0.025em;
+  --tracking-wider:   0.05em;
+  --tracking-widest:  0.1em;
+
+  /* Typography scale presets */
+  --type-h1: var(--font-bold) var(--text-4xl)/var(--leading-tight) var(--font-display);
+  --type-h2: var(--font-bold) var(--text-3xl)/var(--leading-tight) var(--font-display);
+  --type-h3: var(--font-semibold) var(--text-2xl)/var(--leading-snug) var(--font-sans);
+  --type-h4: var(--font-semibold) var(--text-xl)/var(--leading-snug) var(--font-sans);
+  --type-h5: var(--font-medium) var(--text-lg)/var(--leading-normal) var(--font-sans);
+  --type-h6: var(--font-medium) var(--text-base)/var(--leading-normal) var(--font-sans);
+  --type-body: var(--font-normal) var(--text-base)/var(--leading-normal) var(--font-sans);
+  --type-body-sm: var(--font-normal) var(--text-sm)/var(--leading-normal) var(--font-sans);
+  --type-caption: var(--font-normal) var(--text-xs)/var(--leading-normal) var(--font-sans);
+  --type-code: var(--font-normal) var(--text-sm)/var(--leading-normal) var(--font-mono);
 
   /* ===== SPACING ===== */
   --space-1:  0.25rem;  /* 4px */

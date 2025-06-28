@@ -1,6 +1,40 @@
 /* Import design tokens first */
 @import './styles/_tokens.css';
 
+/* Import typography utilities */
+@import './styles/_typography.css';
+
+/* ===========================
+   LOADING ANIMATIONS
+   =========================== */
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ===========================
    GLOBAL STYLES
    =========================== */

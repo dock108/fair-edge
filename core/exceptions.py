@@ -216,4 +216,32 @@ async def safe_execute_async(func, *args, context: str = "unknown", fallback=Non
         return await func(*args, **kwargs)
     except Exception as e:
         logger.error(f"Safe async execution failed in {context}: {str(e)}", exc_info=True)
-        return fallback 
+        return fallback
+
+
+def setup_exception_handlers(app):
+    """Setup global exception handlers for the FastAPI app"""
+    from fastapi import Request
+    from fastapi.responses import JSONResponse
+    
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        """Global exception handler for unhandled exceptions"""
+        logger.error(f"Unhandled exception on {request.method} {request.url}: {str(exc)}", exc_info=True)
+        
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal server error",
+                "code": "INTERNAL_ERROR",
+                "path": str(request.url.path)
+            }
+        )
+    
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        """Handle FastAPI HTTP exceptions"""
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=exc.detail if isinstance(exc.detail, dict) else {"error": exc.detail}
+        ) 

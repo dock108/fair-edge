@@ -15,6 +15,7 @@ from celery.signals import worker_shutdown
 from services.celery_app import celery_app
 from services.fastapi_data_processor import fetch_raw_odds_data, process_opportunities
 from services.redis_cache import store_ev_data, store_analytics_data, health_check as redis_health_check
+from services.dashboard_activity import dashboard_activity
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -91,7 +92,7 @@ def cleanup_celery():
 
 @shared_task(
     bind=True,
-    name="refresh_odds_data",
+    name="tasks.odds.refresh_data",
     autoretry_for=(TransientError,),  # Only retry transient errors
     retry_backoff=True,  # Exponential backoff
     retry_kwargs={"max_retries": 5},
@@ -99,27 +100,45 @@ def cleanup_celery():
     time_limit=25 * 60,       # 25 minutes hard limit
     ignore_result=True,  # Don't store results in backend to avoid Redis serialization issues
 )
-def refresh_odds_data(self, force_refresh=False):
+def refresh_odds_data(self, force_refresh=False, skip_activity_check=False):
     """
-    Background task to refresh odds data and process EV opportunities with fault tolerance.
+    Background task to refresh odds data and process EV opportunities with smart activity checking.
     
     Args:
         force_refresh: If True, bypass cache and fetch fresh data from API
+        skip_activity_check: If True, skip dashboard activity check (for manual/on-load refreshes)
     
-    This task:
-    1. Fetches fresh data from The Odds API for all supported sports
-    2. Processes EV opportunities with role-based segmentation
-    3. Stores results in Redis with appropriate cache keys
-    4. Implements automatic retries with exponential backoff
+    Smart Refresh Logic:
+    1. Only auto-refreshes if dashboard is active (unless skip_activity_check=True)
+    2. Fetches fresh data from The Odds API for all supported sports
+    3. Processes EV opportunities with role-based segmentation
+    4. Stores results in Redis with appropriate cache keys
+    5. Records refresh timestamp for activity tracking
+    6. Implements automatic retries with exponential backoff
     """
     start_time = time.perf_counter()
     all_opportunities = []
     
     try:
+        # Check if we should proceed with refresh based on dashboard activity
+        if not skip_activity_check and not force_refresh:
+            should_refresh = dashboard_activity.should_auto_refresh()
+            if not should_refresh:
+                logger.info("🚫 Skipping scheduled refresh: No active dashboard sessions")
+                return {
+                    'status': 'skipped',
+                    'reason': 'no_active_dashboard_sessions',
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'activity_check': 'passed',
+                    'message': 'Refresh skipped to conserve API calls - no active users'
+                }
+        
         if force_refresh:
             logger.info("🚀 Celery task started: Refreshing odds data for all sports (FORCE REFRESH)")
+        elif skip_activity_check:
+            logger.info("🚀 Celery task started: Refreshing odds data for all sports (ON-DEMAND)")
         else:
-            logger.info("🚀 Celery task started: Refreshing odds data for all sports")
+            logger.info("🚀 Celery task started: Refreshing odds data for all sports (ACTIVE DASHBOARD)")
         
         # Update task state to show progress
         self.update_state(
@@ -271,6 +290,9 @@ def refresh_odds_data(self, force_refresh=False):
         
         # Publish real-time update
         publish_realtime_update(all_opportunities)
+        
+        # Record successful refresh for activity tracking
+        dashboard_activity.record_refresh()
         
         # Final update
         processing_time = time.perf_counter() - start_time
@@ -450,7 +472,7 @@ def publish_realtime_update(opportunities: List[Dict[str, Any]]):
 
 @shared_task(
     bind=True,
-    name="health_check",
+    name="tasks.system.health_check",
     autoretry_for=(Exception,),
     retry_kwargs={"max_retries": 2},
     soft_time_limit=30,  # 30 seconds
@@ -498,7 +520,7 @@ def health_check(self):
 
 @shared_task(
     bind=True,
-    name="cleanup_old_data",
+    name="tasks.maintenance.cleanup_old_data",
     autoretry_for=(Exception,),
     retry_kwargs={"max_retries": 2},
     ignore_result=True,  # Don't store results in backend
