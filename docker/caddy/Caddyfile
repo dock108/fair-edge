@@ -1,119 +1,86 @@
-# FairEdge Caddy Configuration for Hetzner Production Deployment
-# HTTP only for IP address deployment (HTTPS requires domain)
+# FairEdge Production Caddyfile
+# Optimized for host networking and React SPA + FastAPI backend
 
-# Listen on port 80 for IP address access
 :80 {
-    # Skip HTTPS for IP address
-
-    # Security headers (without HSTS for HTTP)
+    # Security headers
     header {
-        # XSS Protection
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         X-XSS-Protection "1; mode=block"
-        # CSP (adjust based on your needs)
         Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.stripe.com *.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: *.supabase.co; connect-src 'self' *.supabase.co *.stripe.com; frame-src *.stripe.com"
-        # Remove server info
         -Server
     }
 
-    # API routes - proxy to FastAPI backend
-    reverse_proxy /api/* localhost:8000 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
+    # API Health endpoint
+    handle /health {
+        reverse_proxy localhost:8000
     }
-
-    # Health check endpoint
-    reverse_proxy /health localhost:8000 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
+    
+    # API routes 
+    handle /api/* {
+        reverse_proxy localhost:8000
     }
-
-    # API docs (only in development/staging)
-    reverse_proxy /docs localhost:8000 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
+    
+    # API docs
+    handle /docs {
+        reverse_proxy localhost:8000
     }
-
-    reverse_proxy /redoc localhost:8000 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
+    
+    handle /redoc {
+        reverse_proxy localhost:8000
     }
-
-    reverse_proxy /openapi.json localhost:8000 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
+    
+    handle /openapi.json {
+        reverse_proxy localhost:8000
     }
-
-    # Static assets from React build
-    handle_path /assets/* {
+    
+    # Static assets with caching
+    handle /assets/* {
         root * /srv/frontend
         file_server {
             precompressed gzip br
         }
         header Cache-Control "public, max-age=31536000, immutable"
     }
-
+    
     # Static files (favicon, manifest, etc.)
     handle /favicon.ico {
         root * /srv/frontend
         file_server
         header Cache-Control "public, max-age=86400"
     }
-
+    
     handle /manifest.json {
         root * /srv/frontend
         file_server
         header Cache-Control "public, max-age=86400"
     }
-
+    
     handle /browserconfig.xml {
         root * /srv/frontend
         file_server
         header Cache-Control "public, max-age=86400"
     }
-
+    
     # React SPA - catch-all for client-side routing
-    handle /* {
+    handle {
         root * /srv/frontend
-        file_server
         try_files {path} /index.html
+        file_server
         header Cache-Control "public, max-age=0, must-revalidate"
     }
-
-    # Compression for all responses
+    
+    # Enable compression
     encode gzip
-
-    # Logging (adjust path as needed)
+    
+    # Logging
     log {
         output file /var/log/caddy/access.log
         format json
     }
-
-    # Rate limiting (adjust as needed)
-    # Uncomment to enable basic rate limiting
-    # rate_limit {
-    #     zone static {
-    #         key {remote_host}
-    #         events 100
-    #         window 1m
-    #     }
-    # }
 }
 
-# Redirect www to non-www (optional - disabled for IP deployment)
-# www.{$DOMAIN:app.yourdomain.com} {
-#     redir https://{$DOMAIN:app.yourdomain.com}{uri} permanent
+# Additional configuration for domain deployments (optional)
+# {$DOMAIN:localhost} {
+#     redir https://{$DOMAIN}{uri} permanent
 # }
-
-# Health check handled in main site block above
