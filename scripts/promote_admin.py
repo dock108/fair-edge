@@ -13,14 +13,24 @@ import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import text
-from db import get_db_engine
+from sqlalchemy.ext.asyncio import create_async_engine
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 async def promote_user_to_admin(email: str):
     """Promote a user to admin role"""
-    engine = get_db_engine()
+    # Create simple engine for this script
+    db_url = os.getenv("DB_CONNECTION_STRING")
+    if not db_url:
+        logger.error("DB_CONNECTION_STRING environment variable not found")
+        return False
+    
+    engine = create_async_engine(db_url, echo=False)
     
     async with engine.begin() as conn:
         # Check if user exists
