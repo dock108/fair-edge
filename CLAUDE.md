@@ -5,18 +5,20 @@ This file provides guidance to Claude Code when working with this repository.
 ## Quick Start Commands
 
 ```bash
-# Start development environment
-./scripts/deploy.sh development
+# Development environment
+docker compose -f docker-compose.dev.yml up -d
+
+# Production deployment
+docker compose up -d
+
+# Build frontend for production
+docker compose --profile build build frontend
+docker run --rm -v fairedge-prod_frontend_build:/target fairedge-prod-frontend sh -c "cp -r /usr/share/nginx/html/* /target/"
 
 # Run tests
 ./scripts/run_tests.sh smoke        # Quick health checks
 ./scripts/run_tests.sh integration  # Full test suite
 ./scripts/run_tests.sh load         # Performance testing
-
-# Frontend development
-cd frontend && npm run dev          # Development server
-cd frontend && npm run build        # Production build
-cd frontend && npm run lint         # ESLint linting
 
 # Database migrations
 alembic upgrade head                # Apply migrations
@@ -43,9 +45,10 @@ alembic revision --autogenerate -m "description"  # Generate migrations
 ## Environment Configuration
 
 **Environment Files (Root Level):**
+- `.env.example` - Template for setup (copy to create local configs)
 - `.env.development` - Development settings
-- `.env.production` - Production settings
-- `.env.example` - Template for setup
+- `.env.production` - Production template (copy to .env.production.local)
+- `.env.local` - Local environment file (gitignored)
 
 **Key Variables:**
 ```bash
@@ -97,15 +100,35 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 **Development:**
 ```bash
-./scripts/deploy.sh development
+# Start development environment
+docker compose -f docker-compose.dev.yml up -d
 # Access: Frontend (5173), Backend (8000), API Docs (8000/docs)
 ```
 
 **Production:**
 ```bash
-./scripts/deploy.sh production
-# Includes optimized builds, security headers, monitoring
+# 1. Configure environment
+cp .env.production .env.production.local
+# Edit .env.production.local with your actual values
+
+# 2. Build and deploy
+docker compose up -d
+
+# 3. Build and deploy frontend
+docker compose --profile build build frontend
+docker run --rm -v fairedge-prod_frontend_build:/target fairedge-prod-frontend sh -c "cp -r /usr/share/nginx/html/* /target/"
+docker compose restart caddy
+
+# 4. Verify deployment
+curl http://your-domain/health
 ```
+
+**Production Notes:**
+- Uses host networking for IPv6 compatibility (Hetzner, DigitalOcean, etc.)
+- Frontend served as static files via Caddy reverse proxy
+- API accessible at `/health`, `/api/*`, `/docs`
+- Smart refresh system: 15-min intervals when dashboard active
+- Background workers may need manual restart if migrations are enabled
 
 ## Key Services
 

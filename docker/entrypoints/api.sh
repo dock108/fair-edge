@@ -18,6 +18,8 @@ fi
 if [ "$RUN_MIGRATIONS" = "true" ]; then
     echo "Running database migrations..."
     alembic upgrade head
+else
+    echo "Skipping database migrations (RUN_MIGRATIONS=${RUN_MIGRATIONS:-false})"
 fi
 
 # Set default values
@@ -46,4 +48,5 @@ else
         --keep-alive 2 \
         --max-requests 1000 \
         --max-requests-jitter 100 \
-        --preload 
+        --preload
+fi
