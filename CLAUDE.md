@@ -5,15 +5,11 @@ This file provides guidance to Claude Code when working with this repository.
 ## Quick Start Commands
 
 ```bash
-# Development environment
-docker compose -f docker-compose.dev.yml up -d
-
-# Production deployment
+# Start development environment
 docker compose up -d
 
-# Build frontend for production
-docker compose --profile build build frontend
-docker run --rm -v fairedge-prod_frontend_build:/target fairedge-prod-frontend sh -c "cp -r /usr/share/nginx/html/* /target/"
+# View logs
+docker compose logs -f api
 
 # Run tests
 ./scripts/run_tests.sh smoke        # Quick health checks

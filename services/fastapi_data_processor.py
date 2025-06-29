@@ -51,7 +51,7 @@ def deduplicate_opportunities(opportunities: List[Dict[str, Any]]) -> List[Dict[
     
     Creates a unique identifier for each opportunity based on:
     - Event (game/match)
-    - Market type (h2h, spreads, totals, etc.)
+    - Market type (h2h, spreads, totals, etc.) - normalized
     - Outcome (team name, over/under, etc.)
     - Point value (for spreads/totals)
     
@@ -64,6 +64,16 @@ def deduplicate_opportunities(opportunities: List[Dict[str, Any]]) -> List[Dict[
     if not opportunities:
         return []
     
+    # Market normalization mapping - preserve period-specific markets
+    market_normalization = {
+        'money_line': 'h2h',  # Normalize to h2h but keep period distinctions
+        'spreads': 'spread',
+        'point_spread': 'spread',
+        'totals': 'total',
+        'over_under': 'total'
+        # Don't normalize h2h variants - they're different time periods
+    }
+    
     # Dictionary to store the best version of each unique bet
     unique_bets = {}
     
@@ -73,14 +83,23 @@ def deduplicate_opportunities(opportunities: List[Dict[str, Any]]) -> List[Dict[
         market = opp.get('Market', '').strip()
         bet_description = opp.get('Bet Description', '').strip()
         
-        # Create a unique key combining event, market, and bet description
-        # This ensures we identify the same bet even if described slightly differently
-        unique_key = f"{event}|{market}|{bet_description}".lower()
+        # Normalize market type to prevent duplicates with different naming
+        normalized_market = market_normalization.get(market.lower(), market.lower())
         
-        # If this is the first time we see this bet, or if this version has better EV, keep it
-        if (unique_key not in unique_bets or 
-                opp.get('EV_Raw', 0) > unique_bets[unique_key].get('EV_Raw', 0)):
-            unique_bets[unique_key] = opp
+        # Normalize description for true duplicates only
+        normalized_description = bet_description.lower()
+        # Only normalize if it's the exact same market type (same period)
+        if normalized_market == 'h2h' and 'moneyline' in normalized_description:
+            # Remove "moneyline" suffix for h2h markets only
+            normalized_description = normalized_description.replace(' moneyline', '').strip()
+        
+        # Create a unique key combining event, normalized market, and normalized description
+        # This ensures we identify the same bet even if described slightly differently
+        unique_key = f"{event}|{normalized_market}|{normalized_description}".lower()
+        
+        # Always keep the most recent version (later in the list = more recent)
+        # This ensures we have the latest odds and data, not stale "better" EV
+        unique_bets[unique_key] = opp
     
     # Convert back to list and sort by EV
     deduplicated = list(unique_bets.values())

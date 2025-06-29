@@ -1,91 +1,37 @@
-# FairEdge - Production Deployment
-# Optimized for IPv6 environments (Hetzner, etc.) using host networking
-name: fairedge-prod
+# Fair-Edge - Unified Docker Compose
+# Use: docker compose up -d
+
+name: fair-edge
 
 services:
-  # Caddy Reverse Proxy & Static File Server
-  caddy:
-    image: caddy:2.7-alpine
-    container_name: fairedge-caddy
-    network_mode: "host"
-    volumes:
-      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-      - frontend_build:/srv/frontend:ro
-    restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # React Frontend Build (runs once to create static files)
-  frontend:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.frontend
-      target: production
-      args:
-        - VITE_API_URL=${VITE_API_URL}
-        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
-        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
-    container_name: fairedge-frontend-build
-    volumes:
-      - frontend_build:/usr/share/nginx/html
-    environment:
-      - VITE_API_URL=${VITE_API_URL}
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
-      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
-      - VITE_APP_TITLE=${VITE_APP_TITLE:-FairEdge Sports Betting}
-      - VITE_APP_VERSION=${VITE_APP_VERSION:-2.0.0}
-      - VITE_ENABLE_DEV_TOOLS=${VITE_ENABLE_DEV_TOOLS:-false}
-      - VITE_ENABLE_ANALYTICS=${VITE_ENABLE_ANALYTICS:-true}
-    profiles:
-      - build
-
-  # Production FastAPI Application
+  # Backend API
   api:
     build:
       context: .
-      dockerfile: docker/Dockerfile.backend
-      target: production
-    container_name: fairedge-api
-    network_mode: "host"
+      dockerfile: docker/Dockerfile
+      target: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
     environment:
-      - ENVIRONMENT=production
-      - WEB_CONCURRENCY=${WEB_CONCURRENCY:-4}
-      - REDIS_URL=redis://localhost:6379/0
-      - RUN_MIGRATIONS=${RUN_MIGRATIONS:-false}
-      - BIND_HOST=0.0.0.0
-      - BIND_PORT=8000
-      # Database & Auth
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - REDIS_URL=redis://redis:6379/0
+      - REFRESH_INTERVAL_MINUTES=${REFRESH_INTERVAL_MINUTES:-5}
+      - DEBUG_MODE=${DEBUG_MODE:-true}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      - WEB_CONCURRENCY=2
+      # Supabase
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
-      - DATABASE_URL=${DB_CONNECTION_STRING}
-      - JWT_SECRET_KEY=${SUPABASE_JWT_SECRET}
       # External APIs
       - ODDS_API_KEY=${ODDS_API_KEY}
-      - REFRESH_INTERVAL_MINUTES=${REFRESH_INTERVAL_MINUTES:-15}
-      # Payments
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - STRIPE_BASIC_PRICE=${STRIPE_BASIC_PRICE}
-      - STRIPE_PREMIUM_PRICE=${STRIPE_PREMIUM_PRICE}
-      - CHECKOUT_SUCCESS_URL=${CHECKOUT_SUCCESS_URL}
-      - CHECKOUT_CANCEL_URL=${CHECKOUT_CANCEL_URL}
-      # Security
-      - CORS_ORIGINS=${CORS_ORIGINS}
-      - ADMIN_SECRET=${ADMIN_SECRET}
-    volumes:
-      - ./logs/api:/app/logs
-    restart: unless-stopped
+      # Stripe (optional)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
       redis:
         condition: service_healthy
@@ -94,87 +40,84 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
 
-  # Celery Worker for Background Tasks
+  # Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=${API_URL}
+      - VITE_SUPABASE_URL=${SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - VITE_APP_TITLE=${APP_TITLE}
+      - VITE_APP_VERSION=${APP_VERSION}
+      - VITE_ENABLE_DEV_TOOLS=${ENABLE_DEV_TOOLS}
+      - VITE_ENABLE_ANALYTICS=${ENABLE_ANALYTICS}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 30s
+
+  # Celery Worker
   celery_worker:
     build:
       context: .
-      dockerfile: docker/Dockerfile.backend
-      target: production
-    container_name: fairedge-celery-worker
-    command: ["/entrypoints/celery-worker.sh"]
+      dockerfile: docker/Dockerfile
+      target: development
+    entrypoint: ["/entrypoints/celery-worker.sh"]
+    volumes:
+      - .:/app
     environment:
-      - ENVIRONMENT=production
+      - ENVIRONMENT=${ENVIRONMENT:-development}
       - REDIS_URL=redis://redis:6379/0
-      - CELERY_CONCURRENCY=${CELERY_CONCURRENCY:-4}
-      - CELERY_LOGLEVEL=${CELERY_LOGLEVEL:-info}
-      - REFRESH_INTERVAL_MINUTES=${REFRESH_INTERVAL_MINUTES:-15}
-      # Database & Auth
+      - CELERY_CONCURRENCY=${CELERY_CONCURRENCY:-2}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
-      - DATABASE_URL=${DB_CONNECTION_STRING}
-      - JWT_SECRET_KEY=${SUPABASE_JWT_SECRET}
-      # External APIs
       - ODDS_API_KEY=${ODDS_API_KEY}
-    volumes:
-      - ./logs/celery:/app/logs
-      - celery_data:/app/celery-data
-    networks:
-      - fairedge-network
-    restart: unless-stopped
     depends_on:
       redis:
         condition: service_healthy
 
-  # Celery Beat Scheduler
+  # Celery Beat
   celery_beat:
     build:
       context: .
-      dockerfile: docker/Dockerfile.backend
-      target: production
-    container_name: fairedge-celery-beat
-    command: ["/entrypoints/celery-beat.sh"]
+      dockerfile: docker/Dockerfile
+      target: development
+    entrypoint: ["/entrypoints/celery-beat.sh"]
+    volumes:
+      - .:/app
     environment:
-      - ENVIRONMENT=production
+      - ENVIRONMENT=${ENVIRONMENT:-development}
       - REDIS_URL=redis://redis:6379/0
-      - CELERY_LOGLEVEL=${CELERY_LOGLEVEL:-info}
-      - REFRESH_INTERVAL_MINUTES=${REFRESH_INTERVAL_MINUTES:-15}
-      # Database & Auth
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
-      - DATABASE_URL=${DB_CONNECTION_STRING}
-      - JWT_SECRET_KEY=${SUPABASE_JWT_SECRET}
-      # External APIs
       - ODDS_API_KEY=${ODDS_API_KEY}
-    volumes:
-      - ./logs/celery:/app/logs
-      - celery_beat_data:/app/celery-data
-    networks:
-      - fairedge-network
-    restart: unless-stopped
     depends_on:
       redis:
         condition: service_healthy
 
-  # Redis Cache & Message Broker
+  # Redis
   redis:
     image: redis:7-alpine
-    container_name: fairedge-redis
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    networks:
-      - fairedge-network
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -183,18 +126,4 @@ services:
 
 volumes:
   redis_data:
-    driver: local
-  celery_data:
-    driver: local
-  celery_beat_data:
-    driver: local
-  caddy_data:
-    driver: local
-  caddy_config:
-    driver: local
-  frontend_build:
-    driver: local
-
-networks:
-  fairedge-network:
-    driver: bridge
+  frontend_node_modules:
