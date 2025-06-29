@@ -22,12 +22,10 @@ function App() {
           
           <main className="main-content">
             <Routes>
+              {/* Public Dashboard - Shows free tier for unauthenticated, full data for authenticated */}
+              <Route path="/" element={<DashboardPage />} />
+              
               {/* Protected Routes - Require Authentication */}
-              <Route path="/" element={
-                <PrivateRoute>
-                  <DashboardPage />
-                </PrivateRoute>
-              } />
               
               <Route path="/upgrade/success" element={
                 <PrivateRoute>

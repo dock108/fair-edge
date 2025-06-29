@@ -9,7 +9,7 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: config.apiUrl,
+      baseURL: '', // Use relative URLs that will be proxied by Vite
       timeout: config.apiTimeout,
       headers: {
         'Content-Type': 'application/json',

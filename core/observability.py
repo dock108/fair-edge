@@ -31,7 +31,7 @@ OPPORTUNITY_METRICS = {
         buckets=[0, 1, 2.5, 4.5, 7.5, 10, 15, 20, 999.0]
     ),
     'cache_operations': Counter(
-        'bet_intel_cache_operations_total',
+        'fair_edge_cache_operations_total',
         'Redis cache operations',
         ['operation', 'result']
     ),
@@ -97,7 +97,7 @@ class ObservabilityManager:
             )
             
             # Add user context
-            sentry_sdk.set_tag("service", "bet-intel")
+            sentry_sdk.set_tag("service", "fair-edge")
             sentry_sdk.set_tag("component", "api")
             
             logger.info("Sentry initialized successfully", 

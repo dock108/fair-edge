@@ -17,34 +17,8 @@ from core.rate_limit import limiter
 from services.redis_cache import get_ev_data
 from services.tasks import refresh_odds_data
 from services.dashboard_activity import dashboard_activity
+from services.opportunity_formatter import format_opportunities_for_frontend
 
-# Temporary function until we fix the import
-def format_opportunities_for_api(
-    opportunities, 
-    user_role="free", 
-    user_id=None, 
-    limit=None, 
-    min_ev=None, 
-    market_type=None,
-    **kwargs
-):
-    """Simple formatter for opportunities - temporary replacement"""
-    if not opportunities:
-        return []
-    
-    # Apply basic filtering
-    filtered = opportunities
-    
-    # Role-based filtering
-    if user_role in ["free", "anonymous"]:
-        # Limit to 10 worst opportunities for free users
-        filtered = filtered[-10:] if len(filtered) > 10 else filtered
-    
-    # Apply limit if specified
-    if limit and len(filtered) > limit:
-        filtered = filtered[:limit]
-    
-    return filtered
 
 # Initialize router
 router = APIRouter(tags=["opportunities"])
@@ -55,6 +29,7 @@ logger = logging.getLogger(__name__)
 async def get_opportunities(
     request: Request,
     background_tasks: BackgroundTasks,
+    search: Optional[str] = None,
     limit: Optional[int] = None,
     min_ev: Optional[float] = None,
     market_type: Optional[str] = None,
@@ -115,14 +90,25 @@ async def get_opportunities(
             }
         
         # Apply role-based filtering
-        filtered_opportunities = format_opportunities_for_api(
+        logger.info(f"Formatting {len(ev_data)} opportunities for role: {user.role if user else 'free'}")
+        filtered_opportunities = format_opportunities_for_frontend(
             ev_data, 
             user_role=user.role if user else "free",
-            user_id=user.id if user else None,
-            limit=limit,
-            min_ev=min_ev,
-            market_type=market_type
+            limit=limit
         )
+        logger.info(f"Formatted {len(filtered_opportunities)} opportunities")
+        
+        # Apply search filtering if search term provided
+        if search and search.strip():
+            search_term = search.strip().lower()
+            original_count = len(filtered_opportunities)
+            filtered_opportunities = [
+                opp for opp in filtered_opportunities
+                if (search_term in opp.get('event', '').lower() or
+                    search_term in opp.get('bet_description', '').lower() or
+                    search_term in opp.get('bet_type', '').lower())
+            ]
+            logger.info(f"Search filter '{search_term}': {original_count} -> {len(filtered_opportunities)} opportunities")
         
         # Add metadata
         total_count = len(filtered_opportunities)
@@ -134,6 +120,7 @@ async def get_opportunities(
             "filters_applied": {
                 "role_based": True,
                 "user_role": user_role,
+                "search": search if search and search.strip() else None,
                 "limit": limit,
                 "min_ev": min_ev,
                 "market_type": market_type
@@ -244,16 +231,10 @@ async def get_premium_opportunities(
             }
         
         # Enhanced filtering for premium users
-        filtered_opportunities = format_opportunities_for_api(
+        filtered_opportunities = format_opportunities_for_frontend(
             ev_data,
             user_role="subscriber",
-            user_id=subscriber_user.id,
-            include_props=include_props,
-            include_totals=include_totals,
-            include_spreads=include_spreads,
-            min_ev=min_ev,
-            sort_by=sort_by,
-            unlimited_access=True
+            limit=None
         )
         
         return {
