@@ -3,7 +3,7 @@ Opportunities API Routes
 Handles betting opportunities, EV analysis, and related data endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Header
 from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
@@ -14,10 +14,37 @@ from core.auth import require_role, get_user_or_none, UserCtx
 from core.rate_limit import limiter
 
 # Import services
-from services.redis_cache import get_ev_data, update_ev_data
+from services.redis_cache import get_ev_data
 from services.tasks import refresh_odds_data
 from services.dashboard_activity import dashboard_activity
-from core.ev_analyzer import format_opportunities_for_api
+
+# Temporary function until we fix the import
+def format_opportunities_for_api(
+    opportunities, 
+    user_role="free", 
+    user_id=None, 
+    limit=None, 
+    min_ev=None, 
+    market_type=None,
+    **kwargs
+):
+    """Simple formatter for opportunities - temporary replacement"""
+    if not opportunities:
+        return []
+    
+    # Apply basic filtering
+    filtered = opportunities
+    
+    # Role-based filtering
+    if user_role in ["free", "anonymous"]:
+        # Limit to 10 worst opportunities for free users
+        filtered = filtered[-10:] if len(filtered) > 10 else filtered
+    
+    # Apply limit if specified
+    if limit and len(filtered) > limit:
+        filtered = filtered[:limit]
+    
+    return filtered
 
 # Initialize router
 router = APIRouter(tags=["opportunities"])

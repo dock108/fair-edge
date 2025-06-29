@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import type { ApiResponse } from '../types';
 import { supabase } from '../lib/supabase';
-import { config, debugLog } from '../utils/env';
+import { config } from '../utils/env';
 
 class ApiService {
   private api: AxiosInstance;
