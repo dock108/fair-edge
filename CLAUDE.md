@@ -135,7 +135,9 @@ curl http://your-domain/health
 
 **Background Processing:**
 - Celery worker processes background tasks
-- Celery beat schedules periodic tasks (every 5 minutes)
+- Celery beat schedules periodic tasks with dual scheduling:
+  - **Business Hours (7 AM - 10 PM EST)**: Every 30 minutes regardless of activity
+  - **Off Hours (11 PM - 6 AM EST)**: Every hour with activity checking
 - Redis serves as message broker and cache
 
 ## Common Troubleshooting
@@ -193,3 +195,15 @@ celery -A services.celery_app.celery_app inspect scheduled
 - Comprehensive CI/CD pipeline
 - Professional UI/UX with loading states
 - Proper error handling and monitoring
+- **Aggressive refresh schedule** for business hours data updates
+
+**Data Refresh Strategy:**
+- **Business Hours (7 AM - 10 PM EST)**: Aggressive 30-minute refresh cycle
+  - Runs every 30 minutes regardless of user activity
+  - Ensures fresh data during peak trading hours
+  - Uses `skip_activity_check=True` to bypass activity monitoring
+- **Off Hours (11 PM - 6 AM EST)**: Smart hourly refresh
+  - Runs once per hour but only if dashboard is active
+  - Conserves API calls during low-activity periods
+  - Uses `skip_activity_check=False` for activity-based refresh
+- **Manual/Force Refresh**: Available anytime via API or admin interface
