@@ -124,6 +124,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # Caddy Reverse Proxy
+  caddy:
+    image: caddy:2.7-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - frontend_build:/srv/frontend
+      - /var/log/caddy:/var/log/caddy
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+
 volumes:
   redis_data:
   frontend_node_modules:
+  caddy_data:
+  caddy_config:
+  frontend_build:
