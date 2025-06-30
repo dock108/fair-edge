@@ -80,7 +80,82 @@
     }
 }
 
-# Additional configuration for domain deployments (optional)
-# {$DOMAIN:localhost} {
-#     redir https://{$DOMAIN}{uri} permanent
-# }
+# Domain configuration for dock108.ai
+dock108.ai {
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.stripe.com *.supabase.co https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: *.supabase.co; connect-src 'self' *.supabase.co *.stripe.com; frame-src *.stripe.com; font-src 'self' https://cdnjs.cloudflare.com"
+        -Server
+    }
+
+    # API Health endpoint
+    handle /health {
+        reverse_proxy localhost:8000
+    }
+    
+    # API routes 
+    handle /api/* {
+        reverse_proxy localhost:8000
+    }
+    
+    # API docs
+    handle /docs {
+        reverse_proxy localhost:8000
+    }
+    
+    handle /redoc {
+        reverse_proxy localhost:8000
+    }
+    
+    handle /openapi.json {
+        reverse_proxy localhost:8000
+    }
+    
+    # Static assets with caching
+    handle /assets/* {
+        root * /srv/frontend
+        file_server {
+            precompressed gzip br
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+    
+    # Static files (favicon, manifest, etc.)
+    handle /favicon.ico {
+        root * /srv/frontend
+        file_server
+        header Cache-Control "public, max-age=86400"
+    }
+    
+    handle /manifest.json {
+        root * /srv/frontend
+        file_server
+        header Cache-Control "public, max-age=86400"
+    }
+    
+    handle /browserconfig.xml {
+        root * /srv/frontend
+        file_server
+        header Cache-Control "public, max-age=86400"
+    }
+    
+    # React SPA - catch-all for client-side routing
+    handle {
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
+        header Cache-Control "public, max-age=0, must-revalidate"
+    }
+    
+    # Enable compression
+    encode gzip
+    
+    # Logging
+    log {
+        output file /var/log/caddy/dock108_access.log
+        format json
+    }
+}
