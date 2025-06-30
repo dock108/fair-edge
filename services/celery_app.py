@@ -64,8 +64,7 @@ celery_app.conf.update(
             'task': 'tasks.odds.refresh_data',  # Matches @shared_task(name="tasks.odds.refresh_data")
             'schedule': crontab(
                 minute='0,30',  # Every 30 minutes (on the hour and half-hour)
-                hour='7-22',    # 7 AM to 10 PM EST (22:00 = 10 PM in 24-hour format)
-                timezone='America/New_York'  # EST timezone
+                hour='12-3'     # 7 AM to 10 PM EST = 12 PM to 3 AM UTC (next day)
             ),
             'options': {
                 'expires': 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up within 30 minutes
@@ -88,8 +87,7 @@ celery_app.conf.update(
             'task': 'tasks.odds.refresh_data',  # Same task, different schedule
             'schedule': crontab(
                 minute='0',     # Once per hour (on the hour)
-                hour='23,0-6',  # 11 PM to 6 AM EST (off-hours)
-                timezone='America/New_York'  # EST timezone
+                hour='4-11'     # 11 PM to 6 AM EST = 4 AM to 11 AM UTC
             ),
             'options': {
                 'expires': 3600,  # Expire if not picked up within 1 hour
