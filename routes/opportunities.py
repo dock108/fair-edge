@@ -54,7 +54,7 @@ async def get_opportunities(
         user_id = user.id if user else None
         client_ip = request.client.host if request.client else "unknown"
         session_data = f"{user_id}:{client_ip}:{request.headers.get('user-agent', '')}"
-        session_id = hashlib.md5(session_data.encode()).hexdigest()[:12]
+        session_id = hashlib.sha256(session_data.encode()).hexdigest()[:12]
         
         # Track dashboard activity
         dashboard_activity.track_dashboard_access(user_id=user_id, session_id=session_id)
