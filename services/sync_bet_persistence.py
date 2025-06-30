@@ -1,8 +1,9 @@
 """
-Betting Opportunities Persistence Service
+Synchronous Betting Opportunities Persistence Service
 
 Handles saving betting opportunities to the database with proper data normalization,
 batch operations, and error handling that doesn't break the refresh pipeline.
+Specifically designed for Celery tasks with pgbouncer compatibility.
 """
 import logging
 import uuid
@@ -10,28 +11,29 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Tuple, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exists, text
 from sqlalchemy.dialects.postgresql import insert
 import dateutil.parser
 
 from models import Bet, BetOffer, Sport, League, Book
-from db import AsyncSessionLocal, get_pgbouncer_session
+from db import get_sync_pgbouncer_session
 from utils.math_utils import MathUtils
+from services.persistence_monitoring import persistence_monitor
+from services.persistence_optimizer import persistence_optimizer
 
 logger = logging.getLogger(__name__)
 
 
-class BetPersistenceService:
-    """Service for persisting betting opportunities to the database"""
+class SyncBetPersistenceService:
+    """Synchronous service for persisting betting opportunities to the database"""
     
     def __init__(self):
         self.refresh_cycle_id = None
     
-    async def save_opportunities_batch(self, opportunities: List[Dict[str, Any]], 
-                                       source: str = "refresh_task") -> Dict[str, Any]:
+    def save_opportunities_batch(self, opportunities: List[Dict[str, Any]], 
+                                source: str = "refresh_task") -> Dict[str, Any]:
         """
-        Save a batch of betting opportunities to the database
+        Save a batch of betting opportunities to the database synchronously
         
         Args:
             opportunities: List of opportunity dictionaries from the processing pipeline
@@ -60,18 +62,15 @@ class BetPersistenceService:
             return results
         
         try:
-            if not AsyncSessionLocal:
-                raise RuntimeError("Database not configured properly")
-                
-            async with get_pgbouncer_session() as session:
+            with get_sync_pgbouncer_session() as session:
                 # Ensure lookup data exists
-                await self._ensure_lookup_data(session)
+                self._ensure_lookup_data(session)
                 
-                # Process opportunities in batches
-                batch_size = 100  # Configurable batch size
+                # Process opportunities in batches with dynamic sizing
+                batch_size = persistence_optimizer.get_optimal_batch_size()
                 for i in range(0, len(opportunities), batch_size):
                     batch = opportunities[i:i + batch_size]
-                    batch_results = await self._process_opportunity_batch(session, batch)
+                    batch_results = self._process_opportunity_batch(session, batch)
                     
                     # Aggregate results
                     results["bets_created"] += batch_results["bets_created"]
@@ -79,7 +78,7 @@ class BetPersistenceService:
                     results["offers_created"] += batch_results["offers_created"]
                     results["errors"].extend(batch_results["errors"])
                 
-                # Note: Commit handled by pgbouncer session context manager
+                # Commit handled by sync session context manager
                 logger.info(
                     f"Successfully saved batch: {results['bets_created']} bets, "
                     f"{results['offers_created']} offers"
@@ -92,8 +91,8 @@ class BetPersistenceService:
             
             # Try to rollback the transaction if it's still active
             try:
-                if session:
-                    await session.rollback()
+                with get_sync_pgbouncer_session() as session:
+                    session.rollback()
             except Exception as rollback_error:
                 logger.warning(f"Failed to rollback transaction: {rollback_error}")
         
@@ -101,11 +100,13 @@ class BetPersistenceService:
         end_time = datetime.now()
         results["processing_time_ms"] = int((end_time - start_time).total_seconds() * 1000)
         
+        # Record operation for monitoring
+        persistence_monitor.record_batch_operation(results)
+        
         return results
     
-    async def _process_opportunity_batch(self, session: AsyncSession, 
-                                         opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Process a single batch of opportunities"""
+    def _process_opportunity_batch(self, session, opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Process a single batch of opportunities synchronously"""
         results = {
             "bets_created": 0,
             "bets_updated": 0,
@@ -116,14 +117,14 @@ class BetPersistenceService:
         for opportunity in opportunities:
             try:
                 # Extract or create bet record
-                bet_result = await self._ensure_bet_record(session, opportunity)
+                bet_result = self._ensure_bet_record(session, opportunity)
                 if bet_result["created"]:
                     results["bets_created"] += 1
                 else:
                     results["bets_updated"] += 1
                 
                 # Create offer record
-                offer_result = await self._create_offer_record(
+                offer_result = self._create_offer_record(
                     session, bet_result["bet_id"], opportunity
                 )
                 if offer_result["created"]:
@@ -142,14 +143,13 @@ class BetPersistenceService:
         
         return results
     
-    async def _ensure_bet_record(self, session: AsyncSession, 
-                                 opportunity: Dict[str, Any]) -> Dict[str, Any]:
+    def _ensure_bet_record(self, session, opportunity: Dict[str, Any]) -> Dict[str, Any]:
         """Ensure bet record exists, create if not found"""
         # Generate deterministic bet_id
         bet_id = Bet.create_or_get_bet_id(opportunity)
         
         # Check if bet already exists using raw SQL for pgbouncer compatibility
-        result = await session.execute(
+        result = session.execute(
             text("SELECT EXISTS(SELECT 1 FROM bets WHERE bet_id = :bet_id)"),
             {"bet_id": bet_id}
         )
@@ -177,13 +177,13 @@ class BetPersistenceService:
                 'parameters': json.dumps(bet_data.get('parameters', {}))
             }
             
-            await session.execute(insert_sql, bet_data_sql)
+            session.execute(insert_sql, bet_data_sql)
             
             logger.debug(f"Created new bet record: {bet_id}")
             return {"bet_id": bet_id, "created": True}
         else:
             # Update timestamp on existing bet
-            await session.execute(
+            session.execute(
                 text("UPDATE bets SET updated_at = :now WHERE bet_id = :bet_id"),
                 {"now": datetime.now(), "bet_id": bet_id}
             )
@@ -191,8 +191,7 @@ class BetPersistenceService:
             logger.debug(f"Updated existing bet record: {bet_id}")
             return {"bet_id": bet_id, "created": False}
     
-    async def _create_offer_record(self, session: AsyncSession, bet_id: str, 
-                                   opportunity: Dict[str, Any]) -> Dict[str, Any]:
+    def _create_offer_record(self, session, bet_id: str, opportunity: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new offer record for this snapshot using raw SQL"""
         try:
             offer_data = self._extract_offer_data(opportunity, bet_id)
@@ -218,7 +217,7 @@ class BetPersistenceService:
                 'offer_metadata': json.dumps(offer_data.get('offer_metadata', {}))
             }
             
-            await session.execute(insert_sql, offer_data_sql)
+            session.execute(insert_sql, offer_data_sql)
             
             logger.debug(f"Created offer record for bet: {bet_id}")
             return {"created": True}
@@ -302,6 +301,7 @@ class BetPersistenceService:
             "refresh_cycle_id": self.refresh_cycle_id
         }
     
+    # All the parsing and extraction methods remain the same as the async version
     def _parse_teams(self, event_name: str) -> Tuple[Optional[str], Optional[str]]:
         """Parse team names from event string"""
         if ' vs ' in event_name:
@@ -485,8 +485,6 @@ class BetPersistenceService:
             "decimal": decimal_odds
         }
     
-    # Use centralized odds utilities instead of duplicate implementation
-    
     def _determine_book(self, opportunity: Dict[str, Any]) -> str:
         """Determine bookmaker ID from opportunity"""
         source = opportunity.get('Best_Odds_Source', 'unknown')
@@ -554,7 +552,7 @@ class BetPersistenceService:
             "processing_notes": opportunity.get('processing_notes', '')
         }
     
-    async def _ensure_lookup_data(self, session: AsyncSession):
+    def _ensure_lookup_data(self, session):
         """Ensure basic lookup data exists in the database using raw SQL for pgbouncer compatibility"""
         try:
             # Use raw SQL to avoid prepared statement caching issues
@@ -569,7 +567,7 @@ class BetPersistenceService:
                 ('unknown', 'Unknown Sport', 'unknown')
                 ON CONFLICT (sport_id) DO NOTHING
             """
-            await session.execute(text(sports_sql))
+            session.execute(text(sports_sql))
             
             # Create basic leagues
             leagues_sql = """
@@ -581,7 +579,7 @@ class BetPersistenceService:
                 ('unknown', 'Unknown League', 'unknown')
                 ON CONFLICT (league_id) DO NOTHING
             """
-            await session.execute(text(leagues_sql))
+            session.execute(text(leagues_sql))
             
             # Create basic books
             books_sql = """
@@ -593,7 +591,7 @@ class BetPersistenceService:
                 ('unknown', 'Unknown Book', 'us_book', 'us')
                 ON CONFLICT (book_id) DO NOTHING
             """
-            await session.execute(text(books_sql))
+            session.execute(text(books_sql))
             
             logger.debug("Ensured lookup data exists")
             
@@ -603,4 +601,4 @@ class BetPersistenceService:
 
 
 # Global instance for easy access
-bet_persistence = BetPersistenceService() 
+sync_bet_persistence = SyncBetPersistenceService()

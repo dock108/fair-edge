@@ -6,8 +6,8 @@ import os
 import logging
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import declarative_base, sessionmaker
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -29,6 +29,8 @@ if not all([SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, DB_CONNE
 # SQLAlchemy async engine setup
 engine = None
 AsyncSessionLocal = None
+sync_engine = None
+SyncSessionLocal = None
 Base = declarative_base()
 
 if DB_CONNECTION_STRING:
@@ -40,22 +42,21 @@ if DB_CONNECTION_STRING:
             logger.error("Please update your DB_CONNECTION_STRING to use: postgresql+asyncpg://...")
             raise ValueError("Invalid database driver: async driver required")
         
+        # Async engine for FastAPI endpoints
         engine = create_async_engine(
             DB_CONNECTION_STRING, 
             echo=False,  # Set to True for SQL debugging
             future=True,
-            pool_pre_ping=True,  # Verify connections before use
+            pool_pre_ping=False,  # Disable for pgbouncer compatibility
             pool_recycle=300,    # Recycle connections every 5 minutes
-            pool_size=10,        # Number of connections to maintain
-            max_overflow=20,     # Additional connections when pool is full
+            pool_size=3,         # Minimal pool size for pgbouncer 
+            max_overflow=5,      # Minimal overflow
             pool_timeout=30,     # Timeout when getting connection from pool
+            # Minimal configuration for maximum pgbouncer compatibility
             connect_args={
-                "statement_cache_size": 0,  # Disable statement caching for pgbouncer compatibility
-                "prepared_statement_cache_size": 0,  # Additional cache disabling
-                "server_settings": {
-                    "application_name": "fairedge_app",
-                    "jit": "off"  # Disable JIT for pgbouncer compatibility
-                }
+                "statement_cache_size": 0,  # Critical: disable statement caching
+                "prepared_statement_cache_size": 0,  # Critical: disable prepared statement caching
+                "command_timeout": 30  # Query timeout only
             }
         )
         AsyncSessionLocal = async_sessionmaker(
@@ -63,13 +64,34 @@ if DB_CONNECTION_STRING:
             class_=AsyncSession, 
             expire_on_commit=False
         )
-        logger.info("SQLAlchemy async engine initialized successfully")
+        
+        # Synchronous engine for Celery tasks (better pgbouncer compatibility)
+        sync_connection_string = DB_CONNECTION_STRING.replace('postgresql+asyncpg://', 'postgresql+psycopg2://')
+        sync_engine = create_engine(
+            sync_connection_string,
+            echo=False,
+            pool_pre_ping=False,
+            pool_recycle=300,
+            pool_size=2,
+            max_overflow=3,
+            pool_timeout=30,
+            # Minimal connection args for pgbouncer compatibility
+            connect_args={}
+        )
+        SyncSessionLocal = sessionmaker(
+            bind=sync_engine,
+            expire_on_commit=False
+        )
+        
+        logger.info("SQLAlchemy async and sync engines initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize SQLAlchemy engine: {e}")
         if "psycopg2" in str(e):
             logger.error("TIP: Make sure your DB_CONNECTION_STRING uses 'postgresql+asyncpg://' not 'postgresql://'")
         engine = None
         AsyncSessionLocal = None
+        sync_engine = None
+        SyncSessionLocal = None
 
 # Supabase client setup (for auth and convenience methods)
 supabase: Client = None
@@ -126,6 +148,76 @@ async def get_async_session() -> AsyncSession:
         raise RuntimeError("Database not properly configured. Check DB_CONNECTION_STRING environment variable.")
     
     return AsyncSessionLocal()
+
+class PgBouncerSession:
+    """Async context manager for pgbouncer-compatible database sessions"""
+    
+    def __init__(self):
+        self.session = None
+    
+    async def __aenter__(self):
+        if not AsyncSessionLocal:
+            raise RuntimeError("Database not properly configured.")
+        
+        self.session = AsyncSessionLocal()
+        return self.session
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.session:
+            if exc_type:
+                try:
+                    await self.session.rollback()
+                except Exception:
+                    pass
+            else:
+                try:
+                    await self.session.commit()
+                except Exception:
+                    pass
+            
+            try:
+                await self.session.close()
+            except Exception:
+                pass
+
+def get_pgbouncer_session():
+    """Get a pgbouncer-compatible session context manager"""
+    return PgBouncerSession()
+
+class SyncPgBouncerSession:
+    """Synchronous context manager for pgbouncer-compatible database sessions"""
+    
+    def __init__(self):
+        self.session = None
+    
+    def __enter__(self):
+        if not SyncSessionLocal:
+            raise RuntimeError("Sync database not properly configured.")
+        
+        self.session = SyncSessionLocal()
+        return self.session
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.session:
+            if exc_type:
+                try:
+                    self.session.rollback()
+                except Exception:
+                    pass
+            else:
+                try:
+                    self.session.commit()
+                except Exception:
+                    pass
+            
+            try:
+                self.session.close()
+            except Exception:
+                pass
+
+def get_sync_pgbouncer_session():
+    """Get a synchronous pgbouncer-compatible session context manager"""
+    return SyncPgBouncerSession()
 
 
 def get_supabase() -> Client:

@@ -248,18 +248,15 @@ def refresh_odds_data(self, force_refresh=False, skip_activity_check=False):
         # Store role-specific cached data for performance
         store_role_based_cache(all_opportunities, analytics)
         
-        # NEW: Persist opportunities to database
+        # NEW: Persist opportunities to database using sync service
         try:
             logger.info("💾 Persisting opportunities to database...")
-            from services.bet_persistence import bet_persistence
-            import asyncio
+            from services.sync_bet_persistence import sync_bet_persistence
             
-            # Run async persistence in sync context
-            persistence_result = asyncio.run(
-                bet_persistence.save_opportunities_batch(
-                    all_opportunities, 
-                    source="celery_refresh_task"
-                )
+            # Use synchronous persistence for better pgbouncer compatibility
+            persistence_result = sync_bet_persistence.save_opportunities_batch(
+                all_opportunities, 
+                source="celery_refresh_task"
             )
             
             logger.info(
