@@ -92,9 +92,7 @@ class BetPersistenceService:
             
             # Try to rollback the transaction if it's still active
             try:
-                if not AsyncSessionLocal:
-                    return results
-                async with get_pgbouncer_session() as session:
+                if session:
                     await session.rollback()
             except Exception as rollback_error:
                 logger.warning(f"Failed to rollback transaction: {rollback_error}")
