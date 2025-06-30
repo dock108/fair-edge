@@ -18,8 +18,8 @@ if project_root not in sys.path:
 logging.basicConfig(level=logging.INFO)
 
 # Get configuration from centralized settings
-# Use 15 minutes for smart refresh (instead of 5) since we now only refresh when dashboard is active
-REFRESH_INTERVAL_MINUTES = 15  # Smart refresh with activity checking
+# Aggressive refresh schedule: Every 30 minutes from 7 AM to 10 PM EST
+REFRESH_INTERVAL_MINUTES = 30  # Aggressive refresh during business hours
 REDIS_URL = settings.redis_url
 
 # Create Celery app with actual task modules
@@ -58,13 +58,17 @@ celery_app.conf.update(
     # Beat Scheduler Configuration
     beat_schedule_filename='/app/celery-data/beat.db',  # Store in persistent volume for Docker
     
-    # Beat Schedule Configuration - Smart refresh with activity checking
+    # Beat Schedule Configuration - Aggressive refresh during business hours (7 AM to 10 PM EST)
     beat_schedule={
-        'smart-refresh-ev-data': {
+        'business-hours-refresh-ev-data': {
             'task': 'tasks.odds.refresh_data',  # Matches @shared_task(name="tasks.odds.refresh_data")
-            'schedule': crontab(minute=f"*/{REFRESH_INTERVAL_MINUTES}"),  # Every 15 minutes
+            'schedule': crontab(
+                minute='0,30',  # Every 30 minutes (on the hour and half-hour)
+                hour='7-22',    # 7 AM to 10 PM EST (22:00 = 10 PM in 24-hour format)
+                timezone='America/New_York'  # EST timezone
+            ),
             'options': {
-                'expires': 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up
+                'expires': 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up within 30 minutes
                 'retry': True,
                 'retry_policy': {
                     'max_retries': 3,
@@ -77,7 +81,31 @@ celery_app.conf.update(
             },
             'kwargs': {
                 'force_refresh': False,
-                'skip_activity_check': False  # Use activity checking for scheduled refreshes
+                'skip_activity_check': True  # Skip activity checking for scheduled business hours refreshes
+            }
+        },
+        'off-hours-smart-refresh-ev-data': {
+            'task': 'tasks.odds.refresh_data',  # Same task, different schedule
+            'schedule': crontab(
+                minute='0',     # Once per hour (on the hour)
+                hour='23,0-6',  # 11 PM to 6 AM EST (off-hours)
+                timezone='America/New_York'  # EST timezone
+            ),
+            'options': {
+                'expires': 3600,  # Expire if not picked up within 1 hour
+                'retry': True,
+                'retry_policy': {
+                    'max_retries': 2,  # Fewer retries during off-hours
+                    'interval_start': 0,
+                    'interval_step': 60,
+                    'interval_max': 600,
+                },
+                'queue': 'celery',
+                'routing_key': 'celery'
+            },
+            'kwargs': {
+                'force_refresh': False,
+                'skip_activity_check': False  # Use activity checking during off-hours
             }
         },
         'health-check': {
@@ -126,9 +154,9 @@ logger.addHandler(console_handler)
 
 # Log configuration on startup
 logger.info(f"Celery configured with Redis URL: {REDIS_URL}")
-logger.info(f"Smart refresh interval: {REFRESH_INTERVAL_MINUTES} minutes (activity-based)")
+logger.info(f"Aggressive refresh interval: {REFRESH_INTERVAL_MINUTES} minutes (business hours only)")
 logger.info(f"Beat schedule: {list(celery_app.conf.beat_schedule.keys())}")
-logger.info("📊 Smart refresh strategy: Only refreshes when dashboard is active, on-demand refresh when stale")
+logger.info("📊 Aggressive refresh strategy: Refreshes every 30 minutes from 7 AM to 10 PM EST, regardless of activity")
 
 if __name__ == '__main__':
     celery_app.start() 

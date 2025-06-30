@@ -124,21 +124,22 @@ def refresh_odds_data(self, force_refresh=False, skip_activity_check=False):
         if not skip_activity_check and not force_refresh:
             should_refresh = dashboard_activity.should_auto_refresh()
             if not should_refresh:
-                logger.info("🚫 Skipping scheduled refresh: No active dashboard sessions")
+                logger.info("🚫 Skipping off-hours refresh: No active dashboard sessions")
                 return {
                     'status': 'skipped',
                     'reason': 'no_active_dashboard_sessions',
                     'timestamp': datetime.utcnow().isoformat(),
-                    'activity_check': 'passed',
-                    'message': 'Refresh skipped to conserve API calls - no active users'
+                    'activity_check': 'failed',
+                    'refresh_type': 'off_hours_activity_based',
+                    'message': 'Off-hours refresh skipped to conserve API calls - no active users'
                 }
         
         if force_refresh:
             logger.info("🚀 Celery task started: Refreshing odds data for all sports (FORCE REFRESH)")
         elif skip_activity_check:
-            logger.info("🚀 Celery task started: Refreshing odds data for all sports (ON-DEMAND)")
+            logger.info("🚀 Celery task started: Refreshing odds data for all sports (BUSINESS HOURS SCHEDULE)")
         else:
-            logger.info("🚀 Celery task started: Refreshing odds data for all sports (ACTIVE DASHBOARD)")
+            logger.info("🚀 Celery task started: Refreshing odds data for all sports (OFF-HOURS - ACTIVITY CHECK)")
         
         # Update task state to show progress
         self.update_state(
@@ -303,9 +304,18 @@ def refresh_odds_data(self, force_refresh=False, skip_activity_check=False):
             }
         )
         
+        # Determine refresh type for monitoring
+        if force_refresh:
+            refresh_type = 'force_refresh'
+        elif skip_activity_check:
+            refresh_type = 'business_hours_scheduled'
+        else:
+            refresh_type = 'off_hours_activity_based'
+
         result = {
             'status': 'success',
             'timestamp': datetime.utcnow().isoformat(),
+            'refresh_type': refresh_type,
             'processing_time_seconds': round(processing_time, 2),
             'opportunities_count': len(all_opportunities),
             'successful_sports': successful_sports,
@@ -316,11 +326,16 @@ def refresh_odds_data(self, force_refresh=False, skip_activity_check=False):
                 'sports_failed': len(failed_sports),
                 'opportunities_per_second': round(len(all_opportunities) / processing_time, 2)
             },
-            'persistence_summary': persistence_summary
+            'persistence_summary': persistence_summary,
+            'schedule_info': {
+                'force_refresh': force_refresh,
+                'skip_activity_check': skip_activity_check,
+                'refresh_type': refresh_type
+            }
         }
         
         logger.info(
-            f"✅ Odds refresh complete in {processing_time:.2f}s: "
+            f"✅ {refresh_type.upper()} odds refresh complete in {processing_time:.2f}s: "
             f"{len(all_opportunities)} opportunities from {len(successful_sports)} sports"
         )
         
