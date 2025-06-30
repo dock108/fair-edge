@@ -1,7 +1,6 @@
 import { useOpportunities } from '../hooks/useOpportunities';
 import { BetCard } from '../components/BetCard';
 import { useAuth } from '../contexts/AuthContext';
-import { FeatureGate } from '../components/FeatureGate';
 import { usePermissions } from '../hooks/usePermissions';
 import PremiumPrompt from '../components/PremiumPrompt';
 import { useEffect } from 'react';
