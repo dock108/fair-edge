@@ -251,7 +251,7 @@ async def debug_database_status(
                 "timestamp": datetime.now().isoformat()
             },
             "connection_info": {
-                "database_url_configured": bool(os.getenv("DATABASE_URL")),
+                "database_url_configured": bool(os.getenv("DB_CONNECTION_STRING") or os.getenv("DATABASE_URL")),
                 "connection_pool_status": "active"
             }
         }

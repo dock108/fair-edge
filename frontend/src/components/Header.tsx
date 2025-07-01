@@ -74,16 +74,16 @@ export const Header = () => {
             Dashboard
           </Link>
           <Link 
-            to="/education" 
-            className={`nav-link ${location.pathname === '/education' ? 'active' : ''}`}
-          >
-            Education
-          </Link>
-          <Link 
             to="/pricing" 
             className={`nav-link ${location.pathname === '/pricing' ? 'active' : ''}`}
           >
             Pricing
+          </Link>
+          <Link 
+            to="/education" 
+            className={`nav-link ${location.pathname === '/education' ? 'active' : ''}`}
+          >
+            Education
           </Link>
           <Link 
             to="/disclaimer" 

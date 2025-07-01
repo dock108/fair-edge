@@ -277,6 +277,14 @@ def refresh_odds_data(self, force_refresh=False, skip_activity_check=False):
                 "processing_time_ms": persistence_result["processing_time_ms"]
             }
             
+        except ImportError as e:
+            # Handle import errors gracefully
+            logger.warning(f"⚠️ Database persistence module not available: {str(e)}")
+            persistence_summary = {
+                "status": "disabled",
+                "error": str(e),
+                "note": "Database persistence disabled due to import issues"
+            }
         except Exception as e:
             # Log error but don't fail the entire task
             logger.error(f"❌ Database persistence failed: {str(e)}", exc_info=True)

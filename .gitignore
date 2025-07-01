@@ -32,24 +32,30 @@ ENV/
 pip-env/
 
 # Environment Variables & Secrets
-.env
+# New structure: actual env files (templates are in environments/ directory)
 .env.local
-.env.development
-.env.development.local
-.env.test
-.env.test.local
-.env.production
 .env.production.local
+.env.test.local
+.env.development.local
+.env.staging.local
+environments/
 
 # Vite environment files (frontend)
-frontend/.env
 frontend/.env.local
-frontend/.env.development
-frontend/.env.development.local
-frontend/.env.test
-frontend/.env.test.local
-frontend/.env.production
 frontend/.env.production.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.staging.local
+
+# Legacy environment files (should be migrated)
+.env
+.env.development
+.env.test
+.env.production
+frontend/.env
+frontend/.env.development
+frontend/.env.test
+frontend/.env.production
 
 # Other sensitive files
 *.key
@@ -172,7 +178,8 @@ yarn.lock
 # Docker
 .dockerignore
 Dockerfile.local
-docker-compose.override.yml
+docker-compose.override.yml  # Legacy
+docker-compose.production.yml  # Legacy
 
 # Monitoring & Analytics
 .monitoring/
@@ -190,8 +197,8 @@ test_*.py
 *.lprof
 .prof/
 
-# Deployment
-deploy.sh
+# Deployment (legacy files)
+deploy.sh  # Use scripts/deploy.sh instead
 deployment/
 .deploy/
 

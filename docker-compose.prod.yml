@@ -1,0 +1,57 @@
+# Production Override
+# Use with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # Production API configuration
+  api:
+    build:
+      target: production
+    volumes: []  # Remove volume mount for production
+    env_file:
+      - .env.production  # Use unified env file
+    restart: always
+
+  # Production frontend build
+  frontend:
+    build:
+      target: frontend-build  # Fix target name to match Dockerfile
+    env_file:
+      - .env.production  # Use unified env file with VITE_ prefixes
+    environment:
+      - VITE_API_URL=https://dock108.ai  # Override for production
+    command: npm run build
+    profiles:
+      - build  # Only for building static assets
+    restart: "no"
+
+  # Enable Caddy for production
+  caddy:
+    profiles: []  # Remove profile restriction
+    restart: always
+    
+  # Production-optimized Celery
+  celery_worker:
+    build:
+      target: production
+    volumes: []  # Remove volume mount for production
+    env_file:
+      - .env.production  # Use unified env file
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_CONCURRENCY=4
+    restart: always
+      
+  celery_beat:
+    build:
+      target: production
+    volumes: []  # Remove volume mount for production
+    env_file:
+      - .env.production  # Use unified env file
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    restart: always
+    
+  # Production Redis with persistence
+  redis:
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru

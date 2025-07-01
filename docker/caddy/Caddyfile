@@ -81,7 +81,7 @@
 }
 
 # Domain configuration for dock108.ai
-dock108.ai {
+dock108.ai:80 {
     # Security headers
     header {
         X-Content-Type-Options "nosniff"
