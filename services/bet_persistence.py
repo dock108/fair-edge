@@ -15,6 +15,9 @@ from sqlalchemy import select, exists, text
 from sqlalchemy.dialects.postgresql import insert
 import dateutil.parser
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import Bet, BetOffer, Sport, League, Book
 from db import AsyncSessionLocal, get_pgbouncer_session
 from utils.math_utils import MathUtils

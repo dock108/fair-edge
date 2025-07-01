@@ -8,13 +8,13 @@ For fully automated deployment, use our deployment script:
 
 ```bash
 # On your Hetzner server as root:
-curl -fsSL https://raw.githubusercontent.com/your-org/fair-edge/main/scripts/deploy-hetzner.sh | bash
+curl -fsSL https://raw.githubusercontent.com/fair-edge/fair-edge/main/scripts/deploy-hetzner.sh | bash
 ```
 
 ## 📋 Prerequisites
 
 - **Hetzner Cloud VPS**: CX21 (2 vCPU, 4GB RAM) or larger
-- **Domain**: Point your domain to the server IP (e.g., `app.yourdomain.com`)
+- **Domain**: Point your domain to the server IP (e.g., `dock108.ai`)
 - **Credentials**: Supabase, Stripe, and Odds API keys ready
 
 ## 🛠️ Manual Deployment Steps
@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/your-org/fair-edge/main/scripts/dep
 
 2. **Note the public IP** and set DNS A record:
    ```bash
-   app.yourdomain.com -> YOUR_SERVER_IP
+   dock108.ai -> YOUR_SERVER_IP
    ```
 
 ### 2. Basic Server Setup
@@ -76,7 +76,7 @@ docker compose version
 
 ```bash
 # Clone repository to deployment directory
-git clone https://github.com/your-org/fair-edge.git /opt/fair-edge
+git clone https://github.com/fair-edge/fair-edge.git /opt/fair-edge
 cd /opt/fair-edge
 
 # Create production environment file
@@ -92,12 +92,12 @@ Edit `/opt/fair-edge/.env.production` and replace all `CHANGE_ME` values:
 
 ```bash
 # Required Configuration
-DOMAIN=app.yourdomain.com
-SUPABASE_URL=https://your-project.supabase.co
+DOMAIN=dock108.ai
+SUPABASE_URL=https://orefwmdofxdxjjvpmmxr.supabase.co
 SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_JWT_SECRET=your_supabase_jwt_secret
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-DB_CONNECTION_STRING=postgresql+asyncpg://postgres:[PASSWORD]@db.your-project.supabase.co:5432/postgres
+DB_CONNECTION_STRING=postgresql+asyncpg://postgres:[PASSWORD]@db.orefwmdofxdxjjvpmmxr.supabase.co:6543/postgres
 
 # External APIs
 ODDS_API_KEY=your_odds_api_key
@@ -107,8 +107,8 @@ STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
 # URLs
-VITE_API_URL=https://app.yourdomain.com
-CORS_ORIGINS=https://app.yourdomain.com,https://yourdomain.com
+VITE_API_URL=https://dock108.ai
+CORS_ORIGINS=https://dock108.ai,https://www.dock108.ai
 ```
 
 ### 6. Deploy Application Stack
@@ -143,7 +143,7 @@ systemctl status fair-edge
 ### 8. Configure Stripe Webhooks
 
 1. **In Stripe Dashboard** → Developers → Webhooks:
-   - **Endpoint URL**: `https://app.yourdomain.com/api/webhooks/stripe`
+   - **Endpoint URL**: `https://dock108.ai/api/webhooks/stripe`
    - **Events**: Select `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated`
 
 2. **Copy the webhook signing secret** to your `.env.production`:
@@ -162,10 +162,10 @@ systemctl status fair-edge
 
 ```bash
 # API health check
-curl https://app.yourdomain.com/health
+curl https://dock108.ai/health
 
 # Frontend accessibility
-curl https://app.yourdomain.com/
+curl https://dock108.ai/
 
 # Check all containers are running
 docker compose -f docker-compose.hetzner.yml ps
@@ -186,7 +186,7 @@ docker compose -f docker-compose.hetzner.yml logs -f celery_beat | grep "smart-r
 
 ### Full Application Test
 
-1. **Create test user** → Visit `https://app.yourdomain.com`
+1. **Create test user** → Visit `https://dock108.ai`
 2. **Dashboard loads** → Check for Free tier banners and data loading
 3. **Upgrade flow** → Click Upgrade, test with Stripe test card
 4. **Premium features** → Verify Premium tier unlocks hidden features
@@ -262,7 +262,7 @@ Caddy automatically obtains and renews SSL certificates. Verify:
 
 ```bash
 # Check certificate status
-curl -I https://app.yourdomain.com
+curl -I https://dock108.ai
 
 # View Caddy logs for SSL issues
 docker compose -f docker-compose.hetzner.yml logs caddy | grep -i ssl
@@ -284,7 +284,7 @@ docker compose -f docker-compose.hetzner.yml logs api
 **SSL certificate issues:**
 ```bash
 # Check DNS propagation
-nslookup app.yourdomain.com
+nslookup dock108.ai
 
 # Restart Caddy to retry SSL
 docker compose -f docker-compose.hetzner.yml restart caddy
@@ -366,8 +366,8 @@ For high availability, consider:
 
 - **Documentation**: `/opt/fair-edge/docs/`
 - **Logs**: `journalctl -u fair-edge -f`
-- **Health Check**: `https://app.yourdomain.com/health`
-- **API Docs**: `https://app.yourdomain.com/docs`
+- **Health Check**: `https://dock108.ai/health`
+- **API Docs**: `https://dock108.ai/docs`
 
 ---
 

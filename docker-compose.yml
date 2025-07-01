@@ -14,6 +14,9 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - REDIS_URL=redis://redis:6379/0
@@ -26,7 +29,6 @@ services:
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
       # External APIs
       - ODDS_API_KEY=${ODDS_API_KEY}
       # Stripe (optional)
@@ -74,15 +76,18 @@ services:
     entrypoint: ["/entrypoints/celery-worker.sh"]
     volumes:
       - .:/app
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_CONCURRENCY=${CELERY_CONCURRENCY:-2}
+      - REFRESH_INTERVAL_MINUTES=${REFRESH_INTERVAL_MINUTES:-5}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
       - ODDS_API_KEY=${ODDS_API_KEY}
     depends_on:
       redis:
@@ -97,14 +102,17 @@ services:
     entrypoint: ["/entrypoints/celery-beat.sh"]
     volumes:
       - .:/app
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - REDIS_URL=redis://redis:6379/0
+      - REFRESH_INTERVAL_MINUTES=${REFRESH_INTERVAL_MINUTES:-5}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
       - ODDS_API_KEY=${ODDS_API_KEY}
     depends_on:
       redis:

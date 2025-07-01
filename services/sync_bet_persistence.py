@@ -11,12 +11,12 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Tuple, Optional
-from sqlalchemy import select, exists, text
-from sqlalchemy.dialects.postgresql import insert
 import dateutil.parser
 
-from models import Bet, BetOffer, Sport, League, Book
-from db import get_sync_pgbouncer_session
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from models import Bet, BetOffer
 from utils.math_utils import MathUtils
 from services.persistence_monitoring import persistence_monitor
 from services.persistence_optimizer import persistence_optimizer
@@ -61,170 +61,30 @@ class SyncBetPersistenceService:
             logger.warning("No opportunities provided to save")
             return results
         
+        # Use Supabase REST API as primary persistence method
         try:
-            with get_sync_pgbouncer_session() as session:
-                # Ensure lookup data exists
-                self._ensure_lookup_data(session)
-                
-                # Process opportunities in batches with dynamic sizing
-                batch_size = persistence_optimizer.get_optimal_batch_size()
-                for i in range(0, len(opportunities), batch_size):
-                    batch = opportunities[i:i + batch_size]
-                    batch_results = self._process_opportunity_batch(session, batch)
-                    
-                    # Aggregate results
-                    results["bets_created"] += batch_results["bets_created"]
-                    results["bets_updated"] += batch_results["bets_updated"]
-                    results["offers_created"] += batch_results["offers_created"]
-                    results["errors"].extend(batch_results["errors"])
-                
-                # Commit handled by sync session context manager
-                logger.info(
-                    f"Successfully saved batch: {results['bets_created']} bets, "
-                    f"{results['offers_created']} offers"
-                )
-                
+            result = self._save_via_rest_api(opportunities, source, results)
+            
+            # Calculate processing time
+            end_time = datetime.now()
+            result["processing_time_ms"] = int((end_time - start_time).total_seconds() * 1000)
+            
+            # Record operation for monitoring
+            persistence_monitor.record_batch_operation(result)
+            
+            return result
+            
         except Exception as e:
-            logger.error(f"Critical error in batch save: {e}", exc_info=True)
+            logger.error(f"REST API persistence failed: {e}", exc_info=True)
             results["status"] = "error"
-            results["errors"].append({"type": "critical", "message": str(e)})
+            results["errors"].append({"type": "api_error", "message": str(e)})
             
-            # Try to rollback the transaction if it's still active
-            try:
-                with get_sync_pgbouncer_session() as session:
-                    session.rollback()
-            except Exception as rollback_error:
-                logger.warning(f"Failed to rollback transaction: {rollback_error}")
-        
-        # Calculate processing time
-        end_time = datetime.now()
-        results["processing_time_ms"] = int((end_time - start_time).total_seconds() * 1000)
-        
-        # Record operation for monitoring
-        persistence_monitor.record_batch_operation(results)
-        
-        return results
+            # Calculate processing time even for failures
+            end_time = datetime.now()
+            results["processing_time_ms"] = int((end_time - start_time).total_seconds() * 1000)
+            
+            return results
     
-    def _process_opportunity_batch(self, session, opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Process a single batch of opportunities synchronously"""
-        results = {
-            "bets_created": 0,
-            "bets_updated": 0,
-            "offers_created": 0,
-            "errors": []
-        }
-        
-        for opportunity in opportunities:
-            try:
-                # Extract or create bet record
-                bet_result = self._ensure_bet_record(session, opportunity)
-                if bet_result["created"]:
-                    results["bets_created"] += 1
-                else:
-                    results["bets_updated"] += 1
-                
-                # Create offer record
-                offer_result = self._create_offer_record(
-                    session, bet_result["bet_id"], opportunity
-                )
-                if offer_result["created"]:
-                    results["offers_created"] += 1
-                
-            except Exception as e:
-                error_msg = f"Error processing opportunity: {str(e)}"
-                logger.warning(error_msg)
-                results["errors"].append({
-                    "type": "opportunity_error",
-                    "message": error_msg,
-                    "opportunity_event": opportunity.get("Event", "unknown")
-                })
-                # Continue processing other opportunities
-                continue
-        
-        return results
-    
-    def _ensure_bet_record(self, session, opportunity: Dict[str, Any]) -> Dict[str, Any]:
-        """Ensure bet record exists, create if not found"""
-        # Generate deterministic bet_id
-        bet_id = Bet.create_or_get_bet_id(opportunity)
-        
-        # Check if bet already exists using raw SQL for pgbouncer compatibility
-        result = session.execute(
-            text("SELECT EXISTS(SELECT 1 FROM bets WHERE bet_id = :bet_id)"),
-            {"bet_id": bet_id}
-        )
-        bet_exists = result.scalar()
-        
-        if not bet_exists:
-            # Create new bet record using raw SQL for pgbouncer compatibility
-            bet_data = self._extract_bet_data(opportunity, bet_id)
-            
-            insert_sql = text("""
-                INSERT INTO bets (
-                    bet_id, sport, league, event_name, home_team, away_team, 
-                    player_name, bet_type, market_description, parameters, 
-                    outcome_side, event_time, sha_key, created_at, updated_at
-                ) VALUES (
-                    :bet_id, :sport, :league, :event_name, :home_team, :away_team,
-                    :player_name, :bet_type, :market_description, :parameters,
-                    :outcome_side, :event_time, :sha_key, :created_at, :updated_at
-                )
-            """)
-            
-            # Convert parameters to JSON string for raw SQL
-            bet_data_sql = {
-                **bet_data,
-                'parameters': json.dumps(bet_data.get('parameters', {}))
-            }
-            
-            session.execute(insert_sql, bet_data_sql)
-            
-            logger.debug(f"Created new bet record: {bet_id}")
-            return {"bet_id": bet_id, "created": True}
-        else:
-            # Update timestamp on existing bet
-            session.execute(
-                text("UPDATE bets SET updated_at = :now WHERE bet_id = :bet_id"),
-                {"now": datetime.now(), "bet_id": bet_id}
-            )
-            
-            logger.debug(f"Updated existing bet record: {bet_id}")
-            return {"bet_id": bet_id, "created": False}
-    
-    def _create_offer_record(self, session, bet_id: str, opportunity: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new offer record for this snapshot using raw SQL"""
-        try:
-            offer_data = self._extract_offer_data(opportunity, bet_id)
-            
-            insert_sql = text("""
-                INSERT INTO bet_offers (
-                    offer_id, bet_id, book, odds, expected_value, fair_odds,
-                    implied_probability, confidence_score, volume_indicator,
-                    available_limits, offer_metadata, timestamp, refresh_cycle_id
-                ) VALUES (
-                    :offer_id, :bet_id, :book, :odds, :expected_value, :fair_odds,
-                    :implied_probability, :confidence_score, :volume_indicator,
-                    :available_limits, :offer_metadata, :timestamp, :refresh_cycle_id
-                )
-            """)
-            
-            # Convert JSON fields to strings for raw SQL
-            offer_data_sql = {
-                **offer_data,
-                'odds': json.dumps(offer_data.get('odds', {})),
-                'fair_odds': json.dumps(offer_data.get('fair_odds', {})),
-                'available_limits': json.dumps(offer_data.get('available_limits')) if offer_data.get('available_limits') else None,
-                'offer_metadata': json.dumps(offer_data.get('offer_metadata', {}))
-            }
-            
-            session.execute(insert_sql, offer_data_sql)
-            
-            logger.debug(f"Created offer record for bet: {bet_id}")
-            return {"created": True}
-            
-        except Exception as e:
-            logger.warning(f"Failed to create offer for bet {bet_id}: {e}")
-            return {"created": False, "error": str(e)}
     
     def _extract_bet_data(self, opportunity: Dict[str, Any], bet_id: str) -> Dict[str, Any]:
         """Extract static bet data from opportunity"""
@@ -303,38 +163,99 @@ class SyncBetPersistenceService:
     
     # All the parsing and extraction methods remain the same as the async version
     def _parse_teams(self, event_name: str) -> Tuple[Optional[str], Optional[str]]:
-        """Parse team names from event string"""
-        if ' vs ' in event_name:
-            parts = event_name.split(' vs ')
+        """Parse team names from event string with improved cleaning"""
+        if not event_name:
+            return None, None
+            
+        # Clean up the event name - remove time/date info
+        clean_event = event_name
+        
+        # Remove common date/time patterns
+        import re
+        time_patterns = [
+            r'\s*•\s*Today\s+\d{1,2}:\d{2}[AP]M\s+EST',
+            r'\s*•\s*Tomorrow\s+\d{1,2}:\d{2}[AP]M\s+EST',
+            r'\s*•\s*\d{1,2}/\d{1,2}\s+\d{1,2}:\d{2}[AP]M\s+EST',
+            r'\s*•.*$'  # Remove everything after bullet point
+        ]
+        
+        for pattern in time_patterns:
+            clean_event = re.sub(pattern, '', clean_event, flags=re.IGNORECASE)
+        
+        clean_event = clean_event.strip()
+        
+        # Parse teams from cleaned event name
+        if ' vs ' in clean_event:
+            parts = clean_event.split(' vs ')
             if len(parts) == 2:
                 return parts[0].strip(), parts[1].strip()
-        elif ' @ ' in event_name:
-            parts = event_name.split(' @ ')
+        elif ' @ ' in clean_event:
+            parts = clean_event.split(' @ ')
             if len(parts) == 2:
                 return parts[1].strip(), parts[0].strip()  # home @ away
+        
         return None, None
     
     def _extract_player_name(self, opportunity: Dict[str, Any]) -> Optional[str]:
-        """Extract player name for prop bets"""
+        """Extract player name for prop bets with improved parsing"""
         description = opportunity.get('Bet Description', '')
-        # Simple heuristic: if it contains common prop terms, try to extract name
-        prop_keywords = ['points', 'rebounds', 'assists', 'hits', 'strikeouts', 'goals']
-        if any(keyword in description.lower() for keyword in prop_keywords):
-            # Extract the first part before the prop type
+        if not description:
+            return None
+            
+        # Baseball prop keywords
+        baseball_prop_keywords = [
+            'hits', 'strikeouts', 'earned runs', 'total bases', 'hits allowed', 
+            'runs', 'rbi', 'home runs', 'walks', 'innings pitched', 'outs'
+        ]
+        
+        # Check if this is a baseball prop bet
+        description_lower = description.lower()
+        if any(keyword in description_lower for keyword in baseball_prop_keywords):
+            # For baseball props, player name is typically at the beginning
+            # Examples: "Zac Gallen Over 2.5 Earned Runs", "Ketel Marte Under 1.5 Total Bases"
+            import re
+            
+            # Extract name before "Over/Under" or before prop keyword
+            over_under_match = re.match(r'^(.+?)\s+(Over|Under)\s+', description, re.IGNORECASE)
+            if over_under_match:
+                potential_name = over_under_match.group(1).strip()
+                # Clean up any remaining artifacts
+                potential_name = re.sub(r'\s+', ' ', potential_name)
+                return potential_name if len(potential_name.split()) <= 3 else None
+                
+            # Fallback: extract first 1-3 words if they don't contain prop keywords
             words = description.split()
             if len(words) >= 2:
-                # Assume first 1-2 words are player name
-                potential_name = ' '.join(words[:2])
-                if not any(keyword in potential_name.lower() for keyword in prop_keywords):
-                    return potential_name
+                for i in range(min(3, len(words)), 0, -1):
+                    potential_name = ' '.join(words[:i])
+                    if not any(keyword in potential_name.lower() for keyword in baseball_prop_keywords):
+                        return potential_name
+                        
         return None
     
     def _determine_sport(self, opportunity: Dict[str, Any]) -> str:
         """Determine sport ID from opportunity data"""
-        # This could be enhanced with more sophisticated logic
-        # For now, use a simple mapping based on common patterns
         description = opportunity.get('Bet Description', '').lower()
         event = opportunity.get('Event', '').lower()
+        
+        # MLB/Baseball patterns - check for team names and baseball-specific terms
+        baseball_teams = [
+            'giants', 'diamondbacks', 'dodgers', 'white sox', 'mariners', 'royals',
+            'athletics', 'rays', 'angels', 'braves', 'astros', 'rockies', 'yankees',
+            'blue jays', 'cubs', 'cardinals', 'brewers', 'twins', 'tigers', 'guardians',
+            'orioles', 'red sox', 'mets', 'phillies', 'nationals', 'marlins', 'pirates',
+            'reds', 'padres', 'rangers'
+        ]
+        
+        baseball_terms = [
+            'mlb', 'baseball', 'hits', 'strikeouts', 'earned runs', 'total bases',
+            'hits allowed', 'pitcher', 'batter', 'innings', 'runs', 'rbi', 'home runs'
+        ]
+        
+        # Check for MLB team names or baseball-specific terms
+        if (any(team in event for team in baseball_teams) or 
+            any(term in description or term in event for term in baseball_terms)):
+            return 'baseball_mlb'
         
         # NFL/Football patterns
         if any(term in description or term in event for term in ['nfl', 'football', 'touchdown', 'yards']):
@@ -343,10 +264,6 @@ class SyncBetPersistenceService:
         # NBA/Basketball patterns
         if any(term in description or term in event for term in ['nba', 'basketball', 'points', 'rebounds']):
             return 'basketball_nba'
-        
-        # MLB/Baseball patterns
-        if any(term in description or term in event for term in ['mlb', 'baseball', 'hits', 'strikeouts']):
-            return 'baseball_mlb'
         
         # NHL/Hockey patterns
         if any(term in description or term in event for term in ['nhl', 'hockey', 'goals', 'shots']):
@@ -454,56 +371,138 @@ class SyncBetPersistenceService:
         return full_hash[:16]
     
     def _parse_odds_data(self, opportunity: Dict[str, Any]) -> Dict[str, Any]:
-        """Parse odds data into structured format"""
+        """Parse odds data into structured format with improved error handling"""
         best_odds = opportunity.get('Best Available Odds', '+100')
         
-        # Convert American odds to decimal - handle sign properly
-        if best_odds.startswith('-'):
-            american_int = -int(best_odds[1:])
-        else:
-            american_int = int(best_odds.replace('+', ''))
-        decimal_odds = MathUtils.american_to_decimal(american_int)
-        
-        return {
-            "american": best_odds,
-            "decimal": decimal_odds,
-            "source": opportunity.get('Best_Odds_Source', 'unknown')
-        }
+        try:
+            # Clean up the odds string - extract just the numeric part
+            import re
+            
+            # Handle formats like "ProphetX 184 (180)", "+150", "-110", etc.
+            # Extract the first number that looks like odds
+            odds_match = re.search(r'[+-]?\d+', str(best_odds))
+            
+            if odds_match:
+                odds_str = odds_match.group()
+                # Ensure it has a sign
+                if not odds_str.startswith(('+', '-')):
+                    odds_str = '+' + odds_str
+            else:
+                # Fallback to even odds
+                odds_str = '+100'
+            
+            # Convert American odds to decimal
+            if odds_str.startswith('-'):
+                american_int = -int(odds_str[1:])
+            else:
+                american_int = int(odds_str.replace('+', ''))
+            
+            decimal_odds = MathUtils.american_to_decimal(american_int)
+            
+            return {
+                "american": odds_str,
+                "decimal": decimal_odds,
+                "source": opportunity.get('Best_Odds_Source', 'unknown'),
+                "raw": str(best_odds)  # Keep original for debugging
+            }
+            
+        except Exception as e:
+            # Fallback to even odds if parsing fails
+            logger.warning(f"Failed to parse odds '{best_odds}': {e}")
+            return {
+                "american": "+100",
+                "decimal": 2.0,
+                "source": opportunity.get('Best_Odds_Source', 'unknown'),
+                "raw": str(best_odds),
+                "parse_error": str(e)
+            }
     
     def _parse_fair_odds(self, opportunity: Dict[str, Any]) -> Dict[str, Any]:
-        """Parse fair odds data"""
+        """Parse fair odds data with improved error handling"""
         fair_odds = opportunity.get('Fair Odds', '+100')
-        # Convert American odds to decimal - handle sign properly  
-        if fair_odds.startswith('-'):
-            american_int = -int(fair_odds[1:])
-        else:
-            american_int = int(fair_odds.replace('+', ''))
-        decimal_odds = MathUtils.american_to_decimal(american_int)
         
-        return {
-            "american": fair_odds,
-            "decimal": decimal_odds
-        }
+        try:
+            # Clean up the odds string - extract just the numeric part
+            import re
+            
+            # Handle formats like "ProphetX 184 (180)", "+150", "-110", etc.
+            odds_match = re.search(r'[+-]?\d+', str(fair_odds))
+            
+            if odds_match:
+                odds_str = odds_match.group()
+                # Ensure it has a sign
+                if not odds_str.startswith(('+', '-')):
+                    odds_str = '+' + odds_str
+            else:
+                # Fallback to even odds
+                odds_str = '+100'
+            
+            # Convert American odds to decimal
+            if odds_str.startswith('-'):
+                american_int = -int(odds_str[1:])
+            else:
+                american_int = int(odds_str.replace('+', ''))
+            
+            decimal_odds = MathUtils.american_to_decimal(american_int)
+            
+            return {
+                "american": odds_str,
+                "decimal": decimal_odds,
+                "raw": str(fair_odds)
+            }
+            
+        except Exception as e:
+            # Fallback to even odds if parsing fails
+            logger.warning(f"Failed to parse fair odds '{fair_odds}': {e}")
+            return {
+                "american": "+100",
+                "decimal": 2.0,
+                "raw": str(fair_odds),
+                "parse_error": str(e)
+            }
     
-    def _determine_book(self, opportunity: Dict[str, Any]) -> str:
-        """Determine bookmaker ID from opportunity"""
-        source = opportunity.get('Best_Odds_Source', 'unknown')
+    def _determine_book(self, opportunity: Dict[str, Any]) -> Optional[str]:
+        """Determine bookmaker ID from opportunity, returns None if not a supported book"""
+        source = opportunity.get('Best_Odds_Source', '')
         
-        # Normalize common bookmaker names
+        # Only support these 5 books
+        known_books = {
+            'novig', 'prophetx', 'draftkings', 'fanduel', 'pinnacle'
+        }
+        
+        # Normalize common bookmaker names with comprehensive matching
         book_mapping = {
             'draftkings': 'draftkings',
             'fanduel': 'fanduel', 
-            'betmgm': 'betmgm',
-            'caesars': 'caesars',
-            'pointsbet': 'pointsbet'
+            'novig': 'novig',
+            'pinnacle': 'pinnacle',
+            'prophetx': 'prophetx',
+            'prophet x': 'prophetx',
+            'prophet_x': 'prophetx'
         }
         
-        source_lower = source.lower()
+        source_lower = source.lower().strip()
+        
+        # Check direct mapping first
         for key, value in book_mapping.items():
             if key in source_lower:
                 return value
         
-        return source.lower().replace(' ', '_') if source != 'unknown' else 'unknown'
+        # Try partial matches for variations
+        if 'draft' in source_lower and 'king' in source_lower:
+            return 'draftkings'
+        if 'fan' in source_lower and 'duel' in source_lower:
+            return 'fanduel'
+        if 'prophet' in source_lower:
+            return 'prophetx'
+        if 'pinnacle' in source_lower:
+            return 'pinnacle'
+        if 'novig' in source_lower or 'no vig' in source_lower:
+            return 'novig'
+        
+        # If not found, return None to indicate we should skip this opportunity
+        logger.debug(f"Unsupported book source '{source}', skipping opportunity")
+        return None
     
     def _calculate_implied_probability(self, odds_data: Dict[str, Any]) -> float:
         """Calculate implied probability from decimal odds"""
@@ -552,52 +551,520 @@ class SyncBetPersistenceService:
             "processing_notes": opportunity.get('processing_notes', '')
         }
     
-    def _ensure_lookup_data(self, session):
-        """Ensure basic lookup data exists in the database using raw SQL for pgbouncer compatibility"""
+
+    def _save_via_rest_api(self, opportunities: List[Dict[str, Any]], 
+                          source: str, results: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Primary persistence implementation using Supabase REST API
+        """
         try:
-            # Use raw SQL to avoid prepared statement caching issues
+            logger.info("Saving opportunities via Supabase REST API")
+            import requests
+            import os
             
-            # Create basic sports if they don't exist
-            sports_sql = """
-                INSERT INTO sports (sport_id, name, category) VALUES 
-                ('americanfootball_nfl', 'NFL', 'americanfootball'),
-                ('basketball_nba', 'NBA', 'basketball'),
-                ('baseball_mlb', 'MLB', 'baseball'),
-                ('icehockey_nhl', 'NHL', 'icehockey'),
-                ('unknown', 'Unknown Sport', 'unknown')
-                ON CONFLICT (sport_id) DO NOTHING
-            """
-            session.execute(text(sports_sql))
+            # Get Supabase credentials
+            supabase_url = os.getenv("SUPABASE_URL")
+            service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
             
-            # Create basic leagues
-            leagues_sql = """
-                INSERT INTO leagues (league_id, name, sport_id) VALUES 
-                ('nfl', 'National Football League', 'americanfootball_nfl'),
-                ('nba', 'National Basketball Association', 'basketball_nba'),
-                ('mlb', 'Major League Baseball', 'baseball_mlb'),
-                ('nhl', 'National Hockey League', 'icehockey_nhl'),
-                ('unknown', 'Unknown League', 'unknown')
-                ON CONFLICT (league_id) DO NOTHING
-            """
-            session.execute(text(leagues_sql))
+            if not supabase_url or not service_key:
+                logger.error("Supabase credentials not available")
+                results["status"] = "error"
+                results["errors"].append({
+                    "type": "config_error", 
+                    "message": "Supabase credentials missing"
+                })
+                return results
             
-            # Create basic books
-            books_sql = """
-                INSERT INTO books (book_id, name, book_type, region) VALUES 
-                ('draftkings', 'DraftKings', 'us_book', 'us'),
-                ('fanduel', 'FanDuel', 'us_book', 'us'),
-                ('betmgm', 'BetMGM', 'us_book', 'us'),
-                ('caesars', 'Caesars', 'us_book', 'us'),
-                ('unknown', 'Unknown Book', 'us_book', 'us')
-                ON CONFLICT (book_id) DO NOTHING
-            """
-            session.execute(text(books_sql))
+            headers = {
+                "apikey": service_key,
+                "Authorization": f"Bearer {service_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"  # Don't return data, just status
+            }
             
-            logger.debug("Ensured lookup data exists")
+            # First, ensure lookup data exists
+            self._ensure_lookup_data_via_api(supabase_url, headers)
+            
+            # Process opportunities in batches
+            batch_size = 50  # Optimal batch size for REST API
+            bets_created = 0
+            bets_updated = 0
+            offers_created = 0
+            offers_skipped = 0
+            filtered_out = 0
+            
+            for i in range(0, len(opportunities), batch_size):
+                batch = opportunities[i:i + batch_size]
+                batch_results = self._process_api_batch(batch, supabase_url, headers)
+                
+                bets_created += batch_results["bets_created"]
+                bets_updated += batch_results["bets_updated"] 
+                offers_created += batch_results["offers_created"]
+                offers_skipped += batch_results.get("offers_skipped", 0)
+                filtered_out += batch_results.get("filtered_out", 0)
+                results["errors"].extend(batch_results["errors"])
+            
+            logger.info(f"✅ REST API persistence completed: {bets_created} bets created, {offers_created} offers created, {offers_skipped} offers skipped (duplicates)")
+            
+            # Update results
+            results["status"] = "success"
+            results["bets_created"] = bets_created
+            results["bets_updated"] = bets_updated
+            results["offers_created"] = offers_created
+            results["offers_skipped"] = offers_skipped
+            results["filtered_out"] = filtered_out
+            
+            return results
             
         except Exception as e:
-            logger.warning(f"Failed to ensure lookup data: {e}")
-            # Don't fail the whole operation for lookup data issues
+            logger.error(f"REST API persistence failed: {e}")
+            results["status"] = "error"
+            results["errors"].append({
+                "type": "api_error", 
+                "message": str(e)
+            })
+            return results
+    
+    def _ensure_lookup_data_via_api(self, supabase_url: str, headers: Dict[str, str]):
+        """Ensure lookup data exists via REST API"""
+        import requests
+        
+        # Sports data
+        sports_data = [
+            {"sport_id": "americanfootball_nfl", "name": "NFL", "category": "americanfootball"},
+            {"sport_id": "basketball_nba", "name": "NBA", "category": "basketball"},
+            {"sport_id": "baseball_mlb", "name": "MLB", "category": "baseball"},
+            {"sport_id": "icehockey_nhl", "name": "NHL", "category": "icehockey"},
+            {"sport_id": "unknown", "name": "Unknown Sport", "category": "unknown"}
+        ]
+        
+        # Leagues data  
+        leagues_data = [
+            {"league_id": "nfl", "name": "National Football League", "sport_id": "americanfootball_nfl"},
+            {"league_id": "nba", "name": "National Basketball Association", "sport_id": "basketball_nba"},
+            {"league_id": "mlb", "name": "Major League Baseball", "sport_id": "baseball_mlb"},
+            {"league_id": "nhl", "name": "National Hockey League", "sport_id": "icehockey_nhl"},
+            {"league_id": "unknown", "name": "Unknown League", "sport_id": "unknown"}
+        ]
+        
+        # Books data - only the 5 supported books
+        books_data = [
+            {"book_id": "draftkings", "name": "DraftKings", "book_type": "us_book", "region": "us"},
+            {"book_id": "fanduel", "name": "FanDuel", "book_type": "us_book", "region": "us"},
+            {"book_id": "novig", "name": "NoVig", "book_type": "us_book", "region": "us"},
+            {"book_id": "prophetx", "name": "ProphetX", "book_type": "us_book", "region": "us"},
+            {"book_id": "pinnacle", "name": "Pinnacle", "book_type": "sharp", "region": "global"}
+        ]
+        
+        # Insert lookup data with ON CONFLICT handling
+        for table, data in [("sports", sports_data), ("leagues", leagues_data), ("books", books_data)]:
+            try:
+                response = requests.post(
+                    f"{supabase_url}/rest/v1/{table}",
+                    headers={**headers, "Prefer": "resolution=ignore-duplicates"},
+                    json=data,
+                    timeout=30
+                )
+                if response.status_code not in [200, 201]:
+                    logger.warning(f"Failed to upsert {table}: {response.status_code} {response.text}")
+            except Exception as e:
+                logger.warning(f"Error upserting {table}: {e}")
+    
+    def _process_api_batch(self, opportunities: List[Dict[str, Any]], 
+                          supabase_url: str, headers: Dict[str, str]) -> Dict[str, Any]:
+        """Process a batch of opportunities via REST API with aggregation by bet_id"""
+        import requests
+        
+        batch_results = {
+            "bets_created": 0,
+            "bets_updated": 0,
+            "offers_created": 0,
+            "offers_skipped": 0,
+            "filtered_out": 0,
+            "errors": []
+        }
+        
+        # Group opportunities by bet_id and filter by supported books
+        bet_groups = {}
+        
+        for opportunity in opportunities:
+            try:
+                # Check if this is from a supported book
+                book_id = self._determine_book(opportunity)
+                if book_id is None:
+                    batch_results["filtered_out"] += 1
+                    continue
+                
+                # Extract bet data
+                bet_id = Bet.create_or_get_bet_id(opportunity)
+                
+                # Group by bet_id
+                if bet_id not in bet_groups:
+                    bet_groups[bet_id] = {
+                        'bet_data': self._extract_bet_data(opportunity, bet_id),
+                        'books': {}
+                    }
+                    logger.debug(f"Created new bet group: {bet_id[:16]}... for {opportunity.get('Event', 'Unknown')[:50]}...")
+                else:
+                    logger.debug(f"Adding to existing bet group: {bet_id[:16]}... (book: {book_id})")
+                
+                # Add this book's odds to the group
+                odds_data = self._parse_odds_data(opportunity)
+                expected_value = opportunity.get('EV_Raw', 0.0)
+                
+                bet_groups[bet_id]['books'][book_id] = {
+                    'odds': odds_data,
+                    'expected_value': expected_value,
+                    'opportunity': opportunity
+                }
+                
+            except Exception as e:
+                batch_results["errors"].append({
+                    "type": "extraction_error",
+                    "message": str(e),
+                    "opportunity": opportunity.get("Event", "unknown")
+                })
+        
+        # Now create aggregated bet and offer records
+        bet_records = []
+        offer_records = []
+        
+        logger.info(f"📊 Aggregation summary: {len(bet_groups)} unique bets from {len(opportunities)} opportunities")
+        
+        # Log some examples of aggregation
+        for i, (bet_id, group_data) in enumerate(bet_groups.items()):
+            if i < 3:  # Log first 3 examples
+                books_list = list(group_data['books'].keys())
+                logger.info(f"  Bet {i+1}: {bet_id[:16]}... has {len(books_list)} books: {books_list}")
+        
+        for bet_id, group_data in bet_groups.items():
+            try:
+                # Prepare bet record
+                bet_data = group_data['bet_data']
+                
+                # Convert datetime to ISO string for API
+                if bet_data.get('event_time'):
+                    bet_data['event_time'] = bet_data['event_time'].isoformat()
+                if bet_data.get('created_at'):
+                    bet_data['created_at'] = bet_data['created_at'].isoformat()
+                if bet_data.get('updated_at'):
+                    bet_data['updated_at'] = bet_data['updated_at'].isoformat()
+                
+                bet_records.append(bet_data)
+                
+                # Create aggregated offer data
+                offer_data = self._create_aggregated_offer(bet_id, group_data['books'])
+                
+                # For batch processing, always create the aggregated offer
+                # The database will handle any constraint conflicts
+                # Convert datetime to ISO string for API
+                if offer_data.get('timestamp'):
+                    offer_data['timestamp'] = offer_data['timestamp'].isoformat()
+                
+                offer_records.append(offer_data)
+                logger.debug(f"Created aggregated offer for bet {bet_id} with {len(group_data['books'])} books")
+                
+            except Exception as e:
+                batch_results["errors"].append({
+                    "type": "aggregation_error",
+                    "message": str(e),
+                    "bet_id": bet_id
+                })
+        
+        # Insert bets with conflict resolution
+        if bet_records:
+            try:
+                response = requests.post(
+                    f"{supabase_url}/rest/v1/bets",
+                    headers={**headers, "Prefer": "resolution=ignore-duplicates"},
+                    json=bet_records,
+                    timeout=60
+                )
+                if response.status_code in [200, 201]:
+                    batch_results["bets_created"] = len(bet_records)
+                else:
+                    logger.warning(f"Bets insert failed: {response.status_code} {response.text}")
+                    batch_results["errors"].append({
+                        "type": "bets_insert_error",
+                        "message": f"HTTP {response.status_code}: {response.text}"
+                    })
+            except Exception as e:
+                batch_results["errors"].append({
+                    "type": "bets_api_error", 
+                    "message": str(e)
+                })
+        
+        # Insert offers (always new records)
+        if offer_records:
+            try:
+                response = requests.post(
+                    f"{supabase_url}/rest/v1/bet_offers",
+                    headers=headers,
+                    json=offer_records,
+                    timeout=60
+                )
+                if response.status_code in [200, 201]:
+                    batch_results["offers_created"] = len(offer_records)
+                else:
+                    logger.warning(f"Offers insert failed: {response.status_code} {response.text}")
+                    batch_results["errors"].append({
+                        "type": "offers_insert_error",
+                        "message": f"HTTP {response.status_code}: {response.text}"
+                    })
+            except Exception as e:
+                batch_results["errors"].append({
+                    "type": "offers_api_error",
+                    "message": str(e)
+                })
+        
+        return batch_results
+    
+    def _create_aggregated_offer(self, bet_id: str, books_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create aggregated offer data from multiple books"""
+        from datetime import datetime
+        
+        # Initialize the aggregated offer structure
+        offer_data = {
+            "offer_id": BetOffer.generate_offer_id(),
+            "bet_id": bet_id,
+            "timestamp": datetime.now(),
+            "refresh_cycle_id": self.refresh_cycle_id,
+            "books_count": len(books_data)
+        }
+        
+        # Set individual book odds (None if book not available)
+        supported_books = ['draftkings', 'fanduel', 'novig', 'prophetx', 'pinnacle']
+        
+        for book in supported_books:
+            book_key = f"{book}_odds"
+            if book in books_data:
+                book_info = books_data[book]
+                offer_data[book_key] = {
+                    **book_info['odds'],
+                    'expected_value': book_info['expected_value']
+                }
+            else:
+                offer_data[book_key] = None
+        
+        # Calculate aggregated metrics
+        available_books = list(books_data.keys())
+        evs = [books_data[book]['expected_value'] for book in available_books]
+        
+        # Find best EV and corresponding book
+        if evs:
+            best_ev_idx = evs.index(max(evs))
+            best_book = available_books[best_ev_idx]
+            offer_data['best_expected_value'] = max(evs)
+            offer_data['best_book'] = best_book
+            offer_data['best_odds'] = books_data[best_book]['odds']
+        else:
+            offer_data['best_expected_value'] = 0.0
+            offer_data['best_book'] = None
+            offer_data['best_odds'] = None
+        
+        # Calculate fair odds (use first available opportunity)
+        if available_books:
+            first_book = available_books[0]
+            first_opportunity = books_data[first_book]['opportunity']
+            offer_data['fair_odds'] = self._parse_fair_odds(first_opportunity)
+        else:
+            offer_data['fair_odds'] = None
+        
+        # Calculate market average (simple average of decimal odds)
+        if len(available_books) > 1:
+            decimal_odds = []
+            for book in available_books:
+                decimal = books_data[book]['odds'].get('decimal', 0)
+                if decimal > 0:
+                    decimal_odds.append(decimal)
+            
+            if decimal_odds:
+                avg_decimal = sum(decimal_odds) / len(decimal_odds)
+                # Convert back to American odds for consistency
+                if avg_decimal >= 2.0:
+                    avg_american = f"+{int((avg_decimal - 1) * 100)}"
+                else:
+                    avg_american = f"-{int(100 / (avg_decimal - 1))}"
+                
+                offer_data['market_average'] = {
+                    'american': avg_american,
+                    'decimal': avg_decimal
+                }
+            else:
+                offer_data['market_average'] = None
+        else:
+            offer_data['market_average'] = None
+        
+        # Set confidence and volume metrics (use best book's data)
+        if available_books:
+            best_opportunity = books_data[best_book]['opportunity']
+            offer_data['confidence_score'] = self._calculate_confidence_score(best_opportunity)
+            offer_data['volume_indicator'] = self._determine_volume_indicator(best_opportunity)
+        else:
+            offer_data['confidence_score'] = 0.0
+            offer_data['volume_indicator'] = 'low'
+        
+        # Metadata
+        offer_data['offer_metadata'] = {
+            'books_available': available_books,
+            'aggregation_method': 'best_ev',
+            'refresh_cycle_id': self.refresh_cycle_id
+        }
+        
+        return offer_data
+    
+    def _should_create_new_aggregated_offer(self, bet_id: str, new_offer_data: Dict[str, Any], 
+                                           supabase_url: str, headers: Dict[str, str]) -> bool:
+        """Check if we should create a new aggregated offer"""
+        import requests
+        
+        try:
+            # Get the most recent offer for this bet
+            response = requests.get(
+                f"{supabase_url}/rest/v1/bet_offers",
+                headers=headers,
+                params={
+                    "bet_id": f"eq.{bet_id}",
+                    "order": "timestamp.desc",
+                    "limit": "1"
+                },
+                timeout=10
+            )
+            
+            if response.status_code != 200:
+                logger.warning(f"Failed to fetch existing offers for bet {bet_id}: {response.status_code}")
+                return True
+            
+            existing_offers = response.json()
+            if not existing_offers:
+                return True
+            
+            latest_offer = existing_offers[0]
+            
+            # Compare aggregated fields
+            comparison_fields = [
+                'best_expected_value', 'best_book', 'books_count',
+                'draftkings_odds', 'fanduel_odds', 'novig_odds', 'prophetx_odds', 'pinnacle_odds'
+            ]
+            
+            for field in comparison_fields:
+                old_value = latest_offer.get(field)
+                new_value = new_offer_data.get(field)
+                
+                # Handle book odds comparison (nested JSON)
+                if field.endswith('_odds'):
+                    if self._odds_significantly_different(old_value, new_value):
+                        logger.debug(f"Aggregated offer change detected in {field}")
+                        return True
+                elif field == 'best_expected_value':
+                    # Use same 0.01 threshold as before
+                    old_ev = float(old_value or 0)
+                    new_ev = float(new_value or 0)
+                    if abs(old_ev - new_ev) >= 0.01:
+                        logger.debug(f"Significant EV change: {old_ev} -> {new_ev}")
+                        return True
+                elif old_value != new_value:
+                    logger.debug(f"Aggregated offer change detected in {field}: {old_value} -> {new_value}")
+                    return True
+            
+            # No meaningful changes detected
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error checking for duplicate aggregated offers: {e}")
+            return True
+    
+    def _odds_significantly_different(self, old_odds: Dict, new_odds: Dict) -> bool:
+        """Compare two odds objects for significant differences"""
+        # If one is None and other isn't, that's a significant change
+        if (old_odds is None) != (new_odds is None):
+            return True
+        
+        # If both are None, no change
+        if old_odds is None and new_odds is None:
+            return False
+        
+        # Compare key fields
+        for field in ['american', 'decimal', 'expected_value']:
+            old_val = old_odds.get(field) if old_odds else None
+            new_val = new_odds.get(field) if new_odds else None
+            
+            if field == 'expected_value':
+                # Use EV threshold
+                old_ev = float(old_val or 0)
+                new_ev = float(new_val or 0)
+                if abs(old_ev - new_ev) >= 0.01:
+                    return True
+            elif old_val != new_val:
+                return True
+        
+        return False
+    
+    def _should_create_new_offer(self, bet_id: str, new_offer_data: Dict[str, Any], 
+                                supabase_url: str, headers: Dict[str, str]) -> bool:
+        """Check if we should create a new offer or if it's a duplicate"""
+        import requests
+        
+        try:
+            # Get the most recent offer for this bet
+            response = requests.get(
+                f"{supabase_url}/rest/v1/bet_offers",
+                headers=headers,
+                params={
+                    "bet_id": f"eq.{bet_id}",
+                    "order": "timestamp.desc",
+                    "limit": "1"
+                },
+                timeout=10
+            )
+            
+            if response.status_code != 200:
+                # If we can't fetch existing offers, create the new one to be safe
+                logger.warning(f"Failed to fetch existing offers for bet {bet_id}: {response.status_code}")
+                return True
+            
+            existing_offers = response.json()
+            if not existing_offers:
+                # No existing offers, create the new one
+                return True
+            
+            latest_offer = existing_offers[0]
+            
+            # Compare meaningful fields (excluding timestamp and offer_id)
+            fields_to_compare = [
+                'book', 'odds', 'expected_value', 'fair_odds', 
+                'implied_probability', 'confidence_score', 'volume_indicator'
+            ]
+            
+            for field in fields_to_compare:
+                old_value = latest_offer.get(field)
+                new_value = new_offer_data.get(field)
+                
+                # Handle nested dict comparison for odds
+                if field in ['odds', 'fair_odds'] and isinstance(old_value, dict) and isinstance(new_value, dict):
+                    # Compare key fields in odds objects
+                    for odds_field in ['american', 'decimal']:
+                        if old_value.get(odds_field) != new_value.get(odds_field):
+                            logger.debug(f"Offer change detected in {field}.{odds_field}: {old_value.get(odds_field)} -> {new_value.get(odds_field)}")
+                            return True
+                elif old_value != new_value:
+                    logger.debug(f"Offer change detected in {field}: {old_value} -> {new_value}")
+                    return True
+            
+            # Check for significant changes in expected value (threshold: 0.01)
+            old_ev = float(latest_offer.get('expected_value', 0))
+            new_ev = float(new_offer_data.get('expected_value', 0))
+            if abs(old_ev - new_ev) >= 0.01:
+                logger.debug(f"Significant EV change detected: {old_ev} -> {new_ev}")
+                return True
+            
+            # No meaningful changes detected
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error checking for duplicate offers: {e}")
+            # If there's an error, create the offer to be safe
+            return True
 
 
 # Global instance for easy access

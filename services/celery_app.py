@@ -8,6 +8,7 @@ from celery import Celery
 from celery.schedules import crontab
 import logging
 from core.settings import settings
+from services.celery_config import get_celery_beat_schedule, get_refresh_description
 
 # Add project root to Python path for imports to work in Celery workers
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -18,8 +19,7 @@ if project_root not in sys.path:
 logging.basicConfig(level=logging.INFO)
 
 # Get configuration from centralized settings
-# Aggressive refresh schedule: Every 30 minutes from 7 AM to 10 PM EST
-REFRESH_INTERVAL_MINUTES = 30  # Aggressive refresh during business hours
+REFRESH_INTERVAL_MINUTES = int(os.getenv('REFRESH_INTERVAL_MINUTES', '15'))
 REDIS_URL = settings.redis_url
 
 # Create Celery app with actual task modules
@@ -58,64 +58,8 @@ celery_app.conf.update(
     # Beat Scheduler Configuration
     beat_schedule_filename='/app/celery-data/beat.db',  # Store in persistent volume for Docker
     
-    # Beat Schedule Configuration - Aggressive refresh during business hours (7 AM to 10 PM EST)
-    beat_schedule={
-        'business-hours-refresh-ev-data': {
-            'task': 'tasks.odds.refresh_data',  # Matches @shared_task(name="tasks.odds.refresh_data")
-            'schedule': crontab(
-                minute='0,30',  # Every 30 minutes (on the hour and half-hour)
-                hour='12-3'     # 7 AM to 10 PM EST = 12 PM to 3 AM UTC (next day)
-            ),
-            'options': {
-                'expires': 60 * REFRESH_INTERVAL_MINUTES,  # Expire if not picked up within 30 minutes
-                'retry': True,
-                'retry_policy': {
-                    'max_retries': 3,
-                    'interval_start': 0,
-                    'interval_step': 30,
-                    'interval_max': 300,
-                },
-                'queue': 'celery',
-                'routing_key': 'celery'
-            },
-            'kwargs': {
-                'force_refresh': False,
-                'skip_activity_check': True  # Skip activity checking for scheduled business hours refreshes
-            }
-        },
-        'off-hours-smart-refresh-ev-data': {
-            'task': 'tasks.odds.refresh_data',  # Same task, different schedule
-            'schedule': crontab(
-                minute='0',     # Once per hour (on the hour)
-                hour='4-11'     # 11 PM to 6 AM EST = 4 AM to 11 AM UTC
-            ),
-            'options': {
-                'expires': 3600,  # Expire if not picked up within 1 hour
-                'retry': True,
-                'retry_policy': {
-                    'max_retries': 2,  # Fewer retries during off-hours
-                    'interval_start': 0,
-                    'interval_step': 60,
-                    'interval_max': 600,
-                },
-                'queue': 'celery',
-                'routing_key': 'celery'
-            },
-            'kwargs': {
-                'force_refresh': False,
-                'skip_activity_check': False  # Use activity checking during off-hours
-            }
-        },
-        'health-check': {
-            'task': 'tasks.system.health_check',  # Matches @shared_task(name="tasks.system.health_check")
-            'schedule': crontab(minute='*/5'),
-            'options': {
-                'expires': 300,
-                'queue': 'celery',
-                'routing_key': 'celery'
-            }
-        }
-    },
+    # Beat Schedule Configuration - Dynamically configured based on environment
+    beat_schedule=get_celery_beat_schedule(),
     
     # Result Backend Settings
     result_backend_transport_options={
@@ -152,9 +96,9 @@ logger.addHandler(console_handler)
 
 # Log configuration on startup
 logger.info(f"Celery configured with Redis URL: {REDIS_URL}")
-logger.info(f"Aggressive refresh interval: {REFRESH_INTERVAL_MINUTES} minutes (business hours only)")
+logger.info(f"Refresh interval: {REFRESH_INTERVAL_MINUTES} minutes")
 logger.info(f"Beat schedule: {list(celery_app.conf.beat_schedule.keys())}")
-logger.info("📊 Aggressive refresh strategy: Refreshes every 30 minutes from 7 AM to 10 PM EST, regardless of activity")
+logger.info(get_refresh_description())
 
 if __name__ == '__main__':
     celery_app.start() 

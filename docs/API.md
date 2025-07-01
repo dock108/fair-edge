@@ -1,11 +1,11 @@
-# FairEdge API Reference
+# Fair-Edge API Reference
 
-Complete API documentation for the FairEdge sports betting analysis platform.
+Complete API documentation for the Fair-Edge sports betting analysis platform.
 
 ## Base URL
 
 - **Development**: `http://localhost:8000`
-- **Production**: `https://api.yourdomain.com`
+- **Production**: `https://dock108.ai`
 
 ## Authentication
 
