@@ -182,9 +182,9 @@ def validate_environment():
     """
     if settings.environment == "production":
         required_vars = [
-            "DATABASE_URL",
+            "DB_CONNECTION_STRING",  # Using existing env var name
             "REDIS_URL", 
-            "JWT_SECRET_KEY",
+            "SUPABASE_JWT_SECRET",   # Using existing env var name
             "SUPABASE_URL",
             "SUPABASE_SERVICE_ROLE_KEY"
         ]
@@ -194,8 +194,8 @@ def validate_environment():
             raise ValueError(f"Missing required environment variables for production: {missing_vars}")
         
         # Check for unsafe defaults
-        if os.getenv("JWT_SECRET_KEY") == "your-secret-key-here":
-            raise ValueError("JWT_SECRET_KEY must be changed from default value in production")
+        if os.getenv("SUPABASE_JWT_SECRET") == "your-secret-key-here":
+            raise ValueError("SUPABASE_JWT_SECRET must be changed from default value in production")
     
     logger.info(f"Environment validation passed for {settings.environment} environment")
 
