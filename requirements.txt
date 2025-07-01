@@ -16,8 +16,8 @@ sqlalchemy[asyncio]==2.0.41
 alembic==1.13.2
 supabase==2.15.2
 
-# Authentication & JWT - UPDATED
-python-jose[cryptography]==3.3.0
+# Authentication & JWT - UPDATED (Security fix: replaced python-jose due to CVE-2022-29217-like vulnerability)
+PyJWT[cryptography]==2.8.0
 
 # Configuration Management - UPDATED
 pydantic-settings==2.8.0
