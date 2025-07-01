@@ -122,7 +122,6 @@ services:
       - /var/log/caddy:/var/log/caddy
     depends_on:
       - api
-      - frontend
     restart: unless-stopped
 
 volumes:
