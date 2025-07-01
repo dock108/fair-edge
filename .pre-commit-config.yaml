@@ -1,4 +1,5 @@
 repos:
+  # Custom project-specific checks
   - repo: local
     hooks:
       - id: no-pandas-numpy
@@ -29,6 +30,30 @@ repos:
         language: system
         pass_filenames: false
         
+      - id: check-secret-patterns
+        name: Check for potential secrets
+        entry: bash
+        args: ['-c', 'if grep -r "password.*=" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules . | grep -v "password_hash\|password_field"; then echo "❌ Potential secrets detected in code"; exit 1; fi']
+        language: system
+        files: '\.(py|js|ts)$'
+        
+      - id: frontend-lint
+        name: Frontend ESLint
+        entry: bash
+        args: ['-c', 'cd frontend && npm run lint']
+        language: system
+        files: '^frontend/.*\.(js|ts|jsx|tsx)$'
+        pass_filenames: false
+        
+      - id: frontend-type-check
+        name: Frontend TypeScript Check
+        entry: bash
+        args: ['-c', 'cd frontend && npm run type-check']
+        language: system
+        files: '^frontend/.*\.(ts|tsx)$'
+        pass_filenames: false
+        
+  # Python formatting and linting
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
@@ -45,4 +70,27 @@ repos:
     rev: 5.13.2
     hooks:
       - id: isort
-        args: [--profile=black, --line-length=100] 
+        args: [--profile=black, --line-length=100]
+
+  # Security and quality checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [--severity-level=medium, --skip=B101]
+        
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable 

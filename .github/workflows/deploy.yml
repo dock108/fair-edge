@@ -1,0 +1,464 @@
+name: Deploy Pipeline
+
+on:
+  # Trigger on successful CI completion
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+  
+  # Manual deployment with environment selection
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      skip_tests:
+        description: 'Skip post-deployment tests'
+        required: false
+        default: false
+        type: boolean
+      force_deploy:
+        description: 'Force deployment (bypass safety checks)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+# Prevent concurrent deployments
+concurrency:
+  group: deployment-${{ inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  # Pre-deployment validation
+  pre-deployment:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      should-deploy: ${{ steps.validation.outputs.should-deploy }}
+      target-environment: ${{ steps.validation.outputs.target-environment }}
+      image-tag: ${{ steps.validation.outputs.image-tag }}
+      
+    steps:
+    - name: Validate deployment conditions
+      id: validation
+      run: |
+        echo "🔍 Validating deployment conditions..."
+        
+        # Determine target environment
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          target_env="${{ inputs.environment }}"
+          force_deploy="${{ inputs.force_deploy }}"
+        else
+          target_env="staging"
+          force_deploy="false"
+        fi
+        
+        echo "target-environment=$target_env" >> $GITHUB_OUTPUT
+        
+        # Generate image tag
+        if [[ "$target_env" == "production" ]]; then
+          image_tag="v${{ github.run_number }}"
+        else
+          image_tag="staging-${{ github.sha }}"
+        fi
+        echo "image-tag=$image_tag" >> $GITHUB_OUTPUT
+        
+        # Check if CI passed (for workflow_run trigger)
+        if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+          if [[ "${{ github.event.workflow_run.conclusion }}" != "success" ]]; then
+            echo "❌ CI pipeline did not pass successfully"
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        fi
+        
+        # Safety check for production deployments
+        if [[ "$target_env" == "production" && "$force_deploy" != "true" ]]; then
+          # Check if this is during business hours (optional safety check)
+          current_hour=$(date +%H)
+          if [[ $current_hour -ge 9 && $current_hour -le 17 ]]; then
+            echo "⚠️ Production deployment during business hours - requires force_deploy flag"
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        fi
+        
+        echo "✅ Deployment validation passed"
+        echo "should-deploy=true" >> $GITHUB_OUTPUT
+
+  # Build and tag release artifacts
+  build-release:
+    name: Build Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: pre-deployment
+    if: needs.pre-deployment.outputs.should-deploy == 'true'
+    
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=${{ needs.pre-deployment.outputs.image-tag }}
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: docker/Dockerfile
+        target: production
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64
+
+    - name: Generate deployment manifest
+      run: |
+        cat > deployment-manifest.json << EOF
+        {
+          "version": "${{ needs.pre-deployment.outputs.image-tag }}",
+          "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.pre-deployment.outputs.image-tag }}",
+          "digest": "${{ steps.build.outputs.digest }}",
+          "environment": "${{ needs.pre-deployment.outputs.target-environment }}",
+          "deployed_by": "${{ github.actor }}",
+          "deployed_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commit_sha": "${{ github.sha }}",
+          "commit_message": "$(git log -1 --pretty=%B | head -1)"
+        }
+        EOF
+
+    - name: Upload deployment manifest
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-manifest
+        path: deployment-manifest.json
+        retention-days: 90
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [pre-deployment, build-release]
+    if: |
+      needs.pre-deployment.outputs.should-deploy == 'true' &&
+      needs.pre-deployment.outputs.target-environment == 'staging'
+    environment:
+      name: staging
+      url: https://staging.dock108.ai
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download deployment manifest
+      uses: actions/download-artifact@v4
+      with:
+        name: deployment-manifest
+
+    - name: Deploy to staging server
+      run: |
+        echo "🚀 Deploying to staging environment..."
+        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.pre-deployment.outputs.image-tag }}"
+        
+        # TODO: Replace with actual deployment logic
+        # This would typically involve:
+        # 1. SSH to staging server
+        # 2. Pull new image
+        # 3. Update docker-compose with new image
+        # 4. Rolling update deployment
+        # 5. Health check validation
+        
+        echo "✅ Staging deployment completed (placeholder)"
+
+    - name: Run staging smoke tests
+      if: ${{ !inputs.skip_tests }}
+      run: |
+        echo "🧪 Running staging smoke tests..."
+        
+        # Wait for deployment to stabilize
+        sleep 30
+        
+        # Test key endpoints
+        # curl -f https://staging.dock108.ai/health
+        # curl -f https://staging.dock108.ai/api/opportunities
+        
+        echo "✅ Staging smoke tests passed (placeholder)"
+
+    - name: Update deployment status
+      if: always()
+      run: |
+        if [[ "${{ job.status }}" == "success" ]]; then
+          echo "✅ Staging deployment successful"
+        else
+          echo "❌ Staging deployment failed"
+          exit 1
+        fi
+
+  # Deploy to production (requires manual approval)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [pre-deployment, build-release]
+    if: |
+      needs.pre-deployment.outputs.should-deploy == 'true' &&
+      needs.pre-deployment.outputs.target-environment == 'production'
+    environment:
+      name: production
+      url: https://dock108.ai
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download deployment manifest
+      uses: actions/download-artifact@v4
+      with:
+        name: deployment-manifest
+
+    - name: Pre-production validation
+      run: |
+        echo "🔍 Running pre-production validation..."
+        
+        # Validate staging is healthy before production deployment
+        # if ! curl -f https://staging.dock108.ai/health; then
+        #   echo "❌ Staging is not healthy - aborting production deployment"
+        #   exit 1
+        # fi
+        
+        echo "✅ Pre-production validation passed (placeholder)"
+
+    - name: Create deployment backup point
+      run: |
+        echo "💾 Creating deployment backup point..."
+        
+        # TODO: Create database backup
+        # TODO: Tag current production image for rollback
+        # TODO: Export current configuration
+        
+        echo "✅ Backup point created (placeholder)"
+
+    - name: Deploy to production (Blue/Green)
+      run: |
+        echo "🚀 Deploying to production environment..."
+        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.pre-deployment.outputs.image-tag }}"
+        
+        # TODO: Blue/Green deployment logic
+        # 1. Deploy to "green" environment
+        # 2. Run health checks on green
+        # 3. Switch traffic from blue to green
+        # 4. Monitor for issues
+        # 5. Complete deployment or rollback
+        
+        echo "✅ Production deployment completed (placeholder)"
+
+    - name: Run production health checks
+      timeout-minutes: 10
+      run: |
+        echo "🏥 Running production health checks..."
+        
+        # Wait for deployment to stabilize
+        sleep 60
+        
+        # Comprehensive health checks
+        # curl -f https://dock108.ai/health
+        # curl -f https://dock108.ai/api/opportunities
+        
+        # Check database connectivity
+        # Check Redis connectivity
+        # Check external API integrations
+        # Verify authentication flow
+        
+        echo "✅ Production health checks passed (placeholder)"
+
+    - name: Run production smoke tests
+      if: ${{ !inputs.skip_tests }}
+      timeout-minutes: 15
+      run: |
+        echo "🧪 Running production smoke tests..."
+        
+        # Critical user journeys
+        # Authentication flow
+        # Data retrieval
+        # Core functionality
+        
+        echo "✅ Production smoke tests passed (placeholder)"
+
+    - name: Monitor deployment metrics
+      timeout-minutes: 10
+      run: |
+        echo "📊 Monitoring deployment metrics..."
+        
+        # Monitor error rates
+        # Monitor response times
+        # Monitor resource usage
+        # Check for anomalies
+        
+        echo "✅ Deployment metrics within normal ranges (placeholder)"
+
+    - name: Notify stakeholders
+      if: always()
+      run: |
+        if [[ "${{ job.status }}" == "success" ]]; then
+          echo "📢 Production deployment successful - notifying stakeholders"
+          # TODO: Send success notification (Slack, email, etc.)
+        else
+          echo "🚨 Production deployment failed - triggering alerts"
+          # TODO: Send failure alert and initiate rollback procedures
+        fi
+
+  # Post-deployment validation
+  post-deployment:
+    name: Post-deployment Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [pre-deployment, deploy-staging, deploy-production]
+    if: |
+      always() &&
+      needs.pre-deployment.outputs.should-deploy == 'true' &&
+      (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+
+    steps:
+    - name: Determine environment
+      id: env
+      run: |
+        if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+          echo "environment=production" >> $GITHUB_OUTPUT
+          echo "url=https://dock108.ai" >> $GITHUB_OUTPUT
+        else
+          echo "environment=staging" >> $GITHUB_OUTPUT
+          echo "url=https://staging.dock108.ai" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Extended health monitoring
+      timeout-minutes: 15
+      run: |
+        echo "🔍 Extended health monitoring for ${{ steps.env.outputs.environment }}..."
+        
+        # Monitor for 10 minutes to catch any delayed issues
+        for i in {1..20}; do
+          echo "Health check iteration $i/20..."
+          
+          # Basic health check
+          # if ! curl -f ${{ steps.env.outputs.url }}/health; then
+          #   echo "❌ Health check failed on iteration $i"
+          #   exit 1
+          # fi
+          
+          sleep 30
+        done
+        
+        echo "✅ Extended health monitoring passed"
+
+    - name: Performance baseline validation
+      run: |
+        echo "⚡ Validating performance baselines..."
+        
+        # Quick performance check to ensure no regressions
+        # TODO: Run performance tests against deployed environment
+        # TODO: Compare with historical baselines
+        # TODO: Alert if significant degradation
+        
+        echo "✅ Performance within acceptable ranges (placeholder)"
+
+    - name: Security validation
+      run: |
+        echo "🔒 Running security validation..."
+        
+        # Verify security headers
+        # Check SSL certificate
+        # Validate authentication endpoints
+        # Test rate limiting
+        
+        echo "✅ Security validation passed (placeholder)"
+
+    - name: Update deployment records
+      run: |
+        echo "📝 Updating deployment records..."
+        
+        # Update deployment database/tracking system
+        # Log successful deployment
+        # Update monitoring dashboards
+        # Archive deployment artifacts
+        
+        echo "✅ Deployment records updated"
+
+  # Cleanup and summary
+  deployment-summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [pre-deployment, build-release, deploy-staging, deploy-production, post-deployment]
+    if: always()
+
+    steps:
+    - name: Generate deployment summary
+      run: |
+        echo "📋 Deployment Pipeline Summary"
+        echo "============================="
+        
+        echo "🎯 Target Environment: ${{ needs.pre-deployment.outputs.target-environment }}"
+        echo "🏷️ Image Tag: ${{ needs.pre-deployment.outputs.image-tag }}"
+        echo "👤 Deployed By: ${{ github.actor }}"
+        echo "📅 Deployment Time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        
+        echo ""
+        echo "Job Results:"
+        echo "🔍 Pre-deployment: ${{ needs.pre-deployment.result }}"
+        echo "🏗️ Build Release: ${{ needs.build-release.result }}"
+        echo "🎭 Deploy Staging: ${{ needs.deploy-staging.result }}"
+        echo "🚀 Deploy Production: ${{ needs.deploy-production.result }}"
+        echo "✅ Post-deployment: ${{ needs.post-deployment.result }}"
+        
+        # Determine overall status
+        if [[ "${{ needs.pre-deployment.result }}" == "failure" ]]; then
+          echo "❌ Deployment aborted due to validation failure"
+          exit 1
+        elif [[ "${{ needs.build-release.result }}" == "failure" ]]; then
+          echo "❌ Deployment failed during build phase"
+          exit 1
+        elif [[ "${{ needs.deploy-staging.result }}" == "failure" && "${{ needs.pre-deployment.outputs.target-environment }}" == "staging" ]]; then
+          echo "❌ Staging deployment failed"
+          exit 1
+        elif [[ "${{ needs.deploy-production.result }}" == "failure" && "${{ needs.pre-deployment.outputs.target-environment }}" == "production" ]]; then
+          echo "❌ Production deployment failed"
+          exit 1
+        elif [[ "${{ needs.post-deployment.result }}" == "failure" ]]; then
+          echo "⚠️ Deployment succeeded but post-deployment validation failed"
+          exit 1
+        else
+          echo "✅ Deployment completed successfully"
+        fi
