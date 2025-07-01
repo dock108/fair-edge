@@ -1,10 +1,10 @@
-# FairEdge User Guide
+# Fair-Edge User Guide
 
-Complete guide for using the FairEdge sports betting analysis platform to find positive expected value (+EV) betting opportunities.
+Complete guide for using the Fair-Edge sports betting analysis platform to find positive expected value (+EV) betting opportunities.
 
-## What is FairEdge?
+## What is Fair-Edge?
 
-FairEdge is a professional sports betting analysis platform that identifies positive expected value (+EV) opportunities across multiple sportsbooks. Our advanced algorithms calculate fair odds and compare them against market prices to find profitable betting opportunities.
+Fair-Edge is a professional sports betting analysis platform that identifies positive expected value (+EV) opportunities across multiple sportsbooks. Our advanced algorithms calculate fair odds and compare them against market prices to find profitable betting opportunities.
 
 ## Getting Started
 
@@ -184,7 +184,7 @@ Set up notifications for:
 ### Getting Help
 
 - **Live Chat**: Available during business hours
-- **Email Support**: support@fairedge.com
+- **Email Support**: support@dock108.ai
 - **FAQ Section**: Check common questions first
 - **Community Forum**: Connect with other users
 

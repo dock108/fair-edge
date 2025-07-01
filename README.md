@@ -6,7 +6,7 @@ A professional sports betting analysis platform that identifies positive expecte
 
 ### Development (Recommended)
 ```bash
-./scripts/deploy.sh development
+./deploy.sh local
 ```
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000
@@ -25,7 +25,7 @@ cd frontend && npm install && npm run dev
 
 ### Production Deployment
 ```bash
-./scripts/deploy.sh production
+./deploy.sh production
 ```
 
 ## 🏗️ Architecture
@@ -136,18 +136,18 @@ pytest tests/test_smoke_ci.py -v
 
 **Development:**
 ```bash
-./scripts/deploy.sh development
+./deploy.sh development
 ```
 
 **Production:**
 ```bash
-./scripts/deploy.sh production
+./deploy.sh production
 ```
 
 **Monitoring:**
 ```bash
-./scripts/deploy.sh logs development  # View logs
-./scripts/deploy.sh stop              # Stop services
+./deploy.sh logs development  # View logs
+./deploy.sh stop              # Stop services
 ```
 
 ## 🤝 Contributing

@@ -1,6 +1,6 @@
-# Testing Guide for bet-intel
+# Testing Guide for Fair-Edge
 
-This document describes the comprehensive testing infrastructure implemented for the bet-intel FastAPI application.
+This document describes the comprehensive testing infrastructure implemented for the Fair-Edge FastAPI application.
 
 ## Overview
 
