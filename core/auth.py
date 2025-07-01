@@ -171,7 +171,7 @@ class UserCtx(BaseModel):
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db)
+    
 ) -> UserCtx:
     """
     CORE AUTHENTICATION DEPENDENCY: Validate JWT token and fetch user context.
@@ -359,7 +359,7 @@ require_admin = require_role("admin")
 
 async def get_optional_user(
     authorization: Optional[str] = None,
-    db: AsyncSession = Depends(get_db)
+    
 ) -> Optional[UserCtx]:
     """
     Optional authentication dependency
@@ -372,7 +372,7 @@ async def get_optional_user(
     try:
         token = authorization.split(" ")[1]
         credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
-        return await get_current_user(credentials, db)
+        return await get_current_user(credentials)
     except HTTPException:
         # Invalid token - return None instead of raising exception
         return None
@@ -380,13 +380,13 @@ async def get_optional_user(
 
 async def get_user_or_none(
     authorization: Optional[str] = Header(None, alias="Authorization"),
-    db: AsyncSession = Depends(get_db)
+    
 ) -> Optional[UserCtx]:
     """
     Optional authentication dependency that works with FastAPI dependency injection
     Returns UserCtx if valid token provided, None otherwise
     """
-    return await get_optional_user(authorization, db)
+    return await get_optional_user(authorization)
 
 
 def verify_jwt_token(token: str) -> dict:
