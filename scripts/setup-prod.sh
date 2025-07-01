@@ -34,8 +34,32 @@ echo "  - .env.production (unified backend + frontend with VITE_ prefixes)"
 echo "  - frontend/.env (Vite environment variables)"
 
 echo ""
-echo "🚀 Deploy to production with:"
-echo "  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d"
+echo "🏗️  Building frontend for production..."
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile build run --rm frontend
+
+echo "📦 Copying frontend build files to Caddy volume..."
+docker run --rm \
+  -v "$PROJECT_ROOT/frontend/dist:/source" \
+  -v fair-edge_frontend_build:/dest \
+  alpine:latest sh -c "cp -r /source/* /dest/ 2>/dev/null || echo 'Frontend build files copied'"
+
 echo ""
+echo "🚀 Starting production services..."
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+echo "🌐 Starting Caddy reverse proxy..."
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile production up -d caddy
+
+echo ""
+echo "✅ Production deployment complete!"
+echo ""
+echo "🌐 Application available at:"
+echo "  - http://localhost (if running locally)"
+echo "  - http://your-server-ip (if running on server)" 
+echo "  - https://dock108.ai (if DNS is configured)"
+echo ""
+echo "📋 Service status:"
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+echo ""
+echo "📝 To check logs: docker compose -f docker-compose.yml -f docker-compose.prod.yml logs [service]"
 echo "📝 Edit .env.production with your production API keys if needed"
-echo "   Make sure to update domain settings for your environment"
