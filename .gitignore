@@ -33,8 +33,10 @@ ENV/
 pip-env/
 
 # Environment Variables & Secrets
+# These are the working environment files created by setup scripts
 .env.local
 .env.production
+*/.env
 
 # Other sensitive files
 *.key
@@ -265,3 +267,4 @@ celery-data/
 celerybeat-schedule
 
 # Byte-compiled / optimized / DLL files 
+environments/*.env
