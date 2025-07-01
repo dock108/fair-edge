@@ -10,7 +10,8 @@ from typing import Optional
 from fastapi import HTTPException, Request, Response
 from core.settings import settings
 from core.auth import UserCtx
-from jose import jwt, JWTError
+import jwt
+from jwt import PyJWTError
 
 
 class SessionManager:
@@ -160,11 +161,11 @@ def get_current_user_from_cookie(request: Request) -> Optional[UserCtx]:
     
     try:
         # Validate JWT token (same logic as core.auth but from cookie)
+        # Note: PyJWT doesn't verify audience by default, so no options needed
         payload = jwt.decode(
             token, 
             settings.supabase_jwt_secret,
-            algorithms=[settings.jwt_algorithm],
-            options={"verify_aud": False}  # Disable audience verification as before
+            algorithms=[settings.supabase_jwt_algorithm]
         )
         
         user_id = payload.get("sub")
@@ -196,7 +197,7 @@ def get_current_user_from_cookie(request: Request) -> Optional[UserCtx]:
             subscription_status=subscription_status
         )
         
-    except JWTError:
+    except PyJWTError:
         return None
 
 

@@ -141,7 +141,8 @@ Critical Alerts:
 - Unusual role privilege access patterns
 - JWT token validation failures (potential security issue)
 """
-from jose import jwt, JWTError
+import jwt
+from jwt import PyJWTError
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -243,14 +244,13 @@ async def get_current_user(
     
     try:
         # Decode and validate JWT using Supabase JWT secret
-        # Note: We disable audience verification since we're doing our own validation
+        # Note: PyJWT doesn't verify audience by default, so no options needed
         payload = jwt.decode(
             token,
             settings.supabase_jwt_secret,
-            algorithms=[settings.supabase_jwt_algorithm],
-            options={"verify_aud": False}  # Disable audience verification
+            algorithms=[settings.supabase_jwt_algorithm]
         )
-    except JWTError as exc:
+    except PyJWTError as exc:
         logger.warning(f"JWT validation failed: {exc}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -401,7 +401,7 @@ def verify_jwt_token(token: str) -> dict:
             algorithms=[settings.supabase_jwt_algorithm or "HS256"]
         )
         return payload
-    except JWTError as e:
+    except PyJWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
