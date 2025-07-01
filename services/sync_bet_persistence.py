@@ -684,39 +684,38 @@ class SyncBetPersistenceService:
             "errors": []
         }
         
-        # Group opportunities by bet_id and filter by supported books
+        # Group opportunities by bet_id and extract all books from "All Available Odds"
         bet_groups = {}
         
         for opportunity in opportunities:
             try:
-                # Check if this is from a supported book
-                book_id = self._determine_book(opportunity)
-                if book_id is None:
-                    batch_results["filtered_out"] += 1
-                    continue
-                
                 # Extract bet data
                 bet_id = Bet.create_or_get_bet_id(opportunity)
                 
-                # Group by bet_id
+                # Create bet group if it doesn't exist
                 if bet_id not in bet_groups:
                     bet_groups[bet_id] = {
                         'bet_data': self._extract_bet_data(opportunity, bet_id),
-                        'books': {}
+                        'books': {},
+                        'opportunity': opportunity  # Store the full opportunity for later use
                     }
                     logger.debug(f"Created new bet group: {bet_id[:16]}... for {opportunity.get('Event', 'Unknown')[:50]}...")
+                
+                # For now, still use the single book method but store the opportunity
+                # The key change is in _create_aggregated_offer where we'll parse "All Available Odds"
+                book_id = self._determine_book(opportunity)
+                if book_id:
+                    odds_data = self._parse_odds_data(opportunity)
+                    expected_value = opportunity.get('EV_Raw', 0.0)
+                    
+                    bet_groups[bet_id]['books'][book_id] = {
+                        'odds': odds_data,
+                        'expected_value': expected_value,
+                        'opportunity': opportunity
+                    }
+                    logger.debug(f"Added {book_id} to bet group: {bet_id[:16]}...")
                 else:
-                    logger.debug(f"Adding to existing bet group: {bet_id[:16]}... (book: {book_id})")
-                
-                # Add this book's odds to the group
-                odds_data = self._parse_odds_data(opportunity)
-                expected_value = opportunity.get('EV_Raw', 0.0)
-                
-                bet_groups[bet_id]['books'][book_id] = {
-                    'odds': odds_data,
-                    'expected_value': expected_value,
-                    'opportunity': opportunity
-                }
+                    batch_results["filtered_out"] += 1
                 
             except Exception as e:
                 batch_results["errors"].append({
@@ -819,9 +818,75 @@ class SyncBetPersistenceService:
         
         return batch_results
     
+    def _parse_all_available_odds(self, opportunity: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Parse the 'All Available Odds' field to extract individual book data"""
+        all_odds_str = opportunity.get('All Available Odds', '')
+        if not all_odds_str or all_odds_str == 'N/A':
+            return {}
+        
+        books_data = {}
+        
+        # Parse format: "DraftKings: +120; FanDuel: +124; Pinnacle: +125; ProphetX: +142 (+139); Novig: +155 (+152)"
+        odds_parts = all_odds_str.split(';')
+        
+        for part in odds_parts:
+            part = part.strip()
+            if ':' in part:
+                try:
+                    book_display, odds_str = part.split(':', 1)
+                    book_display = book_display.strip()
+                    odds_str = odds_str.strip()
+                    
+                    # Map display names to book IDs
+                    book_mapping = {
+                        'draftkings': 'draftkings',
+                        'fanduel': 'fanduel', 
+                        'novig': 'novig',
+                        'pinnacle': 'pinnacle',
+                        'prophetx': 'prophetx'
+                    }
+                    
+                    book_id = None
+                    for key, value in book_mapping.items():
+                        if key in book_display.lower():
+                            book_id = value
+                            break
+                    
+                    if book_id:
+                        # Extract American odds (handle both "+120" and "+142 (+139)" formats)
+                        import re
+                        odds_match = re.search(r'([+-]?\d+)', odds_str)
+                        if odds_match:
+                            american_odds = odds_match.group(1)
+                            if not american_odds.startswith(('+', '-')):
+                                american_odds = '+' + american_odds
+                            
+                            # Convert to decimal
+                            american_int = int(american_odds.replace('+', '')) if american_odds.startswith('+') else int(american_odds)
+                            decimal_odds = MathUtils.american_to_decimal(american_int)
+                            
+                            books_data[book_id] = {
+                                'american': american_odds,
+                                'decimal': decimal_odds,
+                                'source': book_id,
+                                'raw': odds_str
+                            }
+                            
+                except Exception as e:
+                    logger.debug(f"Failed to parse odds part '{part}': {e}")
+                    continue
+        
+        return books_data
+
     def _create_aggregated_offer(self, bet_id: str, books_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create aggregated offer data from multiple books"""
         from datetime import datetime
+        
+        # Get the opportunity data to extract "All Available Odds"
+        opportunity = None
+        if books_data:
+            first_book = list(books_data.keys())[0]
+            opportunity = books_data[first_book].get('opportunity')
         
         # Initialize the aggregated offer structure
         offer_data = {
@@ -832,19 +897,42 @@ class SyncBetPersistenceService:
             "books_count": len(books_data)
         }
         
+        # Parse "All Available Odds" to get all book data
+        all_books_odds = {}
+        if opportunity:
+            all_books_odds = self._parse_all_available_odds(opportunity)
+        
         # Set individual book odds (None if book not available)
         supported_books = ['draftkings', 'fanduel', 'novig', 'prophetx', 'pinnacle']
+        books_found = 0
         
         for book in supported_books:
             book_key = f"{book}_odds"
-            if book in books_data:
+            
+            if book in all_books_odds:
+                # Use parsed data from "All Available Odds"
+                book_odds = all_books_odds[book]
+                offer_data[book_key] = {
+                    'american': book_odds['american'],
+                    'decimal': book_odds['decimal'],
+                    'source': book_odds['source'],
+                    'raw': book_odds['raw'],
+                    'expected_value': 0.0  # Will use the overall EV from opportunity
+                }
+                books_found += 1
+            elif book in books_data:
+                # Fallback to original method
                 book_info = books_data[book]
                 offer_data[book_key] = {
                     **book_info['odds'],
-                    'expected_value': book_info['expected_value']
+                    'expected_value': book_info.get('expected_value', 0.0)
                 }
+                books_found += 1
             else:
                 offer_data[book_key] = None
+        
+        # Update books_count to reflect actual books found
+        offer_data['books_count'] = books_found
         
         # Calculate aggregated metrics
         available_books = list(books_data.keys())
