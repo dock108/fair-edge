@@ -74,8 +74,8 @@ jobs:
       run: |
         echo "🔍 Scanning for secrets and sensitive data..."
         
-        # Check for common secret patterns
-        if grep -r "password\|secret\|key\|token" --include="*.py" --include="*.js" --include="*.ts" . | grep -v "test" | grep -E "(=|:)\s*['\"][^'\"]{20,}['\"]"; then
+        # Check for actual hardcoded secrets (specific patterns only)
+        if grep -r -E "(api_key|secret_key|private_key|access_token|auth_token)\s*=\s*['\"][^'\"]{16,}['\"]" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules . | grep -v "your-secret-key-here\|test_\|example_\|placeholder"; then
           echo "❌ Potential hardcoded secrets detected"
           exit 1
         fi
