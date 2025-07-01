@@ -61,7 +61,7 @@ CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "
 FROM node:18-alpine as frontend-build
 WORKDIR /app
 COPY frontend/package*.json ./
-RUN npm ci --production
+RUN npm ci  # Install all dependencies including dev dependencies for build
 COPY frontend/ .
 RUN npm run build
 

@@ -8,15 +8,15 @@ services:
       target: production
     volumes: []  # Remove volume mount for production
     env_file:
-      - .env.production.local
+      - .env.production  # Use unified env file
     restart: always
 
   # Production frontend build
   frontend:
     build:
-      target: frontend-prod
+      target: frontend-build  # Fix target name to match Dockerfile
     env_file:
-      - frontend/.env.production.local
+      - .env.production  # Use unified env file with VITE_ prefixes
     environment:
       - VITE_API_URL=https://dock108.ai  # Override for production
     command: npm run build
@@ -35,7 +35,7 @@ services:
       target: production
     volumes: []  # Remove volume mount for production
     env_file:
-      - .env.production.local
+      - .env.production  # Use unified env file
     environment:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_CONCURRENCY=4
@@ -46,7 +46,7 @@ services:
       target: production
     volumes: []  # Remove volume mount for production
     env_file:
-      - .env.production.local
+      - .env.production  # Use unified env file
     environment:
       - REDIS_URL=redis://redis:6379/0
     restart: always
