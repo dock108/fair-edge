@@ -1,0 +1,695 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip test execution (security and build only)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+# Global concurrency control
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Phase 1: Fast security and setup checks
+  setup-and-security:
+    name: Security & Setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      python-cache-key: ${{ steps.cache-keys.outputs.python }}
+      node-cache-key: ${{ steps.cache-keys.outputs.node }}
+      docker-cache-key: ${{ steps.cache-keys.outputs.docker }}
+      has-backend-changes: ${{ steps.changes.outputs.backend }}
+      has-frontend-changes: ${{ steps.changes.outputs.frontend }}
+      has-docker-changes: ${{ steps.changes.outputs.docker }}
+      security-passed: ${{ steps.security-check.outputs.passed }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for security scanning
+
+    - name: Detect file changes
+      uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          backend:
+            - '**/*.py'
+            - 'requirements.txt'
+            - 'alembic/**'
+            - '.env.example'
+          frontend:
+            - 'frontend/**'
+            - '!frontend/node_modules/**'
+          docker:
+            - 'docker/**'
+            - 'Dockerfile*'
+            - 'docker-compose*.yml'
+
+    - name: Generate cache keys
+      id: cache-keys
+      run: |
+        echo "python=python-${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt') }}" >> $GITHUB_OUTPUT
+        echo "node=node-${{ env.NODE_VERSION }}-${{ hashFiles('frontend/package-lock.json') }}" >> $GITHUB_OUTPUT
+        echo "docker=docker-${{ hashFiles('docker/**', 'Dockerfile*') }}" >> $GITHUB_OUTPUT
+
+    - name: Security - Secret scanning
+      run: |
+        echo "🔍 Scanning for secrets and sensitive data..."
+        
+        # Check for common secret patterns
+        if grep -r "password\|secret\|key\|token" --include="*.py" --include="*.js" --include="*.ts" . | grep -v "test" | grep -E "(=|:)\s*['\"][^'\"]{20,}['\"]"; then
+          echo "❌ Potential hardcoded secrets detected"
+          exit 1
+        fi
+        
+        # Check environment files are not committed
+        if [ -f .env ]; then
+          echo "❌ .env file should not be committed"
+          exit 1
+        fi
+        
+        echo "✅ Secret scanning passed"
+
+    - name: Security - Dependency audit
+      id: security-check
+      run: |
+        echo "🔒 Auditing dependencies for vulnerabilities..."
+        
+        # Python dependencies
+        pip install safety
+        if ! safety check --json > safety_report.json; then
+          echo "❌ Python dependency vulnerabilities found"
+          cat safety_report.json
+          echo "passed=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        echo "✅ Dependency audit passed"
+        echo "passed=true" >> $GITHUB_OUTPUT
+
+    - name: Upload security artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: |
+          safety_report.json
+        retention-days: 30
+
+  # Phase 2: Code quality checks (parallel)
+  code-quality-backend:
+    name: Backend Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: setup-and-security
+    if: needs.setup-and-security.outputs.has-backend-changes == 'true' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ needs.setup-and-security.outputs.python-cache-key }}
+        restore-keys: |
+          python-${{ env.PYTHON_VERSION }}-
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install black flake8 isort vulture bandit mypy
+
+    - name: Code formatting (Black)
+      run: |
+        echo "🎨 Checking code formatting..."
+        black --check --line-length=100 --diff .
+
+    - name: Import sorting (isort)
+      run: |
+        echo "📦 Checking import organization..."
+        isort --check-only --profile=black --line-length=100 .
+
+    - name: Linting (Flake8)
+      run: |
+        echo "🔍 Running linting checks..."
+        flake8 --max-line-length=100 --ignore=E203,W503 --statistics
+
+    - name: Type checking (MyPy)
+      run: |
+        echo "🔧 Running type checks..."
+        mypy --ignore-missing-imports --no-strict-optional . || true
+
+    - name: Security linting (Bandit)
+      run: |
+        echo "🔒 Running security linting..."
+        bandit -r . -f json -o bandit_report.json || true
+        bandit -r . -ll
+
+    - name: Dead code detection
+      run: |
+        echo "🧹 Scanning for dead code..."
+        vulture . --min-confidence 80 --ignore-names "*test*,*Test*" || true
+
+    - name: Architecture checks
+      run: |
+        echo "🏗️ Validating architecture boundaries..."
+        
+        # Check app.py size
+        lines=$(wc -l < app.py)
+        if [ $lines -gt 800 ]; then
+          echo "❌ app.py has $lines lines (limit: 800) - consider refactoring"
+          exit 1
+        fi
+        
+        # Check for boundary violations
+        if grep -r "from app import\|import app" routes/ --include="*.py" 2>/dev/null; then
+          echo "❌ Direct app imports in routes detected - use dependency injection"
+          exit 1
+        fi
+        
+        echo "✅ Architecture checks passed"
+
+    - name: Upload backend quality reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-quality-reports
+        path: |
+          bandit_report.json
+        retention-days: 30
+
+  code-quality-frontend:
+    name: Frontend Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: setup-and-security
+    if: needs.setup-and-security.outputs.has-frontend-changes == 'true' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: TypeScript compilation
+      run: |
+        cd frontend
+        echo "🔧 Checking TypeScript compilation..."
+        npx tsc --noEmit
+
+    - name: ESLint
+      run: |
+        cd frontend
+        echo "🔍 Running ESLint..."
+        npx eslint . --ext .ts,.tsx --format=json --output-file=eslint_report.json || true
+        npx eslint . --ext .ts,.tsx
+
+    - name: Code duplication check
+      run: |
+        cd frontend
+        echo "📋 Checking for code duplication..."
+        npx jscpd --threshold 10 --reporters console,json --output ./jscpd_report.json src/ || true
+
+    - name: Bundle size analysis
+      run: |
+        cd frontend
+        echo "📦 Analyzing bundle size..."
+        npm run build
+        npx webpack-bundle-analyzer dist/assets/index-*.js --mode=json --report=bundle_analysis.json || true
+
+    - name: Dead code detection
+      run: |
+        cd frontend
+        echo "🧹 Scanning for unused TypeScript code..."
+        npx ts-prune > unused_exports.txt || true
+        if [ -s unused_exports.txt ]; then
+          echo "⚠️ Unused exports detected:"
+          cat unused_exports.txt
+        fi
+
+    - name: Upload frontend quality reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-quality-reports
+        path: |
+          frontend/eslint_report.json
+          frontend/jscpd_report.json
+          frontend/bundle_analysis.json
+          frontend/unused_exports.txt
+        retention-days: 30
+
+  # Phase 3: Backend testing
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [setup-and-security, code-quality-backend]
+    if: |
+      always() && 
+      (needs.setup-and-security.outputs.has-backend-changes == 'true' || github.event_name == 'workflow_dispatch') &&
+      !inputs.skip_tests &&
+      needs.setup-and-security.outputs.security-passed == 'true'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ needs.setup-and-security.outputs.python-cache-key }}
+        restore-keys: |
+          python-${{ env.PYTHON_VERSION }}-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest-cov pytest-xdist pytest-html
+
+    - name: Create test environment
+      run: |
+        cat > .env.test << EOF
+        DEBUG_MODE=true
+        APP_ENV=test
+        REDIS_URL=redis://localhost:6379/0
+        SUPABASE_URL=https://test.supabase.co
+        SUPABASE_ANON_KEY=test_key
+        SUPABASE_JWT_SECRET=test_secret_that_is_long_enough_for_jwt_validation
+        SUPABASE_SERVICE_ROLE_KEY=test_service_key
+        THE_ODDS_API_KEY=test_api_key
+        DB_CONNECTION_STRING=postgresql+asyncpg://test_user:test_password@localhost:5432/test_db
+        DATABASE_URL=postgresql://test_user:test_password@localhost:5432/test_db
+        ODDS_API_KEY=test_api_key
+        EOF
+
+    - name: Set up test database
+      run: |
+        export $(cat .env.test | xargs)
+        python -c "
+        import asyncio
+        import asyncpg
+        async def setup():
+          conn = await asyncpg.connect('postgresql://test_user:test_password@localhost:5432/test_db')
+          await conn.execute('CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"')
+          await conn.close()
+        asyncio.run(setup())
+        "
+
+    - name: Run unit tests
+      run: |
+        export $(cat .env.test | xargs)
+        echo "🧪 Running unit tests with coverage..."
+        pytest tests/ -v \
+          --cov=. \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term-missing \
+          --cov-fail-under=70 \
+          --html=test_report.html \
+          --self-contained-html \
+          --junitxml=test_results.xml \
+          -x
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-test-results
+        path: |
+          test_report.html
+          test_results.xml
+          coverage.xml
+          htmlcov/
+        retention-days: 30
+
+    - name: Upload coverage to Codecov
+      if: always()
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  # Phase 4: Frontend testing
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [setup-and-security, code-quality-frontend]
+    if: |
+      always() && 
+      (needs.setup-and-security.outputs.has-frontend-changes == 'true' || github.event_name == 'workflow_dispatch') &&
+      !inputs.skip_tests &&
+      needs.setup-and-security.outputs.security-passed == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Frontend security audit
+      run: |
+        cd frontend
+        echo "🔒 Running npm security audit..."
+        npm audit --audit-level high
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        echo "🏗️ Building frontend for testing..."
+        npm run build
+
+    - name: Bundle size check
+      run: |
+        cd frontend
+        echo "📦 Checking bundle size limits..."
+        
+        # Check if bundle is too large (>500KB for main bundle)
+        main_bundle_size=$(ls -la dist/assets/index-*.js | awk '{print $5}')
+        max_size=512000  # 500KB
+        
+        if [ "$main_bundle_size" -gt "$max_size" ]; then
+          echo "❌ Main bundle too large: $main_bundle_size bytes (limit: $max_size)"
+          exit 1
+        else
+          echo "✅ Bundle size acceptable: $main_bundle_size bytes"
+        fi
+
+    # Note: Add actual frontend tests when test files exist
+    - name: Placeholder for frontend tests
+      run: |
+        cd frontend
+        echo "🧪 Frontend test framework ready (add test files to tests/ directory)"
+        echo "✅ Frontend validation completed"
+
+  # Phase 5: Container builds and scanning
+  build-and-scan:
+    name: Build & Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [setup-and-security]
+    if: |
+      always() && 
+      (needs.setup-and-security.outputs.has-docker-changes == 'true' || 
+       needs.setup-and-security.outputs.has-backend-changes == 'true' || 
+       github.event_name == 'workflow_dispatch') &&
+      needs.setup-and-security.outputs.security-passed == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: docker/Dockerfile
+        tags: ${{ env.IMAGE_NAME }}:test
+        load: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Run Trivy security scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.IMAGE_NAME }}:test
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Test container health
+      run: |
+        echo "🏥 Testing container health..."
+        
+        # Start container with health check
+        docker run -d --name test-app \
+          -p 8000:8000 \
+          -e DEBUG_MODE=true \
+          -e REDIS_URL=redis://localhost:6379/0 \
+          -e SUPABASE_URL=https://test.supabase.co \
+          -e SUPABASE_ANON_KEY=test_key \
+          -e SUPABASE_JWT_SECRET=test_secret_that_is_long_enough \
+          -e SUPABASE_SERVICE_ROLE_KEY=test_service_key \
+          -e THE_ODDS_API_KEY=test_api_key \
+          ${{ env.IMAGE_NAME }}:test
+
+        # Wait for startup and test health
+        sleep 30
+        if curl -f http://localhost:8000/health; then
+          echo "✅ Container health check passed"
+        else
+          echo "❌ Container health check failed"
+          docker logs test-app
+          exit 1
+        fi
+
+        docker stop test-app
+
+  # Phase 6: Integration tests (optional, only on main branch pushes)
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [test-backend, test-frontend, build-and-scan]
+    if: |
+      always() && 
+      github.ref == 'refs/heads/main' && 
+      !inputs.skip_tests &&
+      (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') &&
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
+      needs.build-and-scan.result == 'success'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Compose
+      run: |
+        echo "🐳 Setting up full stack for integration testing..."
+        
+        # Create test environment
+        cp environments/development.env .env.local
+        
+        # Start full stack
+        docker compose up -d --build
+
+    - name: Wait for services
+      run: |
+        echo "⏳ Waiting for services to be ready..."
+        timeout 120 bash -c 'until curl -f http://localhost:8000/health; do sleep 5; done'
+        echo "✅ Backend service ready"
+        
+        timeout 120 bash -c 'until curl -f http://localhost:5173; do sleep 5; done'
+        echo "✅ Frontend service ready"
+
+    - name: Run integration smoke tests
+      run: |
+        echo "🚀 Running integration smoke tests..."
+        
+        # Test key endpoints
+        curl -f http://localhost:8000/health
+        curl -f http://localhost:8000/api/opportunities
+        curl -f http://localhost:5173
+        
+        echo "✅ Integration tests passed"
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker compose down -v
+        docker system prune -f
+
+  # Phase 7: Performance validation (main branch only)
+  performance-validation:
+    name: Performance Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [integration-tests]
+    if: |
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      needs.integration-tests.result == 'success'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install performance tools
+      run: |
+        pip install locust
+        curl -L https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine-v1.18.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
+        sudo mv hyperfine-v1.18.0-x86_64-unknown-linux-gnu/hyperfine /usr/local/bin/
+
+    - name: Start application for benchmarking
+      run: |
+        # Start minimal stack for performance testing
+        docker run -d --name benchmark-redis -p 6379:6379 redis:7-alpine
+        
+        export DEBUG_MODE=true
+        export REDIS_URL=redis://localhost:6379/0
+        export SUPABASE_URL=https://test.supabase.co
+        export SUPABASE_ANON_KEY=test_key
+        export SUPABASE_JWT_SECRET=test_secret_that_is_long_enough
+        
+        python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
+        echo $! > app.pid
+        
+        timeout 60 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
+
+    - name: Run performance benchmarks
+      run: |
+        echo "⚡ Running performance benchmarks..."
+        
+        hyperfine --warmup 3 --runs 10 \
+          'curl -s http://localhost:8000/health' \
+          'curl -s http://localhost:8000/' \
+          'curl -s http://localhost:8000/api/opportunities' \
+          --export-json benchmark_results.json
+
+        echo "📊 Benchmark results:"
+        cat benchmark_results.json
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-benchmarks
+        path: benchmark_results.json
+        retention-days: 90
+
+    - name: Cleanup
+      if: always()
+      run: |
+        if [ -f app.pid ]; then
+          kill $(cat app.pid) 2>/dev/null || true
+        fi
+        docker stop benchmark-redis 2>/dev/null || true
+        docker rm benchmark-redis 2>/dev/null || true
+
+  # Final summary job
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [setup-and-security, code-quality-backend, code-quality-frontend, test-backend, test-frontend, build-and-scan, integration-tests, performance-validation]
+    if: always()
+
+    steps:
+    - name: Evaluate results
+      run: |
+        echo "📋 CI Pipeline Summary"
+        echo "====================="
+        
+        echo "🔒 Security: ${{ needs.setup-and-security.result }}"
+        echo "🎨 Backend Quality: ${{ needs.code-quality-backend.result }}"
+        echo "🎨 Frontend Quality: ${{ needs.code-quality-frontend.result }}"
+        echo "🧪 Backend Tests: ${{ needs.test-backend.result }}"
+        echo "🧪 Frontend Tests: ${{ needs.test-frontend.result }}"
+        echo "🐳 Build & Scan: ${{ needs.build-and-scan.result }}"
+        echo "🔗 Integration: ${{ needs.integration-tests.result }}"
+        echo "⚡ Performance: ${{ needs.performance-validation.result }}"
+        
+        # Determine overall status
+        if [[ "${{ needs.setup-and-security.result }}" == "failure" ]]; then
+          echo "❌ Pipeline failed due to security issues"
+          exit 1
+        elif [[ "${{ needs.build-and-scan.result }}" == "failure" ]]; then
+          echo "❌ Pipeline failed due to build/security scan issues"
+          exit 1
+        elif [[ "${{ needs.test-backend.result }}" == "failure" || "${{ needs.test-frontend.result }}" == "failure" ]]; then
+          echo "❌ Pipeline failed due to test failures"
+          exit 1
+        else
+          echo "✅ Pipeline completed successfully"
+        fi
