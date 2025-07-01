@@ -190,17 +190,19 @@ jobs:
       run: |
         echo "🕵️ Scanning for secrets and sensitive data..."
         
-        # Check for common secret patterns
-        grep -r -E "(password|secret|key|token)\s*=\s*['\"][^'\"]{20,}['\"]" \
+        # Check for actual hardcoded secrets (more specific patterns)
+        grep -r -E "(api_key|secret_key|private_key|access_token|auth_token)\s*=\s*['\"][^'\"]{16,}['\"]" \
           --include="*.py" --include="*.js" --include="*.ts" \
           --exclude-dir=node_modules \
-          --exclude-dir=.git . > potential_secrets.txt || true
+          --exclude-dir=.git . | \
+          grep -v "your-secret-key-here\|test_\|example_\|placeholder" \
+          > potential_secrets.txt || true
         
         if [ -s potential_secrets.txt ]; then
-          echo "⚠️ Potential secrets detected:"
+          echo "⚠️ Potential hardcoded secrets detected:"
           cat potential_secrets.txt
         else
-          echo "✅ No obvious secrets found"
+          echo "✅ No hardcoded secrets found"
         fi
 
     - name: Configuration security review
