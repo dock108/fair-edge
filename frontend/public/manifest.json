@@ -1,0 +1,25 @@
+{
+  "name": "FairEdge - Sports +EV Analyzer",
+  "short_name": "FairEdge",
+  "description": "Advanced sports betting Expected Value (EV) analysis platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0C2C55",
+  "icons": [
+    {
+      "src": "/icons/fairedge_logo_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/fairedge_logo_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["sports", "finance", "utilities"],
+  "orientation": "portrait-primary"
+} 

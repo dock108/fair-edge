@@ -32,30 +32,8 @@ ENV/
 pip-env/
 
 # Environment Variables & Secrets
-# New structure: actual env files (templates are in environments/ directory)
 .env.local
-.env.production.local
-.env.test.local
-.env.development.local
-.env.staging.local
-environments/
-
-# Vite environment files (frontend)
-frontend/.env.local
-frontend/.env.production.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.staging.local
-
-# Legacy environment files (should be migrated)
-.env
-.env.development
-.env.test
 .env.production
-frontend/.env
-frontend/.env.development
-frontend/.env.test
-frontend/.env.production
 
 # Other sensitive files
 *.key
@@ -131,7 +109,11 @@ instance/
 data/
 datasets/
 *.csv
-*.json
+# Only ignore data JSON files, not config files like package.json, tsconfig.json
+**/data/*.json
+**/exports/*.json
+raw_odds_*.json
+processed_opportunities_*.json
 *.xlsx
 *.xls
 backup/
@@ -172,7 +154,8 @@ yarn-debug.log*
 yarn-error.log*
 .npm
 .yarn/
-package-lock.json
+# Keep package-lock.json for reproducible builds
+# package-lock.json
 yarn.lock
 
 # Docker
@@ -273,7 +256,7 @@ local_config.py
 dev_settings.py
 
 # Environment variables - never commit real credentials
-.env.production
+# .env.production (now allowed for deployment templates)
 
 # Celery beat schedule database - keep in Docker volumes
 celerybeat-schedule.db
