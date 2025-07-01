@@ -3,7 +3,7 @@ Database models for bet-intel application
 Implements persistent storage for betting opportunities with normalized schema
 """
 from sqlalchemy import (
-    Column, String, Text, Float, Boolean, DateTime, JSON, ForeignKey, 
+    Column, String, Text, Float, Boolean, DateTime, JSON, ForeignKey, Integer,
     Index, func, UniqueConstraint, Enum as SAEnum
 )
 from sqlalchemy.ext.declarative import declarative_base
@@ -101,8 +101,7 @@ class Book(Base):
     affiliate_url = Column(Text)
     active = Column(Boolean, default=True)
     
-    # Relationships
-    offers = relationship("BetOffer", back_populates="book_ref")
+    # Note: No direct relationship to BetOffer since we aggregate odds by bet_id
 
 
 class Bet(Base):
@@ -244,7 +243,7 @@ class Bet(Base):
 
 
 class BetOffer(Base):
-    """Time-series data for bet offers/odds snapshots"""
+    """Aggregated odds data for betting opportunities across all supported books"""
     __tablename__ = "bet_offers"
     
     # Primary key
@@ -253,16 +252,22 @@ class BetOffer(Base):
     # Foreign key to static bet data
     bet_id = Column(String(64), ForeignKey("bets.bet_id"), nullable=False)
     
-    # Offer source
-    book = Column(String(50), ForeignKey("books.book_id"), nullable=False)
+    # Odds columns for each of the 5 supported books (JSON format)
+    draftkings_odds = Column(JSON)  # e.g., {"american": "+110", "decimal": 2.10, "ev": 0.05}
+    fanduel_odds = Column(JSON)     # e.g., {"american": "+105", "decimal": 2.05, "ev": 0.03}
+    novig_odds = Column(JSON)       # e.g., {"american": "+115", "decimal": 2.15, "ev": 0.07}
+    prophetx_odds = Column(JSON)    # e.g., {"american": "+120", "decimal": 2.20, "ev": 0.08}
+    pinnacle_odds = Column(JSON)    # e.g., {"american": "+108", "decimal": 2.08, "ev": 0.04}
     
-    # Odds data (stored as JSON for flexibility)
-    odds = Column(JSON, nullable=False)  # e.g., {"american": "+110", "decimal": 2.10}
+    # Aggregated metrics across all books
+    best_odds = Column(JSON)        # Best odds found across all books
+    best_expected_value = Column(Float)  # Highest EV found
+    best_book = Column(String(50))  # Which book has the best odds
+    books_count = Column(Integer, default=0)  # How many books have this bet
     
-    # Calculated values
-    expected_value = Column(Float)  # EV percentage (e.g., 0.0314 for 3.14%)
+    # Fair odds and market analysis
     fair_odds = Column(JSON)  # Fair odds calculation
-    implied_probability = Column(Float)  # Implied probability from odds
+    market_average = Column(JSON)  # Average odds across available books
     
     # Quality metrics
     confidence_score = Column(Float)  # Confidence in this data point
@@ -272,8 +277,7 @@ class BetOffer(Base):
     )
     
     # Additional offer data
-    available_limits = Column(JSON)  # Betting limits if available
-    offer_metadata = Column(JSON)  # Any additional offer-specific data
+    offer_metadata = Column(JSON)  # Any additional aggregated data
     
     # Timestamp
     timestamp = Column(DateTime, default=func.now(), nullable=False)
@@ -281,16 +285,16 @@ class BetOffer(Base):
     
     # Relationships
     bet_ref = relationship("Bet", back_populates="offers")
-    book_ref = relationship("Book", back_populates="offers")
     
     # Indexes for performance
     __table_args__ = (
         Index('idx_bet_offers_bet_id', 'bet_id'),
         Index('idx_bet_offers_timestamp', 'timestamp'),
-        Index('idx_bet_offers_book', 'book'),
-        Index('idx_bet_offers_ev', 'expected_value'),
+        Index('idx_bet_offers_best_ev', 'best_expected_value'),
+        Index('idx_bet_offers_best_book', 'best_book'),
         Index('idx_bet_offers_bet_timestamp', 'bet_id', 'timestamp'),
         Index('idx_bet_offers_refresh_cycle', 'refresh_cycle_id'),
+        Index('idx_bet_offers_books_count', 'books_count'),
     )
     
     @staticmethod
@@ -302,7 +306,7 @@ class BetOffer(Base):
 
 # Additional indexes for common query patterns
 Index('idx_bets_sport_type_created', Bet.sport, Bet.bet_type, Bet.created_at)
-Index('idx_offers_recent_high_ev', BetOffer.timestamp, BetOffer.expected_value)
+Index('idx_offers_recent_high_ev', BetOffer.timestamp, BetOffer.best_expected_value)
 
 
 # User profiles table (enhance existing if needed)
