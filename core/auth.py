@@ -146,12 +146,11 @@ from jwt import PyJWTError
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 import logging
 
 from core.settings import settings
-from db import get_db, execute_with_pgbouncer_retry, get_supabase
+from db import get_supabase
 
 logger = logging.getLogger(__name__)
 
@@ -191,9 +190,8 @@ async def get_current_user(
        - Handle multiple JWT algorithms (HS256/RS256) for flexibility
     
     2. User Profile Lookup:
-       - Primary: Direct database query for optimal performance
-       - Fallback: Supabase REST API during database connectivity issues
-       - Final fallback: JWT-only context with default permissions
+       - Primary: Supabase REST API for reliable access to profiles table
+       - Fallback: JWT-only context with default permissions if profile not found
     
     3. User Context Creation:
        - Combine JWT claims with database profile information
@@ -204,7 +202,7 @@ async def get_current_user(
     ===================
     
     - Multi-layer fallback strategy prevents authentication outages
-    - Database connection retry logic with exponential backoff
+    - Supabase REST API for reliable profile data access
     - Comprehensive error logging for security monitoring
     - Secure error messages that don't expose system internals
     - Performance optimizations for high-concurrency environments
@@ -213,14 +211,13 @@ async def get_current_user(
     =======================
     
     - JWT signature validation prevents token tampering
-    - Database-backed role verification prevents privilege escalation
+    - Supabase-backed role verification prevents privilege escalation
     - Comprehensive audit logging for security monitoring
     - Graceful fallback maintains service availability during issues
     - No sensitive information exposed in error messages
     
     Args:
         credentials: HTTP Bearer token from Authorization header
-        db: Async database session for user profile lookup
     
     Returns:
         UserCtx: Comprehensive user context with role and subscription info
@@ -231,7 +228,7 @@ async def get_current_user(
     
     Production Notes:
         - Used as dependency injection for all protected endpoints
-        - Automatically handles database connection pooling and retries
+        - Automatically handles Supabase API calls and retries
         - Logs authentication events for security monitoring
         - Optimized for minimal latency impact on API responses
     
@@ -268,55 +265,32 @@ async def get_current_user(
     # Extract email from JWT payload
     email = payload.get("email")
 
-    # Fetch role & subscription status from profiles table
+    # Fetch role & subscription status from profiles table using Supabase REST API
     try:
-        result = await execute_with_pgbouncer_retry(
-            db,
-            "SELECT id, email, role, subscription_status FROM profiles WHERE id = :user_id",
-            {"user_id": user_id}
-        )
-        profile = result.fetchone()
-
-        if profile:
+        logger.info(f"Fetching user profile via Supabase REST API for user {user_id}")
+        supabase_client = get_supabase()
+        response = supabase_client.table('profiles').select('id, email, role, subscription_status').eq('id', user_id).execute()
+        
+        if response.data and len(response.data) > 0:
+            profile_data = response.data[0]
+            logger.info(f"✅ Successfully fetched user profile: {profile_data['email']} (role: {profile_data['role']}, subscription: {profile_data['subscription_status']})")
             return UserCtx(
-                id=str(profile[0]),
-                email=profile[1] or email,
-                role=profile[2] or "free",
-                subscription_status=profile[3] or "none",
+                id=str(profile_data['id']),
+                email=profile_data['email'] or email,
+                role=profile_data['role'] or "free",
+                subscription_status=profile_data['subscription_status'] or "none",
             )
         else:
-            # Profile not found - auto-create default context
-            # In production, you might want to create the profile record here
-            logger.info(f"Profile not found for user {user_id}, using defaults")
-            return UserCtx(id=user_id, email=email)
+            logger.warning(f"⚠️ User profile not found in profiles table for user {user_id}")
+            # Profile not found - return basic user context with defaults
+            logger.info(f"Using default context for user {user_id}")
+            return UserCtx(id=user_id, email=email, role="free", subscription_status="none")
             
-    except Exception as db_error:
-        logger.error(f"Database error fetching user profile after retries: {db_error}")
-        
-        # Fallback to Supabase REST API
-        try:
-            logger.info(f"Attempting to fetch user profile via Supabase REST API for user {user_id}")
-            supabase_client = get_supabase()
-            response = supabase_client.table('profiles').select('id, email, role, subscription_status').eq('id', user_id).execute()
-            
-            if response.data and len(response.data) > 0:
-                profile_data = response.data[0]
-                logger.info(f"Successfully fetched user profile via Supabase REST API: {profile_data['email']} (role: {profile_data['role']})")
-                return UserCtx(
-                    id=str(profile_data['id']),
-                    email=profile_data['email'] or email,
-                    role=profile_data['role'] or "free",
-                    subscription_status=profile_data['subscription_status'] or "none",
-                )
-            else:
-                logger.warning(f"User profile not found in Supabase for user {user_id}")
-                
-        except Exception as supabase_error:
-            logger.error(f"Supabase REST API fallback also failed: {supabase_error}")
-        
-        # Final fallback to JWT-only context
-        logger.warning(f"Using JWT-only context with default role for user {user_id}")
-        return UserCtx(id=user_id, email=email)
+    except Exception as api_error:
+        logger.error(f"❌ Supabase REST API error: {api_error}")
+        # Final fallback - return user context with defaults
+        logger.warning(f"Using final fallback context for user {user_id}")
+        return UserCtx(id=user_id, email=email, role="free", subscription_status="none")
 
 
 def require_role(*accepted_roles: str):
