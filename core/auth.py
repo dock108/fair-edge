@@ -241,11 +241,12 @@ async def get_current_user(
     
     try:
         # Decode and validate JWT using Supabase JWT secret
-        # Note: PyJWT doesn't verify audience by default, so no options needed
+        # Disable audience verification for Supabase JWTs
         payload = jwt.decode(
             token,
             settings.supabase_jwt_secret,
-            algorithms=[settings.supabase_jwt_algorithm]
+            algorithms=[settings.supabase_jwt_algorithm],
+            options={"verify_aud": False}
         )
     except PyJWTError as exc:
         logger.warning(f"JWT validation failed: {exc}")
