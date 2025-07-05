@@ -25,7 +25,19 @@ export const usePermissions = (): PermissionHook => {
   
   const userRole: UserRole = (user?.user_metadata?.role as UserRole) || 'free';
   const subscriptionStatus = user?.user_metadata?.subscription_status || 'none';
-  const isSubscriptionActive = subscriptionStatus === 'active';
+  const isSubscriptionActive = subscriptionStatus === 'active' || userRole === 'admin';
+
+  // Debug logging to help identify the issue
+  if (user && import.meta.env.DEV) {
+    console.log('🔍 usePermissions debug:', {
+      userEmail: user.email,
+      rawRole: user?.user_metadata?.role,
+      finalUserRole: userRole,
+      subscriptionStatus,
+      isSubscriptionActive,
+      userMetadata: user.user_metadata
+    });
+  }
 
   /**
    * Check if user has a specific role or higher
