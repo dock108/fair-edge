@@ -12,6 +12,13 @@ import SignUpPage from './pages/SignUpPage';
 import UpgradeSuccessPage from './pages/UpgradeSuccessPage';
 import './styles/dashboard.css';
 
+// Load auth test helpers in development
+if (import.meta.env.DEV) {
+  import('./utils/authTestHelpers').then(() => {
+    console.log('🧪 Auth test helpers loaded! Use window.authTest.* in console');
+  });
+}
+
 
 function App() {
   return (
