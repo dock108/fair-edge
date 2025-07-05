@@ -25,7 +25,7 @@ export const usePermissions = (): PermissionHook => {
   
   const userRole: UserRole = (user?.user_metadata?.role as UserRole) || 'free';
   const subscriptionStatus = user?.user_metadata?.subscription_status || 'none';
-  const isSubscriptionActive = subscriptionStatus === 'active';
+  const isSubscriptionActive = subscriptionStatus === 'active' || userRole === 'admin';
 
   // Debug logging to help identify the issue
   if (user && import.meta.env.DEV) {
