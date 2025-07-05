@@ -114,7 +114,8 @@ export const Header = () => {
                     <div className="user-info">
                       <strong>{user.email}</strong>
                       <span className="user-plan">
-                        {userRole === 'basic' ? '💰 Basic Plan' : 
+                        {userRole === 'admin' ? '👑 Admin Account' :
+                         userRole === 'basic' ? '💰 Basic Plan' : 
                          userRole === 'premium' ? '🚀 Premium Plan' : 
                          '🆓 Free Account'}
                       </span>
