@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 import logging
 from datetime import datetime
 import asyncio
+import os
 
 # Import authentication and dependencies
 from core.auth import require_role, UserCtx
@@ -60,6 +61,37 @@ def get_task_status(task_id):
 # Initialize router
 router = APIRouter(tags=["system"])
 logger = logging.getLogger(__name__)
+
+@router.get("/api/build-info", tags=["system"])
+@limiter.limit("60/minute")
+async def get_build_info(request: Request):
+    """
+    Get build and deployment information
+    Public endpoint for deployment verification
+    """
+    try:
+        build_time = os.environ.get('VITE_BUILD_TIME', 'unknown')
+        app_version = os.environ.get('APP_VERSION', '1.0.0')
+        environment = os.environ.get('ENVIRONMENT', 'unknown')
+        
+        return {
+            "app_name": "FairEdge Sports Betting",
+            "version": app_version,
+            "environment": environment,
+            "build_time": build_time,
+            "build_timestamp": datetime.fromtimestamp(int(build_time)) if build_time.isdigit() else "unknown",
+            "api_status": "healthy",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting build info: {e}")
+        return {
+            "app_name": "FairEdge Sports Betting",
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 @router.get("/api/cache-status", tags=["system"])
 @limiter.limit("30/minute")
