@@ -36,7 +36,7 @@
     
     # Static assets with caching
     handle /assets/* {
-        root * /srv/frontend
+        root * /srv
         file_server {
             precompressed gzip br
         }
@@ -45,26 +45,26 @@
     
     # Static files (favicon, manifest, etc.)
     handle /favicon.ico {
-        root * /srv/frontend
+        root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
     
     handle /manifest.json {
-        root * /srv/frontend
+        root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
     
     handle /browserconfig.xml {
-        root * /srv/frontend
+        root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
     
     # React SPA - catch-all for client-side routing
     handle {
-        root * /srv/frontend
+        root * /srv
         try_files {path} /index.html
         file_server
         header Cache-Control "public, max-age=0, must-revalidate"
@@ -116,7 +116,7 @@ dock108.ai:80 {
     
     # Static assets with caching
     handle /assets/* {
-        root * /srv/frontend
+        root * /srv
         file_server {
             precompressed gzip br
         }
@@ -125,26 +125,26 @@ dock108.ai:80 {
     
     # Static files (favicon, manifest, etc.)
     handle /favicon.ico {
-        root * /srv/frontend
+        root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
     
     handle /manifest.json {
-        root * /srv/frontend
+        root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
     
     handle /browserconfig.xml {
-        root * /srv/frontend
+        root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
     
     # React SPA - catch-all for client-side routing
     handle {
-        root * /srv/frontend
+        root * /srv
         try_files {path} /index.html
         file_server
         header Cache-Control "public, max-age=0, must-revalidate"

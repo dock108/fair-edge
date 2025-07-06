@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   // Load env file from parent directory (monorepo root)
   const env = loadEnv(mode, path.resolve(process.cwd(), '..'), ['VITE_'])
   
-  return {
+  const config = {
     plugins: [react()],
     envDir: '../', // Look for env files in parent directory
     server: {
@@ -25,4 +25,23 @@ export default defineConfig(({ mode }) => {
       }
     }
   }
+  
+  // Production build optimizations
+  if (mode === 'production') {
+    config.build = {
+      outDir: 'dist',
+      sourcemap: false,
+      minify: 'terser',
+      rollupOptions: {
+        output: {
+          // Cache busting with timestamp
+          entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+          chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+          assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`,
+        }
+      }
+    }
+  }
+  
+  return config
 })
