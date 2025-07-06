@@ -86,3 +86,34 @@ EXPOSE 5173
 
 # Start dev server
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+
+# Production Caddy stage with embedded frontend
+FROM caddy:2.7-alpine as caddy-frontend
+WORKDIR /srv
+
+# Install Node.js for building frontend
+RUN apk add --no-cache nodejs npm
+
+# Copy frontend source and build
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm ci
+COPY frontend/ ./frontend/
+COPY environments/production.env ./.env
+
+# Build frontend with production environment and cache busting
+RUN cd frontend && \
+    export NODE_ENV=production && \
+    export VITE_BUILD_TIME=$(date +%s) && \
+    npm run build && \
+    mv dist/* /srv/ && \
+    rm -rf /srv/frontend
+
+# Copy Caddyfile
+COPY docker/caddy/Caddyfile /etc/caddy/Caddyfile
+
+# Expose ports
+EXPOSE 80 443
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD caddy version || exit 1
