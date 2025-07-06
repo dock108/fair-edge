@@ -1,6 +1,12 @@
 # FairEdge Production Caddyfile
 # Optimized for host networking and React SPA + FastAPI backend
 
+# HTTP redirect to HTTPS for dock108.ai
+http://dock108.ai {
+    redir https://dock108.ai{uri} permanent
+}
+
+# Fallback for IP access
 :80 {
     # Security headers
     header {
@@ -80,8 +86,8 @@
     }
 }
 
-# Domain configuration for dock108.ai
-dock108.ai:80 {
+# Domain configuration for dock108.ai with automatic HTTPS
+dock108.ai {
     # Security headers
     header {
         X-Content-Type-Options "nosniff"
@@ -158,4 +164,9 @@ dock108.ai:80 {
         output file /var/log/caddy/dock108_access.log
         format json
     }
+}
+
+# Redirect www to non-www
+www.dock108.ai {
+    redir https://dock108.ai{uri} permanent
 }
