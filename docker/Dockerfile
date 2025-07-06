@@ -94,6 +94,11 @@ WORKDIR /srv
 # Install Node.js for building frontend
 RUN apk add --no-cache nodejs npm
 
+# Accept build arguments for environment variables
+ARG VITE_API_URL
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+
 # Copy frontend source and build
 COPY frontend/package*.json ./frontend/
 RUN cd frontend && npm ci
@@ -104,6 +109,9 @@ COPY environments/production.env ./.env
 RUN cd frontend && \
     export NODE_ENV=production && \
     export VITE_BUILD_TIME=$(date +%s) && \
+    export VITE_API_URL=${VITE_API_URL} && \
+    export VITE_SUPABASE_URL=${VITE_SUPABASE_URL} && \
+    export VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY} && \
     npm run build && \
     mv dist/* /srv/ && \
     rm -rf /srv/frontend
