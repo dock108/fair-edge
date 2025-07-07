@@ -314,8 +314,7 @@ async def _handle_checkout_complete(session: dict):
             'role': user_role,
             'subscription_status': 'active',
             'stripe_customer_id': customer_id,
-            'stripe_subscription_id': subscription_id,
-            'updated_at': 'now()'
+            'stripe_subscription_id': subscription_id
         }).eq('id', user_id).execute()
         
         if result.data:
