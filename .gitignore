@@ -73,6 +73,19 @@ coverage.xml
 *.py,cover
 .hypothesis/
 
+# Playwright Testing
+**/playwright-report/
+**/test-results/
+trace.zip
+*.har
+
+# Test artifacts  
+stripe-webhook*.log
+webhook-test.log
+test-*.png
+test-*.webm
+error-context.md
+
 # Documentation
 docs/_build/
 .sphinx/

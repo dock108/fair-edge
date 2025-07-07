@@ -11,7 +11,7 @@ docker compose up -d                # Start services
 
 # Production  
 ./scripts/setup-prod.sh             # One-time setup
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile production up -d
+docker compose -f docker-compose.production.yml up -d
 ```
 
 **Access Points:**
@@ -27,11 +27,12 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile produc
 
 ## 🏗️ Architecture
 
-**Stack:** React + TypeScript • FastAPI • PostgreSQL • Redis • Celery
+**Stack:** React + TypeScript • FastAPI • Supabase • Redis • Celery
 
 **Key Features:**
 - Real-time +EV opportunity detection across 10+ sportsbooks
 - Role-based access control (Free/Basic/Premium/Admin)
+- Stripe subscription billing with webhook integration
 - Sub-100ms response times with intelligent caching
 - Automated data refresh with smart scheduling
 
@@ -45,9 +46,16 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile produc
 ## 🧪 Testing
 
 ```bash
+# Backend testing
 ./scripts/run_tests.sh smoke        # Quick health checks (2 min)
 ./scripts/run_tests.sh integration  # Full test suite (10 min)
-./scripts/run_tests.sh load         # Performance testing (5 min)
+
+# Frontend E2E testing (Playwright)
+cd frontend && npm run test:e2e     # Subscription flow tests
+
+# Stripe testing
+./scripts/setup-stripe-testing.sh   # Setup test environment
+./scripts/start-webhook-forwarding.sh  # Local webhook testing
 ```
 
 ## 📄 License

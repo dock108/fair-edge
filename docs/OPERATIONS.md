@@ -1,6 +1,6 @@
 # Operations Guide
 
-Production monitoring, maintenance, and troubleshooting guide.
+Production monitoring, maintenance, and troubleshooting guide for Fair-Edge SaaS platform.
 
 ## 🔍 Monitoring
 
@@ -11,10 +11,19 @@ Production monitoring, maintenance, and troubleshooting guide.
 curl https://your-domain.com/health
 
 # Service status
-docker compose ps
+docker compose -f docker-compose.production.yml ps
 
 # Container health
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# Supabase connection test
+curl -H "Authorization: Bearer SERVICE_ROLE_KEY" \
+  "https://your-project.supabase.co/rest/v1/profiles?select=id&limit=1"
+
+# Stripe webhook test
+curl -X POST https://your-domain.com/api/billing/stripe/webhook \
+  -H "Content-Type: application/json" \
+  -H "stripe-signature: test"
 ```
 
 ### Key Metrics
@@ -29,22 +38,35 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 - Task failure rate: < 1%
 - Scheduled task execution: 100%
 
+**Billing & Subscriptions:**
+- Stripe webhook success rate: > 99%
+- Subscription upgrade success rate: > 95%
+- Payment failure rate: < 5%
+
+**Supabase Integration:**
+- Auth success rate: > 99%
+- Database query response time: < 50ms
+- Connection pool utilization: < 80%
+
 ### Logs
 
 ```bash
 # View all logs
-docker compose logs -f
+docker compose -f docker-compose.production.yml logs -f
 
 # Specific service logs
-docker compose logs -f api
-docker compose logs -f celery-worker
-docker compose logs -f celery-beat
+docker compose -f docker-compose.production.yml logs -f api
+docker compose -f docker-compose.production.yml logs -f celery_worker
+docker compose -f docker-compose.production.yml logs -f celery_beat
+docker compose -f docker-compose.production.yml logs -f frontend
 
 # Filter by time
-docker compose logs --since 1h api
+docker compose -f docker-compose.production.yml logs --since 1h api
 
 # Search logs
-docker compose logs api | grep ERROR
+docker compose -f docker-compose.production.yml logs api | grep ERROR
+docker compose -f docker-compose.production.yml logs api | grep stripe
+docker compose -f docker-compose.production.yml logs api | grep supabase
 ```
 
 ## 🔧 Maintenance
@@ -66,32 +88,61 @@ docker compose logs api | grep ERROR
 - Dependency updates
 - Performance optimization review
 
-### Database Maintenance
+### Supabase Monitoring
+
+**Database managed by Supabase - no direct maintenance required**
 
 ```bash
-# Backup database
-docker compose exec -T db pg_dump -U postgres fairedge > backup_$(date +%Y%m%d_%H%M%S).sql
+# Check Supabase connection from API container
+docker compose -f docker-compose.production.yml exec api \
+  python -c "from db import get_supabase; print(get_supabase().table('profiles').select('*').limit(1).execute())"
 
-# Vacuum and analyze
-docker compose exec db psql -U postgres -d fairedge -c "VACUUM ANALYZE;"
+# Monitor API usage in Supabase Dashboard:
+# https://supabase.com/dashboard > Settings > API > API Usage
 
-# Check table sizes
-docker compose exec db psql -U postgres -d fairedge -c "
-  SELECT schemaname,tablename,pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
-  FROM pg_tables WHERE schemaname = 'public' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;"
+# Check auth metrics in Supabase Dashboard:
+# https://supabase.com/dashboard > Authentication > Users
+
+# Review database metrics:
+# https://supabase.com/dashboard > Settings > Database > Database Health
+```
+
+### Stripe Monitoring
+
+```bash
+# Check Stripe webhook logs
+docker compose -f docker-compose.production.yml logs api | grep "Received Stripe webhook"
+
+# Monitor failed payments
+docker compose -f docker-compose.production.yml logs api | grep "payment_failed"
+
+# Check subscription events
+docker compose -f docker-compose.production.yml logs api | grep "subscription"
+
+# Stripe Dashboard monitoring:
+# https://dashboard.stripe.com/webhooks (webhook health)
+# https://dashboard.stripe.com/customers (subscription status)
+# https://dashboard.stripe.com/payments (payment success/failure rates)
 ```
 
 ### Cache Management
 
 ```bash
 # Monitor Redis memory
-docker compose exec redis redis-cli INFO memory
+docker compose -f docker-compose.production.yml exec redis redis-cli INFO memory
+
+# Check Redis configuration
+docker compose -f docker-compose.production.yml exec redis redis-cli CONFIG GET maxmemory
+docker compose -f docker-compose.production.yml exec redis redis-cli CONFIG GET maxmemory-policy
 
 # Clear cache (caution in production)
-docker compose exec redis redis-cli FLUSHALL
+docker compose -f docker-compose.production.yml exec redis redis-cli FLUSHALL
 
 # View cache keys
-docker compose exec redis redis-cli --scan --pattern "fair-edge:*"
+docker compose -f docker-compose.production.yml exec redis redis-cli --scan --pattern "fair-edge:*"
+
+# Monitor cache hit rate
+docker compose -f docker-compose.production.yml exec redis redis-cli INFO stats | grep keyspace
 ```
 
 ## 🚨 Incident Response
@@ -104,28 +155,48 @@ docker compose exec redis redis-cli --scan --pattern "fair-edge:*"
 docker stats --no-stream
 
 # Restart memory-heavy service
-docker compose restart celery-worker
+docker compose -f docker-compose.production.yml restart celery_worker
 ```
 
 **API Errors Spike:**
 ```bash
 # Check recent errors
-docker compose logs --since 10m api | grep ERROR
+docker compose -f docker-compose.production.yml logs --since 10m api | grep ERROR
 
-# Scale workers if needed
-docker compose up -d --scale celery-worker=3
+# Check for Supabase connection issues
+docker compose -f docker-compose.production.yml logs api | grep "supabase\|Supabase"
+
+# Check for Stripe webhook failures
+docker compose -f docker-compose.production.yml logs api | grep "stripe\|webhook"
 ```
 
-**Database Connection Issues:**
+**Supabase Connection Issues:**
 ```bash
-# Check connections
-docker compose exec db psql -U postgres -c "SELECT count(*) FROM pg_stat_activity;"
+# Test Supabase connection
+docker compose -f docker-compose.production.yml exec api \
+  python -c "from db import get_supabase; client = get_supabase(); print('Connection OK')"
 
-# Kill idle connections
-docker compose exec db psql -U postgres -c "
-  SELECT pg_terminate_backend(pid)
-  FROM pg_stat_activity
-  WHERE state = 'idle' AND state_change < now() - interval '10 minutes';"
+# Check environment variables
+docker compose -f docker-compose.production.yml exec api env | grep SUPABASE
+
+# Check Supabase Dashboard for service status:
+# https://status.supabase.com/
+```
+
+**Stripe Integration Issues:**
+```bash
+# Test Stripe API connection
+docker compose -f docker-compose.production.yml exec api \
+  python -c "import stripe; from core.settings import settings; stripe.api_key = settings.stripe_secret_key; print(stripe.Account.retrieve())"
+
+# Check webhook endpoint health
+curl -X POST https://your-domain.com/api/billing/stripe/webhook \
+  -H "Content-Type: application/json" \
+  -H "stripe-signature: test" \
+  -d '{"type": "test"}'
+
+# Check Stripe Dashboard webhook logs:
+# https://dashboard.stripe.com/webhooks
 ```
 
 ### Recovery Procedures
@@ -133,56 +204,100 @@ docker compose exec db psql -U postgres -c "
 **Service Recovery:**
 ```bash
 # Restart all services
-docker compose restart
+docker compose -f docker-compose.production.yml restart
 
 # Hard restart with cleanup
-docker compose down
-docker compose up -d
+docker compose -f docker-compose.production.yml down
+docker compose -f docker-compose.production.yml up -d
+
+# Individual service restart
+docker compose -f docker-compose.production.yml restart api
+docker compose -f docker-compose.production.yml restart celery_worker
 ```
 
-**Database Recovery:**
+**Supabase Recovery:**
 ```bash
-# Restore from backup
-docker compose exec -T db psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS fairedge;"
-docker compose exec -T db psql -U postgres -d postgres -c "CREATE DATABASE fairedge;"
-docker compose exec -T db psql -U postgres -d fairedge < backup_20240101_120000.sql
+# Supabase database is managed - check status at:
+# https://status.supabase.com/
+# https://supabase.com/dashboard > Settings > Database
+
+# If connection issues persist, check environment variables:
+docker compose -f docker-compose.production.yml exec api env | grep SUPABASE
+
+# Restart API to refresh connections:
+docker compose -f docker-compose.production.yml restart api
+```
+
+**Stripe Recovery:**
+```bash
+# Check Stripe API status: https://status.stripe.com/
+
+# Verify webhook configuration in Stripe Dashboard:
+# URL: https://your-domain.com/api/billing/stripe/webhook
+# Events: checkout.session.completed, customer.subscription.*
+
+# Test webhook endpoint:
+curl -X POST https://your-domain.com/api/billing/stripe/webhook \
+  -H "Content-Type: application/json" \
+  -H "stripe-signature: test"
 ```
 
 ## 📊 Performance Tuning
 
 ### API Optimization
 
-```python
+```bash
 # Check slow endpoints
-docker compose logs api | grep "duration" | sort -k5 -nr | head -20
+docker compose -f docker-compose.production.yml logs api | grep "duration" | sort -k5 -nr | head -20
+
+# Monitor API response times
+docker compose -f docker-compose.production.yml logs api | grep "GET\|POST" | grep -o "[0-9]*ms"
 ```
 
-### Database Optimization
+### Supabase Optimization
 
-```sql
--- Find slow queries
-SELECT query, mean_exec_time, calls
-FROM pg_stat_statements
-ORDER BY mean_exec_time DESC
-LIMIT 10;
+**Query Performance:**
+- Monitor slow queries in Supabase Dashboard > Settings > Database > Query Performance
+- Check API usage patterns in Supabase Dashboard > Settings > API
+- Review connection pooling in Supabase Dashboard > Settings > Database
 
--- Missing indexes
-SELECT schemaname, tablename, attname, n_distinct, correlation
-FROM pg_stats
-WHERE schemaname = 'public'
-AND n_distinct > 100
-AND correlation < 0.1
-ORDER BY n_distinct DESC;
+```bash
+# Monitor Supabase API usage
+# Check in Dashboard: https://supabase.com/dashboard > Settings > API > API Usage
+
+# Check for connection pool exhaustion
+docker compose -f docker-compose.production.yml logs api | grep "connection"
+```
+
+### Stripe Performance
+
+```bash
+# Monitor webhook processing time
+docker compose -f docker-compose.production.yml logs api | grep "webhook" | grep "duration"
+
+# Check payment processing latency
+docker compose -f docker-compose.production.yml logs api | grep "checkout" | grep "ms"
+
+# Monitor in Stripe Dashboard:
+# https://dashboard.stripe.com/webhooks (response times)
+# https://dashboard.stripe.com/payments (processing times)
 ```
 
 ### Redis Optimization
 
 ```bash
-# Memory optimization
-docker compose exec redis redis-cli CONFIG SET maxmemory-policy allkeys-lru
+# Check current configuration (already optimized in production)
+docker compose -f docker-compose.production.yml exec redis redis-cli CONFIG GET maxmemory
+docker compose -f docker-compose.production.yml exec redis redis-cli CONFIG GET maxmemory-policy
 
 # Check eviction stats
-docker compose exec redis redis-cli INFO stats | grep evict
+docker compose -f docker-compose.production.yml exec redis redis-cli INFO stats | grep evict
+
+# Monitor memory usage
+docker compose -f docker-compose.production.yml exec redis redis-cli INFO memory | grep used_memory_human
+
+# Check cache efficiency
+docker compose -f docker-compose.production.yml exec redis redis-cli INFO stats | grep keyspace_hits
 ```
 
 ## 🔐 Security
@@ -193,11 +308,17 @@ docker compose exec redis redis-cli INFO stats | grep evict
 # Check for exposed ports
 netstat -tlnp | grep LISTEN
 
-# Review user permissions
-docker compose exec db psql -U postgres -c "\du"
+# Verify only required ports are exposed (80, 443, 22)
+sudo ufw status
 
-# Check SSL certificates
+# Check SSL certificates (auto-managed by Caddy)
 echo | openssl s_client -connect your-domain.com:443 2>/dev/null | openssl x509 -noout -dates
+
+# Verify Supabase RLS policies:
+# https://supabase.com/dashboard > Authentication > Policies
+
+# Check Stripe webhook security:
+# https://dashboard.stripe.com/webhooks (verify signing secret is set)
 ```
 
 ### Updates
@@ -207,12 +328,17 @@ echo | openssl s_client -connect your-domain.com:443 2>/dev/null | openssl x509 
 sudo apt update && sudo apt upgrade
 
 # Update Docker images
-docker compose pull
-docker compose up -d
+docker compose -f docker-compose.production.yml pull
+docker compose -f docker-compose.production.yml up -d
 
-# Update dependencies
+# Update dependencies (in development)
 cd frontend && npm audit fix
 pip list --outdated
+
+# Monitor for security updates:
+# - Supabase: Automatic updates
+# - Stripe: Monitor API version changes
+# - Docker images: Use dependabot or renovation
 ```
 
 ## 📈 Scaling
@@ -220,17 +346,24 @@ pip list --outdated
 ### Horizontal Scaling
 
 ```bash
-# Scale workers
-docker compose up -d --scale celery-worker=5
+# Scale Celery workers
+docker compose -f docker-compose.production.yml up -d --scale celery_worker=5
 
-# Add read replicas (configure in docker-compose.prod.yml)
-docker compose up -d db-replica
+# Scale API instances (requires load balancer)
+docker compose -f docker-compose.production.yml up -d --scale api=3
+
+# Supabase scaling is automatic
+# For high-traffic scenarios, consider:
+# - Supabase Pro plan for better performance
+# - CDN for static assets (already using Cloudflare)
+# - Redis clustering for cache scaling
 ```
 
 ### Resource Limits
 
+**Current Production Limits (in docker-compose.production.yml):**
+
 ```yaml
-# docker-compose.prod.yml
 services:
   api:
     deploy:
@@ -239,8 +372,21 @@ services:
           cpus: '2'
           memory: 2G
         reservations:
+          cpus: '0.5'
+          memory: 512M
+  
+  celery_worker:
+    deploy:
+      resources:
+        limits:
           cpus: '1'
           memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  redis:
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
 ```
 
 ## 🆘 Emergency Contacts
@@ -248,25 +394,26 @@ services:
 - **On-call**: Check rotation schedule
 - **Escalation**: Development team lead
 - **Infrastructure**: DevOps team
-- **Database**: DBA on-call
+- **Supabase Issues**: https://status.supabase.com/ + support portal
+- **Stripe Issues**: https://status.stripe.com/ + Stripe support
+- **Domain/DNS**: Cloudflare support
 
 ## 📋 Runbooks
 
 ### Deployment Rollback
 1. Identify the last working commit
 2. `git checkout <commit-hash>`
-3. `docker compose build --no-cache`
-4. `docker compose up -d`
+3. `docker compose -f docker-compose.production.yml build --no-cache`
+4. `docker compose -f docker-compose.production.yml up -d`
 
 ### Emergency Maintenance Mode
-1. Update Caddy to serve maintenance page
-2. Stop API services
+1. Update Caddy configuration to serve maintenance page
+2. Stop API services: `docker compose -f docker-compose.production.yml stop api`
 3. Perform maintenance
-4. Restore services
+4. Restore services: `docker compose -f docker-compose.production.yml start api`
 
-### Data Recovery
-1. Stop write operations
-2. Create point-in-time backup
-3. Restore to test environment
-4. Verify data integrity
-5. Restore to production
+### Data Recovery (Supabase)
+1. **Database**: Use Supabase Dashboard > Settings > Database > Backups
+2. **Point-in-time recovery**: Available on Supabase Pro plans
+3. **Manual export**: Use Dashboard > SQL Editor for data export
+4. **Contact Supabase support** for critical data recovery scenarios

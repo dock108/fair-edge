@@ -1,6 +1,6 @@
 # Development Guide
 
-Complete guide for local development setup and best practices.
+Complete guide for local development setup and best practices for Fair-Edge SaaS platform.
 
 ## 🚀 Quick Start
 
@@ -21,16 +21,19 @@ docker compose up -d
 
 ### Prerequisites
 - Docker & Docker Compose
+- Node.js 18+ (for frontend development)
 - Git
 - Code editor (VS Code recommended)
 - API keys for The Odds API and Supabase
 
 ### Environment Configuration
 
-After running `setup-dev.sh`, edit your `.env.local`:
+The application uses **Supabase** for authentication and database, **Stripe** for payments, and Redis for caching.
+
+After running `setup-dev.sh`, edit your `environments/development.env`:
 
 ```bash
-# Supabase Configuration
+# Supabase Configuration (Required)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-key
@@ -39,80 +42,125 @@ SUPABASE_JWT_SECRET=your-jwt-secret
 # External APIs
 ODDS_API_KEY=your-odds-api-key
 
+# Stripe Configuration (Test Keys)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_BASIC_PRICE=price_...
+STRIPE_PREMIUM_PRICE=price_...
+
 # Redis (Docker internal)
 REDIS_URL=redis://redis:6379/0
+
+# Frontend Variables (auto-populated)
+VITE_API_URL=http://localhost:8000
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### Manual Setup (Without Docker)
+### Initial Supabase Setup
+
+1. Create a Supabase project at https://supabase.com
+2. Run the SQL schema (check `/alembic/versions/` for latest schema)
+3. Set up Row Level Security policies
+4. Configure authentication settings
+
+### Stripe Setup for Testing
 
 ```bash
-# Backend
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-pip install -r requirements.txt
-uvicorn app:app --reload --port 8000
+# Setup Stripe test environment
+./scripts/setup-stripe-testing.sh
 
-# Frontend (new terminal)
-cd frontend
-npm install
-npm run dev
+# Start webhook forwarding for local development
+./scripts/start-webhook-forwarding.sh
 ```
 
-## 📁 Project Structure
+## 🏗️ Architecture Overview
 
-```
-fair-edge/
-├── app.py                  # Main FastAPI application
-├── routes/                 # API endpoints
-│   ├── opportunities.py    # Betting opportunities
-│   ├── auth.py            # Authentication
-│   └── analytics.py       # Analytics endpoints
-├── services/              # Business logic
-│   ├── odds_service.py    # Odds data fetching
-│   ├── ev_calculator.py   # EV calculations
-│   └── celery_app.py      # Background tasks
-├── core/                  # Shared utilities
-│   ├── auth.py           # Auth helpers
-│   ├── cache.py          # Redis caching
-│   └── config.py         # Configuration
-├── frontend/             # React application
-│   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── pages/       # Page components
-│   │   └── hooks/       # Custom hooks
-│   └── package.json
-├── tests/               # Test suite
-├── docker/              # Docker configurations
-└── scripts/             # Helper scripts
-```
+**Current Stack:**
+- **Frontend**: React 19 + TypeScript + Vite (port 5173)
+- **Backend**: FastAPI + Supabase REST API (port 8000)
+- **Database**: Supabase (PostgreSQL + REST API + Auth)
+- **Payments**: Stripe with webhook integration
+- **Cache**: Redis for caching and Celery broker (port 6379)
+- **Background**: Celery worker and beat scheduler
+
+**Key Components:**
+- `app.py` - Main FastAPI application with modular routes
+- `routes/` - API endpoints (opportunities, auth, billing, etc.)
+- `core/auth.py` - Supabase JWT authentication
+- `routes/billing.py` - Stripe subscription management
+- `frontend/src/` - React application with TypeScript
+- `db.py` - Supabase REST API client wrapper
 
 ## 🧪 Testing
 
-### Run Tests
+### Quick Testing Commands
 
 ```bash
-# Quick smoke tests
+# Backend smoke tests (2 minutes)
 ./scripts/run_tests.sh smoke
 
-# Full test suite
-./scripts/run_tests.sh integration
+# Frontend E2E tests (Playwright)
+cd frontend && npm run test:e2e
 
-# Performance tests
-./scripts/run_tests.sh load
+# Stripe subscription testing
+./scripts/run-subscription-tests.sh
+
+# Full test suite (10 minutes)
+./scripts/run_tests.sh integration
 ```
 
-### Writing Tests
+### Playwright E2E Testing
 
-```python
-# tests/test_opportunities.py
-import pytest
-from httpx import AsyncClient
+Our E2E tests cover the complete subscription flow using pre-configured test users:
 
-@pytest.mark.asyncio
-async def test_get_opportunities(client: AsyncClient, auth_headers):
-    response = await client.get("/api/opportunities", headers=auth_headers)
-    assert response.status_code == 200
-    assert "opportunities" in response.json()
+```bash
+# Install Playwright browsers
+cd frontend && npx playwright install
+
+# Run subscription flow tests
+npm run test:e2e
+
+# Debug tests with UI
+npx playwright test --debug
+
+# Generate test report
+npx playwright show-report
+```
+
+**Test Users (pre-confirmed in Supabase):**
+- Free: `test-free@fairedge.com` / `TestPassword123!`
+- Basic: `test-basic@fairedge.com` / `TestPassword123!`  
+- Premium: `test-premium@fairedge.com` / `TestPassword123!`
+
+### Stripe Testing
+
+```bash
+# Setup Stripe test environment
+./scripts/setup-stripe-testing.sh
+
+# Start webhook forwarding
+./scripts/start-webhook-forwarding.sh
+
+# Test webhook integration
+curl -X POST http://localhost:8000/api/billing/stripe/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"type": "checkout.session.completed"}'
+
+# Use test card numbers:
+# Success: 4242 4242 4242 4242
+# Decline: 4000 0000 0000 0002
+```
+
+### Load Testing
+
+```bash
+# Performance tests with Locust
+./scripts/run_tests.sh load
+
+# Custom load test
+locust -f tests/locustfile.py --host=http://localhost:8000
 ```
 
 ## 🔄 Development Workflow
@@ -121,33 +169,57 @@ async def test_get_opportunities(client: AsyncClient, auth_headers):
 
 ```bash
 # Create feature branch
-git checkout -b feature/your-feature
+git checkout -b feature/billing-improvements
+
+# Start development environment
+docker compose up -d
+
+# Watch logs
+docker compose logs -f api
 
 # Make changes and test
-docker compose logs -f api  # Watch logs
-
-# Run tests
 ./scripts/run_tests.sh smoke
 ```
 
-### 2. Database Changes
+### 2. Supabase Schema Changes
+
+**Note:** We use Supabase directly, not Alembic migrations.
 
 ```bash
-# Generate migration
-docker compose exec api alembic revision --autogenerate -m "Add new table"
+# Option 1: Use Supabase Dashboard
+# Go to https://supabase.com/dashboard > SQL Editor
+# Run your schema changes
 
-# Apply migration
-docker compose exec api alembic upgrade head
+# Option 2: Use Supabase CLI
+supabase db reset --local
+supabase db push
 ```
 
 ### 3. Frontend Development
 
 ```bash
-# Hot reload is enabled by default
-# Make changes in frontend/src and see them instantly
+# Frontend has hot reload enabled
+# Make changes in frontend/src/ and see them instantly
+
+# Test subscription flows
+cd frontend && npm run test:e2e
 
 # Build for production
-cd frontend && npm run build
+npm run build
+```
+
+### 4. Stripe Development
+
+```bash
+# Test webhook locally
+./scripts/start-webhook-forwarding.sh
+
+# Check webhook logs
+tail -f stripe-webhook.log
+
+# Verify subscription status
+curl -H "Authorization: Bearer <token>" \
+  http://localhost:8000/api/billing/subscription-status
 ```
 
 ## 🐛 Debugging
@@ -155,99 +227,152 @@ cd frontend && npm run build
 ### Backend Debugging
 
 ```python
-# Add breakpoints in code
-import pdb; pdb.set_trace()
-
-# Or use logging
+# Add logging in code
 import logging
 logger = logging.getLogger(__name__)
 logger.info(f"Debug info: {variable}")
+
+# Check Supabase connections
+from db import get_supabase
+client = get_supabase()
+response = client.table('profiles').select('*').limit(1).execute()
 ```
 
-### Frontend Debugging
+### Authentication Debugging
 
-```typescript
-// Use React DevTools
-console.log('Debug:', data);
+```bash
+# Test JWT token validation
+curl -H "Authorization: Bearer <jwt_token>" \
+  http://localhost:8000/api/user-info
 
-// Network tab for API calls
-// React Query DevTools for cache debugging
+# Check user profile sync
+curl -H "Authorization: Bearer <jwt_token>" \
+  http://localhost:8000/api/billing/subscription-status
 ```
 
 ### Common Issues
 
-**Port already in use:**
+**Supabase connection issues:**
 ```bash
-# Find and kill process
-lsof -i :8000
-kill -9 <PID>
+# Check environment variables
+echo $SUPABASE_URL
+echo $SUPABASE_SERVICE_ROLE_KEY
+
+# Test connection
+python -c "from db import get_supabase; print(get_supabase().table('profiles').select('*').limit(1).execute())"
 ```
 
-**Database connection failed:**
+**Stripe webhook issues:**
 ```bash
-# Check if services are running
-docker compose ps
+# Check webhook secret
+echo $STRIPE_WEBHOOK_SECRET
 
-# Restart database
-docker compose restart db
+# Verify webhook endpoint
+curl -X POST http://localhost:8000/api/billing/stripe/webhook \
+  -H "stripe-signature: test"
 ```
 
-**Redis connection issues:**
+**Frontend auth issues:**
 ```bash
-# Clear Redis cache
-docker compose exec redis redis-cli FLUSHALL
+# Clear browser storage
+# Check Network tab for 401/403 errors
+# Verify Supabase configuration in browser dev tools
 ```
+
+## 📋 Quick Reference
+
+### Essential Commands
+
+```bash
+# Development lifecycle
+./scripts/setup-dev.sh              # Initial setup
+docker compose up -d                # Start all services
+docker compose logs -f api          # Watch API logs
+docker compose down                 # Stop all services
+
+# Testing
+./scripts/run_tests.sh smoke        # Quick tests (2 min)
+cd frontend && npm run test:e2e     # E2E tests
+./scripts/run-subscription-tests.sh # Stripe tests
+
+# Stripe development
+./scripts/setup-stripe-testing.sh   # Setup Stripe test env
+./scripts/start-webhook-forwarding.sh # Start webhook forwarding
+
+# Cache management
+docker compose exec redis redis-cli # Redis CLI
+docker compose exec redis redis-cli FLUSHALL # Clear cache
+
+# Container access
+docker compose exec api bash        # API container shell
+docker compose exec frontend sh     # Frontend container shell
+```
+
+### Environment Quick Setup
+
+```bash
+# Copy template
+cp environments/development.env environments/development.env.local
+
+# Edit with your values
+nano environments/development.env.local
+
+# Restart to pick up changes
+docker compose restart
+```
+
+### Useful Development URLs
+
+- **Frontend**: http://localhost:5173
+- **API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/health
+- **Supabase Dashboard**: https://supabase.com/dashboard
+- **Stripe Dashboard**: https://dashboard.stripe.com
 
 ## 🎨 Code Style
 
 ### Python (Backend)
 - Follow PEP 8
-- Use type hints
+- Use type hints for all functions
 - Format with Black: `black .`
-- Lint with Ruff: `ruff check .`
+- Use structured logging: `logger.info("Message", extra={"key": "value"})`
 
 ### TypeScript (Frontend)
 - Use strict mode
+- Implement proper interfaces for API responses
 - Follow React best practices
-- Format with Prettier: `npm run format`
-- Lint with ESLint: `npm run lint`
+- Use proper error boundaries
+
+### API Design
+- RESTful endpoints with proper HTTP methods
+- Consistent error response format
+- Comprehensive OpenAPI documentation
+- Proper authentication on all protected routes
 
 ## 📝 Commit Guidelines
 
 ```bash
 # Format: <type>(<scope>): <subject>
 
-feat(api): add new endpoint for user stats
-fix(frontend): resolve race condition in opportunity fetch
-docs(readme): update deployment instructions
-test(opportunities): add edge case coverage
-refactor(cache): optimize Redis key structure
-```
-
-## 🔗 Useful Commands
-
-```bash
-# View all logs
-docker compose logs -f
-
-# Access containers
-docker compose exec api bash
-docker compose exec frontend sh
-
-# Database shell
-docker compose exec db psql -U postgres fairedge
-
-# Redis CLI
-docker compose exec redis redis-cli
-
-# Clean everything
-docker compose down -v
+feat(billing): add subscription upgrade flow
+fix(auth): resolve token refresh race condition  
+docs(api): update billing endpoint documentation
+test(e2e): add subscription cancellation test
+refactor(auth): optimize Supabase client usage
 ```
 
 ## 📚 Additional Resources
 
-- [API Reference](API.md) - Endpoint documentation
-- [Testing Guide](TESTING.md) - Comprehensive testing docs
-- [Claude Instructions](CLAUDE.md) - AI assistant guide
-- [FastAPI Docs](https://fastapi.tiangolo.com/)
-- [React Docs](https://react.dev/)
+- [API Reference](API.md) - Complete endpoint documentation
+- [Deployment Guide](DEPLOYMENT.md) - Production deployment
+- [Operations Guide](OPERATIONS.md) - Monitoring and maintenance  
+- [Claude Instructions](CLAUDE.md) - AI assistant integration
+- [Phase 3 Testing](PHASE3_MANUAL_TESTING_CHECKLIST.md) - Manual test procedures
+
+**External Documentation:**
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [Supabase Documentation](https://supabase.com/docs)
+- [Stripe API Reference](https://stripe.com/docs/api)
+- [Playwright Testing](https://playwright.dev/)
+- [React Documentation](https://react.dev/)
