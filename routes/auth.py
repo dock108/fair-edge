@@ -292,7 +292,8 @@ async def get_user_info(
         if not user:
             return {
                 "authenticated": False,
-                "role": "anonymous",
+                "role": "free",  # Use "free" instead of "anonymous" for unauthenticated users
+                "subscription_status": "none",
                 "capabilities": {
                     "max_opportunities": 10,
                     "ev_threshold": -2.0,
