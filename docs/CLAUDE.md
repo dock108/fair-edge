@@ -12,198 +12,272 @@ docker compose up -d
 docker compose logs -f api
 
 # Run tests
-./scripts/run_tests.sh smoke        # Quick health checks
-./scripts/run_tests.sh integration  # Full test suite
-./scripts/run_tests.sh load         # Performance testing
+./scripts/run_tests.sh smoke        # Quick health checks (2 min)
+cd frontend && npm run test:e2e     # Playwright E2E tests
+./scripts/run-subscription-tests.sh # Stripe subscription tests
 
-# Database migrations
-alembic upgrade head                # Apply migrations
-alembic revision --autogenerate -m "description"  # Generate migrations
+# Stripe testing
+./scripts/setup-stripe-testing.sh   # Setup test environment
+./scripts/start-webhook-forwarding.sh # Start webhook forwarding
 ```
 
 ## Architecture Overview
 
 **Tech Stack:**
 - **Frontend**: React 19 + TypeScript + Vite + TailwindCSS (port 5173)
-- **Backend**: FastAPI + SQLAlchemy + PostgreSQL/Supabase (port 8000)
+- **Backend**: FastAPI + Supabase REST API (port 8000)
+- **Database**: Supabase (PostgreSQL + REST API + Authentication)
+- **Payments**: Stripe with webhook integration
 - **Cache**: Redis for caching and Celery broker (port 6379)
 - **Background**: Celery worker and beat scheduler
 - **Deployment**: Docker + Docker Compose
 
 **Key Components:**
-- `app.py` - Main FastAPI application (286 lines, refactored from 1,926 lines)
-- `routes/` - Modular API endpoints (opportunities, auth, analytics, etc.)
-- `services/` - Background services and business logic
-- `core/` - Utilities, configuration, and shared components
-- `frontend/src/` - React application with TypeScript
-- `tests/` - Comprehensive test suite with smoke, integration, and load tests
+- `app.py` - Main FastAPI application (modular, 311 lines)
+- `routes/` - Modular API endpoints (opportunities, auth, billing, etc.)
+- `routes/billing.py` - Stripe subscription management with webhook processing
+- `core/auth.py` - Supabase JWT authentication and authorization
+- `db.py` - Supabase REST API client wrapper
+- `frontend/src/` - React SPA with TypeScript
+- `frontend/tests/e2e/` - Playwright E2E subscription flow tests
 
 ## Environment Configuration
 
-**Environment Files (Root Level):**
-- `.env.example` - Template for setup (copy to create local configs)
-- `.env.development` - Development settings
-- `.env.production` - Production template (copy to .env.production.local)
-- `.env.local` - Local environment file (gitignored)
+**Environment Files:**
+- `environments/development.env` - Development settings template
+- `environments/production.env` - Production settings template
+- Create local copies with `.local` suffix (gitignored)
 
 **Key Variables:**
 ```bash
-# Backend
-SUPABASE_URL=your-supabase-url
+# Supabase (Required)
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-key  
 SUPABASE_JWT_SECRET=your-jwt-secret
+
+# Stripe (Required for billing)
+STRIPE_SECRET_KEY=sk_test_... (or sk_live_...)
+STRIPE_PUBLISHABLE_KEY=pk_test_... (or pk_live_...)
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_BASIC_PRICE=price_...
+STRIPE_PREMIUM_PRICE=price_...
+
+# External APIs
 ODDS_API_KEY=your-odds-api-key
-REDIS_URL=redis://localhost:6379/0
+
+# Infrastructure  
+REDIS_URL=redis://redis:6379/0
 
 # Frontend (VITE_* prefix)
 VITE_API_URL=http://localhost:8000
-VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+## Database Architecture
+
+**Important:** This application uses **Supabase REST API directly**, not SQLAlchemy or direct PostgreSQL connections.
+
+**Database Operations:**
+```python
+# Correct approach (Supabase REST API)
+from db import get_supabase
+supabase = get_supabase()
+result = supabase.table('profiles').select('*').eq('id', user_id).execute()
+
+# Incorrect approach (PostgreSQL direct)
+# from sqlalchemy import text
+# await session.execute(text("SELECT * FROM profiles WHERE id = :id"), {"id": user_id})
+```
+
+**Schema Management:**
+- Use Supabase Dashboard > SQL Editor for schema changes
+- Alembic migrations exist but are **not used** - they're legacy
+- Row Level Security (RLS) policies are configured in Supabase
+
+## Authentication System
+
+**Supabase JWT Flow:**
+1. Frontend authenticates with Supabase (`supabase.auth.signInWithPassword()`)
+2. Frontend receives JWT token from Supabase
+3. Frontend sends JWT in `Authorization: Bearer <token>` header
+4. Backend validates JWT using `core.auth.get_current_user()`
+5. Backend fetches user profile from Supabase `profiles` table
+
+**User Roles:**
+- `free` - Limited access, can see unprofitable bets only
+- `basic` - All main betting lines, unlimited EV access
+- `subscriber` - Premium features, all markets, advanced analytics  
+- `admin` - Full platform access including debug endpoints
+
+## Stripe Integration
+
+**Subscription Flow:**
+1. User clicks upgrade on `/pricing` page
+2. Frontend calls `POST /api/billing/create-checkout-session`
+3. User completes Stripe Checkout
+4. Stripe webhook `checkout.session.completed` hits `POST /api/billing/stripe/webhook`
+5. Backend updates user role in Supabase `profiles` table
+6. User automatically gains access to premium features
+
+**Webhook Events Handled:**
+- `checkout.session.completed` - Upgrade user to paid tier
+- `customer.subscription.updated` - Handle plan changes
+- `customer.subscription.deleted` - Downgrade to free tier
+- `invoice.payment_succeeded` - Confirm active subscription
+- `invoice.payment_failed` - Handle failed payments
+
+**Test Users (Pre-confirmed in Supabase):**
+- Free: `test-free@fairedge.com` / `TestPassword123!`
+- Basic: `test-basic@fairedge.com` / `TestPassword123!`
+- Premium: `test-premium@fairedge.com` / `TestPassword123!`
 
 ## Code Quality Standards
 
 **Python (Backend):**
 - Use type hints for all functions
-- Follow Black formatting
-- Implement proper error handling
-- Use structured logging (JSON in production)
+- Supabase operations instead of raw SQL
+- Proper error handling with structured logging
+- JWT authentication on all protected routes
 
 **TypeScript (Frontend):**
 - Strict mode enabled
-- Use proper interfaces for API responses
-- Implement loading states and error handling
-- Follow React best practices
+- Proper interfaces for API responses
+- Error boundaries and loading states
+- Supabase client for authentication
 
 ## Testing Strategy
 
 **Test Types:**
-- **Smoke Tests**: Basic functionality and health checks (`tests/test_smoke_ci.py`)
-- **Load Tests**: Performance testing with Locust (`tests/locustfile.py`)
-- **Integration Tests**: Full system testing with database
-- **CI Pipeline**: GitHub Actions with comprehensive testing
+- **Smoke Tests**: Basic functionality and health checks (`./scripts/run_tests.sh smoke`)
+- **E2E Tests**: Playwright subscription flow testing (`cd frontend && npm run test:e2e`)
+- **Stripe Tests**: Webhook and payment flow testing (`./scripts/run-subscription-tests.sh`)
+- **Load Tests**: Performance testing with Locust (`./scripts/run_tests.sh load`)
 
-**Test Execution:**
-```bash
-# Run before committing
-./scripts/run_tests.sh smoke
-
-# Performance validation
-./scripts/run_tests.sh load
-```
+**E2E Testing Notes:**
+- Tests use pre-confirmed Supabase users to bypass email verification
+- Tests cover complete subscription flow: login → upgrade → downgrade → cancel
+- Webhook testing requires `./scripts/start-webhook-forwarding.sh`
 
 ## Deployment Process
 
 **Development:**
 ```bash
 # Start development environment
-docker compose -f docker-compose.dev.yml up -d
+docker compose up -d
 # Access: Frontend (5173), Backend (8000), API Docs (8000/docs)
 ```
 
 **Production:**
 ```bash
 # 1. Configure environment
-cp .env.production .env.production.local
-# Edit .env.production.local with your actual values
+cp environments/production.env environments/production.env.local
+# Edit environments/production.env.local with your actual values
 
-# 2. Build and deploy
-docker compose up -d
+# 2. Deploy
+docker compose -f docker-compose.production.yml up -d
 
-# 3. Build and deploy frontend
-docker compose --profile build build frontend
-docker run --rm -v fairedge-prod_frontend_build:/target fairedge-prod-frontend sh -c "cp -r /usr/share/nginx/html/* /target/"
-docker compose restart caddy
-
-# 4. Verify deployment
+# 3. Verify deployment
 curl http://your-domain/health
 ```
 
 **Production Notes:**
-- Uses host networking for IPv6 compatibility (Hetzner, DigitalOcean, etc.)
+- Single production Docker Compose file: `docker-compose.production.yml`
 - Frontend served as static files via Caddy reverse proxy
 - API accessible at `/health`, `/api/*`, `/docs`
-- Smart refresh system: 15-min intervals when dashboard active
-- Background workers may need manual restart if migrations are enabled
+- Stripe webhooks require HTTPS endpoint configuration
 
 ## Key Services
 
-**Celery Tasks:**
-- `tasks.odds.refresh_data` - Fetch odds from external API
-- `tasks.ev.calculate_opportunities` - Calculate EV for betting opportunities
-- `tasks.cache.warm_critical_data` - Warm important cache keys
+**API Endpoints:**
+- `GET /health` - System health check
+- `GET /api/opportunities` - Betting opportunities (role-based access)
+- `POST /api/billing/create-checkout-session` - Start Stripe checkout
+- `GET /api/billing/subscription-status` - User subscription info
+- `POST /api/billing/stripe/webhook` - Stripe webhook processor
+- `GET /api/user-info` - User profile and capabilities
 
 **Background Processing:**
 - Celery worker processes background tasks
-- Celery beat schedules periodic tasks with dual scheduling:
-  - **Business Hours (7 AM - 10 PM EST)**: Every 30 minutes regardless of activity
-  - **Off Hours (11 PM - 6 AM EST)**: Every hour with activity checking
+- Celery beat schedules periodic data refresh
 - Redis serves as message broker and cache
+- Smart refresh based on business hours and activity
 
 ## Common Troubleshooting
 
-**Services won't start:**
+**Supabase connection issues:**
 ```bash
-# Check Docker status
-./scripts/deploy.sh status development
+# Test Supabase connection
+python -c "from db import get_supabase; print(get_supabase().table('profiles').select('*').limit(1).execute())"
 
-# View logs
-./scripts/deploy.sh logs development
+# Check environment variables
+echo $SUPABASE_URL
+echo $SUPABASE_SERVICE_ROLE_KEY
 ```
 
-**Database issues:**
+**Authentication issues:**
 ```bash
-# Check connection
-python -c "import asyncpg; print('DB connection test')"
+# Test JWT validation
+curl -H "Authorization: Bearer <jwt_token>" http://localhost:8000/api/user-info
 
-# Apply migrations
-alembic upgrade head
+# Check user profile sync
+curl -H "Authorization: Bearer <jwt_token>" http://localhost:8000/api/billing/subscription-status
 ```
 
-**Redis issues:**
+**Stripe webhook issues:**
 ```bash
-# Test connectivity
-redis-cli -u ${REDIS_URL} ping
+# Start webhook forwarding for local development
+./scripts/start-webhook-forwarding.sh
 
-# Clear cache if needed
-redis-cli -u ${REDIS_URL} FLUSHALL
+# Test webhook endpoint
+curl -X POST http://localhost:8000/api/billing/stripe/webhook \
+  -H "Content-Type: application/json" \
+  -H "stripe-signature: test" \
+  -d '{"type": "checkout.session.completed"}'
 ```
 
-**Celery issues:**
+**Billing route errors:**
 ```bash
-# Check worker status
-celery -A services.celery_app.celery_app inspect active
+# Check if billing routes are loaded
+curl http://localhost:8000/api/billing/subscription-status
 
-# Check scheduled tasks
-celery -A services.celery_app.celery_app inspect scheduled
+# Common issue: get_db() errors
+# Solution: Ensure db.py provides Supabase session wrapper, not SQLAlchemy
 ```
 
 ## Recent Major Changes
 
-**Sprint 5 Completed (Dec 2024):**
-- ✅ Refactored monolithic app.py (1,926 → 286 lines)
-- ✅ Fixed CI pipeline with comprehensive testing
-- ✅ Named Celery tasks explicitly for observability
-- ✅ Fixed upgrade page rendering with proper React component
-- ✅ Added loading state UI with skeleton/shimmer indicators
-- ✅ Added UI/config polishes (favicon, meta tags, etc.)
-- ✅ Streamlined documentation structure
+**Current Status (January 2025):**
+- ✅ Migrated from PostgreSQL direct connections to Supabase REST API only
+- ✅ Implemented comprehensive Stripe subscription billing
+- ✅ Added Playwright E2E testing for subscription flows
+- ✅ Created pre-confirmed test users to bypass email verification issues
+- ✅ Modular FastAPI architecture with proper separation of concerns
+- ✅ Production-ready Docker deployment with Caddy reverse proxy
 
-**Current Status:**
-- Production-ready with 90%+ test coverage
-- Modular architecture with separation of concerns
-- Comprehensive CI/CD pipeline
-- Professional UI/UX with loading states
-- Proper error handling and monitoring
-- **Aggressive refresh schedule** for business hours data updates
+**Known Issues Being Addressed:**
+- Billing routes expect SQLAlchemy AsyncSession but get Supabase session wrapper
+- Need to refactor billing operations to use direct Supabase table operations
+- Some legacy Alembic migrations exist but are not used
 
-**Data Refresh Strategy:**
-- **Business Hours (7 AM - 10 PM EST)**: Aggressive 30-minute refresh cycle
-  - Runs every 30 minutes regardless of user activity
-  - Ensures fresh data during peak trading hours
-  - Uses `skip_activity_check=True` to bypass activity monitoring
-- **Off Hours (11 PM - 6 AM EST)**: Smart hourly refresh
-  - Runs once per hour but only if dashboard is active
-  - Conserves API calls during low-activity periods
-  - Uses `skip_activity_check=False` for activity-based refresh
-- **Manual/Force Refresh**: Available anytime via API or admin interface
+**Architecture Evolution:**
+- **Before**: FastAPI + SQLAlchemy + PostgreSQL
+- **Now**: FastAPI + Supabase REST API + Stripe
+- **Database**: Supabase handles auth, storage, and real-time features
+- **Payments**: Stripe handles subscription billing with webhook integration
+- **Testing**: Playwright covers full subscription user journeys
+
+**Data Access Pattern:**
+```python
+# Current correct pattern
+from db import get_supabase
+supabase = get_supabase()
+user_data = supabase.table('profiles').select('role, subscription_status').eq('email', email).execute()
+
+# Legacy pattern (don't use)
+# from sqlalchemy import text
+# result = await session.execute(text("SELECT role FROM profiles WHERE email = :email"))
+```
+
+This architecture provides a modern, scalable SaaS platform with integrated authentication, payments, and comprehensive testing.

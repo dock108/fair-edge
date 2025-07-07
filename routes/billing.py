@@ -126,8 +126,6 @@ ERROR HANDLING:
 - Database transaction safety with proper rollback handling
 """
 from fastapi import APIRouter, Request, HTTPException, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from pydantic import BaseModel
 import logging
 import stripe
@@ -136,7 +134,7 @@ from core.auth import get_current_user, UserCtx
 from core.stripe import create_checkout_session, construct_webhook_event
 from core.settings import settings
 from core.rate_limit import limiter
-from db import get_db
+from db import get_supabase
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 logger = logging.getLogger(__name__)
