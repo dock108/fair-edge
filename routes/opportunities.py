@@ -3,15 +3,18 @@ Opportunities API Routes
 Handles betting opportunities, EV analysis, and related data endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Header
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Header, Query
 from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
 import hashlib
+import re
+from pydantic import BaseModel, Field, validator
 
 # Import authentication and rate limiting
 from core.auth import require_role, get_user_or_none, UserCtx
 from core.rate_limit import limiter
+from core.exceptions import ValidationError, DataFetchError, ExceptionHandler
 
 # Import services
 from services.redis_cache import get_ev_data
@@ -24,15 +27,78 @@ from services.opportunity_formatter import format_opportunities_for_frontend
 router = APIRouter(tags=["opportunities"])
 logger = logging.getLogger(__name__)
 
+# Pydantic models for input validation
+class OpportunityQueryParams(BaseModel):
+    """
+    Comprehensive input validation for opportunities endpoint query parameters
+    Prevents DoS attacks and ensures data integrity
+    """
+    search: Optional[str] = Field(None, max_length=100, description="Search term for teams or games")
+    limit: Optional[int] = Field(None, ge=1, le=1000, description="Maximum number of opportunities to return")
+    min_ev: Optional[float] = Field(None, ge=-100.0, le=100.0, description="Minimum expected value percentage")
+    market_type: Optional[str] = Field(None, max_length=50, description="Market type filter")
+    
+    @validator('search')
+    def validate_search(cls, v):
+        if v is not None:
+            # Remove potentially dangerous characters
+            v = v.strip()
+            if len(v) == 0:
+                return None
+            # Allow only alphanumeric, spaces, hyphens, and basic punctuation
+            if not re.match(r'^[a-zA-Z0-9\s\-\.\(\)]+$', v):
+                raise ValueError('Search term contains invalid characters')
+        return v
+    
+    @validator('market_type')
+    def validate_market_type(cls, v):
+        if v is not None:
+            v = v.strip().lower()
+            # Predefined list of valid market types
+            valid_markets = {
+                'moneyline', 'spread', 'total', 'props', 'futures', 
+                'quarters', 'halves', 'all', 'main_lines'
+            }
+            if v not in valid_markets:
+                raise ValueError(f'Invalid market type. Must be one of: {", ".join(valid_markets)}')
+        return v
+
+class AdminQueryParams(BaseModel):
+    """Input validation for admin endpoints"""
+    page: int = Field(1, ge=1, le=1000, description="Page number for pagination")
+    limit: int = Field(50, ge=1, le=100, description="Items per page")
+    search: Optional[str] = Field(None, max_length=100, description="Search by email")
+    role: Optional[str] = Field(None, max_length=20, description="Filter by role")
+    
+    @validator('search')
+    def validate_admin_search(cls, v):
+        if v is not None:
+            v = v.strip()
+            if len(v) == 0:
+                return None
+            # For email search, allow email-like patterns
+            if not re.match(r'^[a-zA-Z0-9\s@\.\-_]+$', v):
+                raise ValueError('Search term contains invalid characters')
+        return v
+    
+    @validator('role')
+    def validate_role(cls, v):
+        if v is not None:
+            v = v.strip().lower()
+            valid_roles = {'admin', 'subscriber', 'premium', 'basic', 'free'}
+            if v not in valid_roles:
+                raise ValueError(f'Invalid role. Must be one of: {", ".join(valid_roles)}')
+        return v
+
 @router.get("/api/opportunities")
 @limiter.limit("60/minute")
 async def get_opportunities(
     request: Request,
     background_tasks: BackgroundTasks,
-    search: Optional[str] = None,
-    limit: Optional[int] = None,
-    min_ev: Optional[float] = None,
-    market_type: Optional[str] = None,
+    search: Optional[str] = Query(None, max_length=100, description="Search term for teams or games"),
+    limit: Optional[int] = Query(None, ge=1, le=1000, description="Maximum number of opportunities to return"),
+    min_ev: Optional[float] = Query(None, ge=-100.0, le=100.0, description="Minimum expected value percentage"),
+    market_type: Optional[str] = Query(None, max_length=50, description="Market type filter"),
     user: Optional[UserCtx] = Depends(get_user_or_none)
 ):
     """
@@ -50,6 +116,31 @@ async def get_opportunities(
     - Admins: Complete access with debug information
     """
     try:
+        # Input validation and sanitization
+        if search is not None:
+            search = search.strip()
+            if len(search) == 0:
+                search = None
+            elif not re.match(r'^[a-zA-Z0-9\s\-\.\(\)]+$', search):
+                raise ValidationError(
+                    "Search term contains invalid characters. Only letters, numbers, spaces, hyphens, dots, and parentheses are allowed.",
+                    field="search",
+                    details={"provided_value": search}
+                )
+        
+        if market_type is not None:
+            market_type = market_type.strip().lower()
+            valid_markets = {
+                'moneyline', 'spread', 'total', 'props', 'futures', 
+                'quarters', 'halves', 'all', 'main_lines'
+            }
+            if market_type not in valid_markets:
+                raise ValidationError(
+                    f"Invalid market type. Must be one of: {', '.join(valid_markets)}",
+                    field="market_type",
+                    details={"provided_value": market_type, "valid_options": list(valid_markets)}
+                )
+        
         # Generate session ID for activity tracking
         user_id = user.id if user else None
         client_ip = request.client.host if request.client else "unknown"
@@ -159,12 +250,15 @@ async def get_opportunities(
         
         return response_data
         
+    except ValidationError as e:
+        logger.warning(f"Validation error in get_opportunities: {e.message}")
+        raise ExceptionHandler.handle_validation_error(e, "get_opportunities")
+    except DataFetchError as e:
+        logger.error(f"Data fetch error in get_opportunities: {e.message}")
+        return ExceptionHandler.handle_data_fetch_error(e, "get_opportunities", user)
     except Exception as e:
-        logger.error(f"Error getting opportunities: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail="Error retrieving opportunities. Please try again later."
-        )
+        logger.error(f"Unexpected error in get_opportunities: {e}", exc_info=True)
+        raise ExceptionHandler.handle_generic_error(e, "get_opportunities", 500)
 
 @router.post("/api/opportunities/refresh", tags=["opportunities"])
 @limiter.limit("5/minute")

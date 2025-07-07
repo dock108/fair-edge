@@ -7,12 +7,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional, Dict, Any
 from datetime import datetime
 import logging
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
+import re
 
 # Import authentication dependencies
 from core.auth import require_role, UserCtx
 from core.session import require_csrf_validation
 from core.rate_limit import limiter
+from core.stripe import cancel_customer_subscriptions
+from core.exceptions import ValidationError, DataFetchError, ExceptionHandler
 from db import get_supabase
 from services.redis_cache import get_ev_data, get_last_update
 
@@ -22,8 +25,35 @@ logger = logging.getLogger(__name__)
 
 # Pydantic models for request/response
 class UserRoleUpdate(BaseModel):
-    role: str
-    reason: Optional[str] = None
+    role: str = Field(..., regex=r'^(admin|subscriber|premium|basic|free)$')
+    reason: Optional[str] = Field(None, max_length=500)
+
+class AdminQueryParams(BaseModel):
+    """Input validation for admin list users endpoint"""
+    page: int = Field(1, ge=1, le=1000, description="Page number for pagination")
+    limit: int = Field(50, ge=1, le=100, description="Items per page")
+    search: Optional[str] = Field(None, max_length=100, description="Search by email")
+    role: Optional[str] = Field(None, max_length=20, description="Filter by role")
+    
+    @validator('search')
+    def validate_search(cls, v):
+        if v is not None:
+            v = v.strip()
+            if len(v) == 0:
+                return None
+            # For email search, allow email-like patterns
+            if not re.match(r'^[a-zA-Z0-9\s@\.\-_]+$', v):
+                raise ValueError('Search term contains invalid characters')
+        return v
+    
+    @validator('role')
+    def validate_role(cls, v):
+        if v is not None:
+            v = v.strip().lower()
+            valid_roles = {'admin', 'subscriber', 'premium', 'basic', 'free'}
+            if v not in valid_roles:
+                raise ValueError(f'Invalid role. Must be one of: {", ".join(valid_roles)}')
+        return v
 
 class UserResponse(BaseModel):
     id: str
@@ -43,10 +73,10 @@ class SystemStatsResponse(BaseModel):
 @limiter.limit("30/minute")
 async def list_users(
     request: Request,
-    page: int = Query(1, ge=1, description="Page number"),
+    page: int = Query(1, ge=1, le=1000, description="Page number"),
     limit: int = Query(50, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Search by email"),
-    role: Optional[str] = Query(None, description="Filter by role"),
+    search: Optional[str] = Query(None, max_length=100, description="Search by email"),
+    role: Optional[str] = Query(None, max_length=20, description="Filter by role"),
     admin_user: UserCtx = Depends(require_role("admin"))
 ):
     """
@@ -54,6 +84,28 @@ async def list_users(
     Admin only endpoint for user management
     """
     try:
+        # Input validation and sanitization
+        if search is not None:
+            search = search.strip()
+            if len(search) == 0:
+                search = None
+            elif not re.match(r'^[a-zA-Z0-9\s@\.\-_]+$', search):
+                raise ValidationError(
+                    "Search term contains invalid characters",
+                    field="search",
+                    details={"provided_value": search}
+                )
+        
+        if role is not None:
+            role = role.strip().lower()
+            valid_roles = {'admin', 'subscriber', 'premium', 'basic', 'free'}
+            if role not in valid_roles:
+                raise ValidationError(
+                    f"Invalid role. Must be one of: {', '.join(valid_roles)}",
+                    field="role",
+                    details={"provided_value": role, "valid_options": list(valid_roles)}
+                )
+        
         # Calculate offset for pagination
         offset = (page - 1) * limit
         
@@ -112,9 +164,12 @@ async def list_users(
             "requested_by": admin_user.email
         }
         
+    except ValidationError as e:
+        logger.warning(f"Validation error in list_users: {e.message}")
+        raise ExceptionHandler.handle_validation_error(e, "list_users")
     except Exception as e:
-        logger.error(f"Error listing users: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve users")
+        logger.error(f"Unexpected error in list_users: {e}", exc_info=True)
+        raise ExceptionHandler.handle_generic_error(e, "list_users", 500)
 
 @router.post("/users/{user_id}/role")
 @limiter.limit("10/minute")
@@ -186,16 +241,14 @@ async def update_user_role(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating user role: {e}")
-        await db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to update user role")
+        logger.error(f"Unexpected error in update_user_role: {e}", exc_info=True)
+        raise ExceptionHandler.handle_generic_error(e, "update_user_role", 500)
 
 @router.get("/stats", response_model=Dict[str, Any])
 @limiter.limit("60/minute")
 async def get_system_stats(
     request: Request,
-    admin_user: UserCtx = Depends(require_role("admin")),
-    db: AsyncSession = Depends(get_db)
+    admin_user: UserCtx = Depends(require_role("admin"))
 ):
     """
     Get comprehensive system statistics and health metrics
@@ -206,7 +259,7 @@ async def get_system_stats(
         cache_stats = await get_cache_statistics()
         
         # Database statistics
-        database_stats = await get_database_statistics(db)
+        database_stats = await get_database_statistics()
         
         # Application statistics
         app_stats = await get_application_statistics()
@@ -224,8 +277,8 @@ async def get_system_stats(
         }
         
     except Exception as e:
-        logger.error(f"Error getting system stats: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve system statistics")
+        logger.error(f"Unexpected error in get_system_stats: {e}", exc_info=True)
+        raise ExceptionHandler.handle_generic_error(e, "get_system_stats", 500)
 
 async def get_cache_statistics() -> Dict[str, Any]:
     """Get Redis cache statistics"""
@@ -265,35 +318,61 @@ async def get_cache_statistics() -> Dict[str, Any]:
         logger.error(f"Error getting cache stats: {e}")
         return {"error": "Cache statistics unavailable"}
 
-async def get_database_statistics(db: AsyncSession) -> Dict[str, Any]:
+async def get_database_statistics() -> Dict[str, Any]:
     """Get database statistics"""
     try:
-        # User statistics
-        user_stats = await db.execute(text("""
-            SELECT 
-                COUNT(*) as total_users,
-                COUNT(CASE WHEN role = 'admin' THEN 1 END) as admin_users,
-                COUNT(CASE WHEN role = 'subscriber' THEN 1 END) as subscriber_users,
-                COUNT(CASE WHEN role = 'free' THEN 1 END) as free_users,
-                COUNT(CASE WHEN subscription_status = 'active' THEN 1 END) as active_subscriptions,
-                COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as new_users_7d,
-                COUNT(CASE WHEN created_at > NOW() - INTERVAL '30 days' THEN 1 END) as new_users_30d
-            FROM profiles
-        """))
+        # User statistics using Supabase REST API
+        supabase = get_supabase()
         
-        user_data = user_stats.fetchone()
+        # Get total user count and role distribution
+        profiles_result = supabase.table('profiles').select('role, subscription_status, created_at').execute()
+        
+        if not profiles_result.data:
+            return {"error": "No user data available"}
+        
+        profiles = profiles_result.data
+        total_users = len(profiles)
+        
+        # Count users by role
+        admin_users = len([p for p in profiles if p.get('role') == 'admin'])
+        subscriber_users = len([p for p in profiles if p.get('role') == 'subscriber'])
+        free_users = len([p for p in profiles if p.get('role') == 'free'])
+        
+        # Count active subscriptions
+        active_subscriptions = len([p for p in profiles if p.get('subscription_status') == 'active'])
+        
+        # Count new users (7 days and 30 days)
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        week_ago = now - timedelta(days=7)
+        month_ago = now - timedelta(days=30)
+        
+        new_users_7d = 0
+        new_users_30d = 0
+        
+        for profile in profiles:
+            created_at_str = profile.get('created_at')
+            if created_at_str:
+                try:
+                    created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                    if created_at > week_ago:
+                        new_users_7d += 1
+                    if created_at > month_ago:
+                        new_users_30d += 1
+                except ValueError:
+                    continue
         
         return {
-            "total_users": user_data[0],
+            "total_users": total_users,
             "users_by_role": {
-                "admin": user_data[1],
-                "subscriber": user_data[2], 
-                "free": user_data[3]
+                "admin": admin_users,
+                "subscriber": subscriber_users, 
+                "free": free_users
             },
-            "active_subscriptions": user_data[4],
+            "active_subscriptions": active_subscriptions,
             "new_users": {
-                "last_7_days": user_data[5],
-                "last_30_days": user_data[6]
+                "last_7_days": new_users_7d,
+                "last_30_days": new_users_30d
             }
         }
         
@@ -360,8 +439,7 @@ async def delete_user(
     user_id: str,
     request: Request,
     admin_user: UserCtx = Depends(require_role("admin")),
-    _csrf_valid: bool = Depends(require_csrf_validation),
-    db: AsyncSession = Depends(get_db)
+    _csrf_valid: bool = Depends(require_csrf_validation)
 ):
     """
     Delete a user account (GDPR/CCPA compliance)
@@ -375,28 +453,34 @@ async def delete_user(
                 detail="Cannot delete your own admin account"
             )
         
-        # Check if user exists
-        user_check = await db.execute(
-            text("SELECT email, role FROM profiles WHERE id = :user_id"),
-            {"user_id": user_id}
-        )
-        user_data = user_check.fetchone()
+        # Check if user exists using Supabase
+        supabase = get_supabase()
+        user_result = supabase.table('profiles').select('email, role, stripe_customer_id').eq('id', user_id).execute()
         
-        if not user_data:
+        if not user_result.data or len(user_result.data) == 0:
             raise HTTPException(status_code=404, detail="User not found")
         
-        user_email, user_role = user_data
+        user_data = user_result.data[0]
+        user_email = user_data.get('email')
+        user_role = user_data.get('role')
+        stripe_customer_id = user_data.get('stripe_customer_id')
         
-        # Delete from profiles table
-        await db.execute(
-            text("DELETE FROM profiles WHERE id = :user_id"),
-            {"user_id": user_id}
-        )
+        # Cancel Stripe subscription if exists
+        if stripe_customer_id:
+            try:
+                await cancel_customer_subscriptions(stripe_customer_id)
+                logger.info(f"Cancelled Stripe subscriptions for user {user_email}")
+            except Exception as e:
+                logger.error(f"Failed to cancel Stripe subscriptions for user {user_email}: {e}")
+                # Continue with user deletion even if Stripe cleanup fails
         
-        # TODO: Cancel Stripe subscription if exists
-        # TODO: Delete from Supabase auth.users if needed
+        # Delete from profiles table using Supabase
+        delete_result = supabase.table('profiles').delete().eq('id', user_id).execute()
         
-        await db.commit()
+        if not delete_result.data:
+            raise HTTPException(status_code=500, detail="Failed to delete user from profiles")
+        
+        # TODO: Delete from Supabase auth.users if needed (requires admin API)
         
         logger.warning(
             f"Admin {admin_user.email} deleted user account: {user_email} (role: {user_role})"
@@ -413,6 +497,5 @@ async def delete_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting user: {e}")
-        await db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to delete user account") 
+        logger.error(f"Unexpected error in delete_user: {e}", exc_info=True)
+        raise ExceptionHandler.handle_generic_error(e, "delete_user", 500) 

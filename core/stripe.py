@@ -154,4 +154,47 @@ def cancel_subscription(subscription_id: str) -> bool:
         return True
     except stripe.error.StripeError as e:
         logger.error(f"Failed to cancel subscription {subscription_id}: {e}")
+        return False
+
+
+async def cancel_customer_subscriptions(customer_id: str) -> bool:
+    """
+    Cancel all active subscriptions for a Stripe customer.
+    Used during user deletion to ensure complete cleanup.
+    
+    Args:
+        customer_id: Stripe customer ID
+        
+    Returns:
+        bool: True if all subscriptions were successfully cancelled
+    """
+    if not customer_id:
+        return True  # No customer ID means no subscriptions to cancel
+        
+    try:
+        _check_stripe_config()
+        
+        # Get all active subscriptions for the customer
+        subscriptions = get_customer_subscriptions(customer_id)
+        
+        if not subscriptions:
+            logger.info(f"No active subscriptions found for customer {customer_id}")
+            return True
+        
+        # Cancel all active subscriptions
+        cancelled_count = 0
+        for subscription in subscriptions:
+            if cancel_subscription(subscription.id):
+                cancelled_count += 1
+        
+        success = cancelled_count == len(subscriptions)
+        if success:
+            logger.info(f"Successfully cancelled {cancelled_count} subscriptions for customer {customer_id}")
+        else:
+            logger.warning(f"Only cancelled {cancelled_count} of {len(subscriptions)} subscriptions for customer {customer_id}")
+        
+        return success
+        
+    except Exception as e:
+        logger.error(f"Failed to cancel subscriptions for customer {customer_id}: {e}")
         return False 

@@ -86,35 +86,169 @@ from routes import opportunities, system, debug, dashboard_admin, auth, billing
 # Temporarily disabled imports for startup
 # from routes import analytics, admin, realtime
 
-# Simple service functions for startup
+# Service initialization functions
 async def initialize_redis():
-    logger.info("Redis initialization (simple mode)")
-    return True
+    """Initialize Redis connection and verify connectivity"""
+    try:
+        # Import Redis utilities
+        from common.redis_utils import get_redis
+        
+        # Test Redis connection
+        redis_client = get_redis()
+        await redis_client.ping()
+        logger.info("✅ Redis initialized and connected successfully")
+        return True
+    except ImportError:
+        logger.warning("Redis utilities not available, using simple mode")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Redis initialization failed: {e}")
+        logger.warning("Continuing without Redis cache - performance may be degraded")
+        return False
 
 async def close_redis():
-    logger.info("Redis cleanup (simple mode)")
-    return True
+    """Clean up Redis connections"""
+    try:
+        from common.redis_utils import get_redis
+        redis_client = get_redis()
+        await redis_client.close()
+        logger.info("Redis connections closed")
+        return True
+    except Exception as e:
+        logger.error(f"Error closing Redis connections: {e}")
+        return False
 
 def initialize_celery():
-    logger.info("Celery initialization (simple mode)")
-    return True
+    """Initialize Celery background task processing"""
+    try:
+        from services.celery_app import celery_app
+        
+        # Test Celery connectivity
+        celery_status = celery_app.control.inspect().stats()
+        if celery_status:
+            logger.info("✅ Celery initialized and workers available")
+        else:
+            logger.warning("⚠️ Celery initialized but no workers detected")
+        return True
+    except ImportError:
+        logger.warning("Celery not available, background tasks disabled")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Celery initialization failed: {e}")
+        logger.warning("Continuing without background tasks")
+        return False
 
-# Simple database functions
+# Database initialization functions
 async def initialize_database():
-    logger.info("Database initialization (simple mode)")
-    return True
+    """Initialize database connection and verify Supabase connectivity"""
+    try:
+        from db import check_supabase_connection, get_database_status
+        
+        # Check Supabase connection
+        is_connected = await check_supabase_connection()
+        if is_connected:
+            logger.info("✅ Database (Supabase) initialized and connected successfully")
+            
+            # Get detailed status for logging
+            db_status = await get_database_status()
+            logger.info(f"Database status: {db_status['overall_status']}")
+            return True
+        else:
+            logger.error("❌ Database connection failed")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {e}")
+        return False
 
 async def close_database():
-    logger.info("Database cleanup (simple mode)")
+    """Clean up database connections (Supabase REST API - no persistent connections)"""
+    logger.info("Database cleanup completed (Supabase REST API)")
     return True
 
 async def run_startup_migrations():
-    logger.info("Migrations check (simple mode)")
-    return True
+    """Check migration status and validate database schema"""
+    try:
+        # For Supabase, we don't run migrations via the app
+        # But we can validate that essential tables exist
+        from db import get_supabase
+        
+        supabase = get_supabase()
+        
+        # Test critical tables exist by attempting to read (with limit 0)
+        essential_tables = ['profiles', 'opportunities']
+        
+        for table_name in essential_tables:
+            try:
+                result = supabase.table(table_name).select('*').limit(0).execute()
+                logger.debug(f"✅ Table '{table_name}' accessible")
+            except Exception as e:
+                logger.error(f"❌ Table '{table_name}' not accessible: {e}")
+                return False
+        
+        logger.info("✅ Database schema validation completed successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Database schema validation failed: {e}")
+        return False
 
 def validate_environment():
-    logger.info("Environment validation (simple mode)")
-    return True
+    """Validate critical environment configuration for production readiness"""
+    try:
+        missing_vars = []
+        warnings = []
+        
+        # Critical environment variables
+        critical_vars = {
+            'SUPABASE_URL': settings.supabase_url,
+            'SUPABASE_SERVICE_ROLE_KEY': settings.supabase_service_role_key,
+            'SUPABASE_JWT_SECRET': settings.supabase_jwt_secret,
+            'ODDS_API_KEY': settings.odds_api_key,
+        }
+        
+        for var_name, value in critical_vars.items():
+            if not value:
+                missing_vars.append(var_name)
+        
+        # Optional but recommended variables
+        optional_vars = {
+            'REDIS_URL': settings.redis_url,
+            'STRIPE_SECRET_KEY': settings.stripe_secret_key,
+        }
+        
+        for var_name, value in optional_vars.items():
+            if not value:
+                warnings.append(f"{var_name} not configured - related features disabled")
+        
+        # Production-specific checks
+        if settings.environment == "production":
+            if settings.admin_secret == "CHANGE_ME":
+                missing_vars.append("ADMIN_SECRET (must be changed from default)")
+            
+            if not settings.cors_origins_list or "*" in settings.cors_origins_list:
+                warnings.append("CORS origins not properly restricted for production")
+        
+        # Report results
+        if missing_vars:
+            error_msg = f"Missing required environment variables: {', '.join(missing_vars)}"
+            logger.error(f"❌ {error_msg}")
+            if settings.environment == "production":
+                raise ValueError(error_msg)
+            else:
+                logger.warning("Continuing in development mode with missing variables")
+        
+        for warning in warnings:
+            logger.warning(f"⚠️ {warning}")
+        
+        if not missing_vars:
+            logger.info(f"✅ Environment validation passed for {settings.environment} environment")
+        
+        return len(missing_vars) == 0
+        
+    except Exception as e:
+        logger.error(f"❌ Environment validation failed: {e}")
+        return False
 
 # Configure logging
 setup_logging()
@@ -175,29 +309,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error during shutdown: {e}")
 
-def validate_environment():
-    """
-    Validate critical environment configuration
-    Fail fast if production requirements are not met
-    """
-    if settings.environment == "production":
-        required_vars = [
-            "DB_CONNECTION_STRING",  # Using existing env var name
-            "REDIS_URL", 
-            "SUPABASE_JWT_SECRET",   # Using existing env var name
-            "SUPABASE_URL",
-            "SUPABASE_SERVICE_ROLE_KEY"
-        ]
-        
-        missing_vars = [var for var in required_vars if not os.getenv(var)]
-        if missing_vars:
-            raise ValueError(f"Missing required environment variables for production: {missing_vars}")
-        
-        # Check for unsafe defaults
-        if os.getenv("SUPABASE_JWT_SECRET") == "your-secret-key-here":
-            raise ValueError("SUPABASE_JWT_SECRET must be changed from default value in production")
-    
-    logger.info(f"Environment validation passed for {settings.environment} environment")
+# Legacy validation function - now replaced by enhanced version above
+# Kept for backward compatibility if referenced elsewhere
 
 def create_app() -> FastAPI:
     """
