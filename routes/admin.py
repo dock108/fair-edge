@@ -4,8 +4,6 @@ Provides administrative functionality for user management and system monitoring
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from typing import Optional, Dict, Any
 from datetime import datetime
 import logging
@@ -15,7 +13,7 @@ from pydantic import BaseModel
 from core.auth import require_role, UserCtx
 from core.session import require_csrf_validation
 from core.rate_limit import limiter
-from db import get_db
+from db import get_supabase
 from services.redis_cache import get_ev_data, get_last_update
 
 # Initialize router
@@ -49,69 +47,50 @@ async def list_users(
     limit: int = Query(50, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(None, description="Search by email"),
     role: Optional[str] = Query(None, description="Filter by role"),
-    admin_user: UserCtx = Depends(require_role("admin")),
-    db: AsyncSession = Depends(get_db)
+    admin_user: UserCtx = Depends(require_role("admin"))
 ):
     """
     List paginated users with filtering and search capabilities
     Admin only endpoint for user management
     """
     try:
-        # Calculate offset
+        # Calculate offset for pagination
         offset = (page - 1) * limit
         
-        # Build base query
-        base_query = """
-        SELECT 
-            p.id,
-            p.email,
-            p.role,
-            p.subscription_status,
-            p.created_at,
-            au.last_sign_in_at
-        FROM profiles p
-        LEFT JOIN auth.users au ON p.id::text = au.id::text
-        WHERE 1=1
-        """
+        # Build Supabase query
+        supabase = get_supabase()
+        query = supabase.table('profiles').select('id, email, role, subscription_status, created_at')
         
-        count_query = "SELECT COUNT(*) FROM profiles p WHERE 1=1"
-        params = {}
-        
-        # Apply search filter
+        # Apply filters
         if search:
-            search_condition = " AND p.email ILIKE :search"
-            base_query += search_condition
-            count_query += search_condition
-            params["search"] = f"%{search}%"
+            query = query.ilike('email', f'%{search}%')
         
-        # Apply role filter
         if role:
-            role_condition = " AND p.role = :role"
-            base_query += role_condition
-            count_query += role_condition
-            params["role"] = role
+            query = query.eq('role', role)
         
-        # Add ordering and pagination
-        base_query += " ORDER BY p.created_at DESC LIMIT :limit OFFSET :offset"
-        params.update({"limit": limit, "offset": offset})
+        # Get total count for pagination
+        count_query = supabase.table('profiles').select('id', count='exact')
+        if search:
+            count_query = count_query.ilike('email', f'%{search}%')
+        if role:
+            count_query = count_query.eq('role', role)
         
-        # Execute queries
-        users_result = await db.execute(text(base_query), params)
-        count_result = await db.execute(text(count_query), {k: v for k, v in params.items() if k not in ['limit', 'offset']})
+        count_result = count_query.execute()
+        total_count = count_result.count
         
-        users = users_result.fetchall()
-        total_count = count_result.scalar()
+        # Execute main query with pagination
+        result = query.order('created_at', desc=True).range(offset, offset + limit - 1).execute()
         
         # Format response
         users_data = []
-        for user in users:
+        for user in result.data:
             users_data.append({
-                "id": str(user[0]),
-                "email": user[1],
-                "role": user[2],
-                "subscription_status": user[3],
-                "created_at": user[4].isoformat() if user[4] else None,
-                "last_sign_in_at": user[5].isoformat() if user[5] else None
+                "id": str(user.get('id')),
+                "email": user.get('email'),
+                "role": user.get('role'),
+                "subscription_status": user.get('subscription_status'),
+                "created_at": user.get('created_at'),
+                "last_sign_in_at": None  # Note: auth.users data not directly accessible via REST API
             })
         
         total_pages = (total_count + limit - 1) // limit
@@ -144,8 +123,7 @@ async def update_user_role(
     role_update: UserRoleUpdate,
     request: Request,
     admin_user: UserCtx = Depends(require_role("admin")),
-    _csrf_valid: bool = Depends(require_csrf_validation),
-    db: AsyncSession = Depends(get_db)
+    _csrf_valid: bool = Depends(require_csrf_validation)
 ):
     """
     Update a user's role (admin, subscriber, free)
@@ -167,24 +145,25 @@ async def update_user_role(
                 detail="Cannot change your own admin role"
             )
         
-        # Check if user exists
-        user_check = await db.execute(
-            text("SELECT email, role FROM profiles WHERE id = :user_id"),
-            {"user_id": user_id}
-        )
-        user_data = user_check.fetchone()
+        # Check if user exists using Supabase
+        supabase = get_supabase()
+        user_result = supabase.table('profiles').select('email, role').eq('id', user_id).execute()
         
-        if not user_data:
+        if not user_result.data or len(user_result.data) == 0:
             raise HTTPException(status_code=404, detail="User not found")
         
-        current_email, current_role = user_data
+        user_data = user_result.data[0]
+        current_email = user_data.get('email')
+        current_role = user_data.get('role')
         
-        # Update role in database
-        await db.execute(
-            text("UPDATE profiles SET role = :role, updated_at = NOW() WHERE id = :user_id"),
-            {"role": role_update.role, "user_id": user_id}
-        )
-        await db.commit()
+        # Update role in database using Supabase
+        update_result = supabase.table('profiles').update({
+            'role': role_update.role,
+            'updated_at': 'now()'
+        }).eq('id', user_id).execute()
+        
+        if not update_result.data:
+            raise HTTPException(status_code=500, detail="Failed to update user role")
         
         # Log the role change
         logger.info(

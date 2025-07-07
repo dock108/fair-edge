@@ -154,8 +154,7 @@ class CheckoutRequest(BaseModel):
 @router.post("/create-checkout-session")
 async def create_stripe_checkout(
     request: CheckoutRequest,
-    user: UserCtx = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    user: UserCtx = Depends(get_current_user)
 ):
     """
     Create a Stripe checkout session for subscription upgrade.
@@ -222,8 +221,7 @@ async def create_stripe_checkout(
 
 @router.post("/stripe/webhook", include_in_schema=False)
 async def stripe_webhook(
-    request: Request, 
-    db: AsyncSession = Depends(get_db)
+    request: Request
 ):
     """
     Handle Stripe webhook events for subscription lifecycle management.
@@ -255,15 +253,15 @@ async def stripe_webhook(
         
         # Handle different event types
         if event["type"] == "checkout.session.completed":
-            await _handle_checkout_complete(event["data"]["object"], db)
+            await _handle_checkout_complete(event["data"]["object"])
         elif event["type"] == "customer.subscription.deleted":
-            await _handle_subscription_cancelled(event["data"]["object"], db)
+            await _handle_subscription_cancelled(event["data"]["object"])
         elif event["type"] == "customer.subscription.updated":
-            await _handle_subscription_updated(event["data"]["object"], db)
+            await _handle_subscription_updated(event["data"]["object"])
         elif event["type"] == "invoice.payment_succeeded":
-            await _handle_payment_succeeded(event["data"]["object"], db)
+            await _handle_payment_succeeded(event["data"]["object"])
         elif event["type"] == "invoice.payment_failed":
-            await _handle_payment_failed(event["data"]["object"], db)
+            await _handle_payment_failed(event["data"]["object"])
         else:
             logger.info(f"Unhandled webhook event type: {event['type']}")
         
@@ -276,7 +274,7 @@ async def stripe_webhook(
         raise HTTPException(status_code=500, detail="Webhook processing failed")
 
 
-async def _handle_checkout_complete(session: dict, db: AsyncSession):
+async def _handle_checkout_complete(session: dict):
     """
     Handle successful checkout completion.
     Updates user role based on the subscription plan and stores Stripe IDs.
@@ -305,39 +303,31 @@ async def _handle_checkout_complete(session: dict, db: AsyncSession):
             logger.warning(f"Unknown price ID {price_id}, defaulting to premium role")
         
         # Find user by email
-        user_id = await _lookup_user_by_email(customer_email, db)
+        user_id = await _lookup_user_by_email(customer_email)
         if not user_id:
             logger.error(f"User not found for email: {customer_email}")
             return
         
-        # Update user profile with subscription info
-        await db.execute(
-            text("""
-                UPDATE profiles 
-                SET role = :role,
-                    subscription_status = 'active',
-                    stripe_customer_id = :customer_id,
-                    stripe_subscription_id = :subscription_id,
-                    updated_at = NOW()
-                WHERE id = :user_id
-            """),
-            {
-                "role": user_role,
-                "customer_id": customer_id,
-                "subscription_id": subscription_id,
-                "user_id": user_id
-            }
-        )
-        await db.commit()
+        # Update user profile with subscription info using Supabase
+        supabase = get_supabase()
+        result = supabase.table('profiles').update({
+            'role': user_role,
+            'subscription_status': 'active',
+            'stripe_customer_id': customer_id,
+            'stripe_subscription_id': subscription_id,
+            'updated_at': 'now()'
+        }).eq('id', user_id).execute()
         
-        logger.info(f"Successfully upgraded user {user_id} to {user_role}")
+        if result.data:
+            logger.info(f"Successfully upgraded user {user_id} to {user_role}")
+        else:
+            logger.error(f"Failed to update user {user_id} in database")
         
     except Exception as e:
         logger.error(f"Error handling checkout completion: {e}")
-        await db.rollback()
 
 
-async def _handle_subscription_cancelled(subscription: dict, db: AsyncSession):
+async def _handle_subscription_cancelled(subscription: dict):
     """
     Handle subscription cancellation.
     Downgrades user back to free tier.
@@ -348,32 +338,25 @@ async def _handle_subscription_cancelled(subscription: dict, db: AsyncSession):
             logger.error("Missing subscription ID in cancellation event")
             return
         
-        # Find user by subscription ID and downgrade
-        result = await db.execute(
-            text("""
-                UPDATE profiles 
-                SET role = 'free',
-                    subscription_status = 'cancelled',
-                    updated_at = NOW()
-                WHERE stripe_subscription_id = :subscription_id
-                RETURNING id, email
-            """),
-            {"subscription_id": subscription_id}
-        )
+        # Find user by subscription ID and downgrade using Supabase
+        supabase = get_supabase()
+        result = supabase.table('profiles').update({
+            'role': 'free',
+            'subscription_status': 'cancelled',
+            'updated_at': 'now()'
+        }).eq('stripe_subscription_id', subscription_id).execute()
         
-        user = result.fetchone()
-        if user:
-            await db.commit()
-            logger.info(f"Successfully downgraded user {user.id} ({user.email}) to free tier")
+        if result.data:
+            user = result.data[0]
+            logger.info(f"Successfully downgraded user {user.get('id')} ({user.get('email')}) to free tier")
         else:
             logger.warning(f"No user found for cancelled subscription {subscription_id}")
         
     except Exception as e:
         logger.error(f"Error handling subscription cancellation: {e}")
-        await db.rollback()
 
 
-async def _handle_subscription_updated(subscription: dict, db: AsyncSession):
+async def _handle_subscription_updated(subscription: dict):
     """
     Handle subscription updates (plan changes, status changes, etc.).
     This ensures users maintain correct access levels when subscriptions change.
@@ -402,36 +385,25 @@ async def _handle_subscription_updated(subscription: dict, db: AsyncSession):
             # Subscription not active (paused, cancelled, etc.)
             user_role = "free"
         
-        # Update user profile
-        result = await db.execute(
-            text("""
-                UPDATE profiles 
-                SET role = :role,
-                    subscription_status = :status,
-                    updated_at = NOW()
-                WHERE stripe_subscription_id = :subscription_id
-                RETURNING id, email
-            """),
-            {
-                "role": user_role,
-                "status": status,
-                "subscription_id": subscription_id
-            }
-        )
+        # Update user profile using Supabase
+        supabase = get_supabase()
+        result = supabase.table('profiles').update({
+            'role': user_role,
+            'subscription_status': status,
+            'updated_at': 'now()'
+        }).eq('stripe_subscription_id', subscription_id).execute()
         
-        user = result.fetchone()
-        if user:
-            await db.commit()
-            logger.info(f"Updated user {user.id} ({user.email}) to {user_role} (status: {status})")
+        if result.data:
+            user = result.data[0]
+            logger.info(f"Updated user {user.get('id')} ({user.get('email')}) to {user_role} (status: {status})")
         else:
             logger.warning(f"No user found for subscription {subscription_id}")
         
     except Exception as e:
         logger.error(f"Error handling subscription update: {e}")
-        await db.rollback()
 
 
-async def _handle_payment_succeeded(invoice: dict, db: AsyncSession):
+async def _handle_payment_succeeded(invoice: dict):
     """
     Handle successful payment events.
     Ensures user maintains active subscription status after successful billing.
@@ -444,32 +416,35 @@ async def _handle_payment_succeeded(invoice: dict, db: AsyncSession):
             logger.error("Missing customer or subscription ID in payment succeeded event")
             return
         
-        # Ensure user has active subscription status
-        result = await db.execute(
-            text("""
-                UPDATE profiles 
-                SET subscription_status = 'active',
-                    updated_at = NOW()
-                WHERE stripe_subscription_id = :subscription_id
-                AND subscription_status != 'active'
-                RETURNING id, email, role
-            """),
-            {"subscription_id": subscription_id}
-        )
+        # Ensure user has active subscription status using Supabase
+        supabase = get_supabase()
         
-        user = result.fetchone()
-        if user:
-            await db.commit()
-            logger.info(f"Confirmed active subscription for user {user.id} ({user.email}) - {user.role}")
+        # First check if user needs updating
+        current_result = supabase.table('profiles').select('id, email, role, subscription_status').eq('stripe_subscription_id', subscription_id).execute()
+        
+        if current_result.data:
+            user = current_result.data[0]
+            if user.get('subscription_status') != 'active':
+                # Update to active status
+                update_result = supabase.table('profiles').update({
+                    'subscription_status': 'active',
+                    'updated_at': 'now()'
+                }).eq('stripe_subscription_id', subscription_id).execute()
+                
+                if update_result.data:
+                    logger.info(f"Confirmed active subscription for user {user.get('id')} ({user.get('email')}) - {user.get('role')}")
+                else:
+                    logger.error(f"Failed to update subscription status for user {user.get('id')}")
+            else:
+                logger.debug(f"Payment succeeded for subscription {subscription_id} - user already active")
         else:
-            logger.debug(f"Payment succeeded for subscription {subscription_id} - user already active")
+            logger.warning(f"No user found for subscription {subscription_id}")
         
     except Exception as e:
         logger.error(f"Error handling payment success: {e}")
-        await db.rollback()
 
 
-async def _handle_payment_failed(invoice: dict, db: AsyncSession):
+async def _handle_payment_failed(invoice: dict):
     """
     Handle failed payment events.
     Could implement grace period or immediate downgrade based on business rules.
@@ -487,41 +462,38 @@ async def _handle_payment_failed(invoice: dict, db: AsyncSession):
         
         # Optional: Mark subscription as past_due or implement grace period
         if subscription_id:
-            await db.execute(
-                text("""
-                    UPDATE profiles 
-                    SET subscription_status = 'past_due',
-                        updated_at = NOW()
-                    WHERE stripe_subscription_id = :subscription_id
-                """),
-                {"subscription_id": subscription_id}
-            )
-            await db.commit()
-            logger.info(f"Marked subscription {subscription_id} as past_due")
+            supabase = get_supabase()
+            result = supabase.table('profiles').update({
+                'subscription_status': 'past_due',
+                'updated_at': 'now()'
+            }).eq('stripe_subscription_id', subscription_id).execute()
+            
+            if result.data:
+                logger.info(f"Marked subscription {subscription_id} as past_due")
+            else:
+                logger.warning(f"Failed to update subscription {subscription_id} status to past_due")
         
     except Exception as e:
         logger.error(f"Error handling payment failure: {e}")
-        await db.rollback()
 
 
-async def _lookup_user_by_email(email: str, db: AsyncSession) -> str:
+async def _lookup_user_by_email(email: str) -> str:
     """
     Look up user ID by email address.
     
     Args:
         email: User's email address
-        db: Database session
         
     Returns:
         str: User ID if found, None otherwise
     """
     try:
-        result = await db.execute(
-            text("SELECT id FROM profiles WHERE email = :email"),
-            {"email": email}
-        )
-        user = result.fetchone()
-        return user.id if user else None
+        supabase = get_supabase()
+        result = supabase.table('profiles').select('id').eq('email', email).execute()
+        
+        if result.data and len(result.data) > 0:
+            return result.data[0]['id']
+        return None
         
     except Exception as e:
         logger.error(f"Error looking up user by email {email}: {e}")
@@ -549,8 +521,7 @@ async def get_subscription_status(user: UserCtx = Depends(get_current_user)):
 @limiter.limit("5/minute")  # Rate limit to prevent abuse
 async def create_customer_portal_session(
     request: Request,
-    user: UserCtx = Depends(require_subscriber),
-    db: AsyncSession = Depends(get_db)
+    user: UserCtx = Depends(require_subscriber)
 ):
     """
     Create a Stripe Customer Portal session for subscription management.
@@ -572,22 +543,21 @@ async def create_customer_portal_session(
                 detail="Payment processing is not configured. Please contact support."
             )
         
-        # Get user's Stripe customer ID from database
-        result = await db.execute(
-            text("SELECT stripe_customer_id FROM profiles WHERE id = :user_id"),
-            {"user_id": user.id}
-        )
-        user_data = result.fetchone()
+        # Get user's Stripe customer ID from database using Supabase
+        supabase = get_supabase()
+        result = supabase.table('profiles').select('stripe_customer_id').eq('id', user.id).execute()
         
-        if not user_data or not user_data.stripe_customer_id:
+        if not result.data or not result.data[0].get('stripe_customer_id'):
             raise HTTPException(
                 status_code=404,
                 detail="No Stripe customer on file; contact support"
             )
         
+        stripe_customer_id = result.data[0]['stripe_customer_id']
+        
         # Create Customer Portal session - Stripe API call
         session = stripe.billing_portal.Session.create(
-            customer=user_data.stripe_customer_id,                    # required param
+            customer=stripe_customer_id,                    # required param
             return_url=f"{settings.checkout_success_url.replace('/upgrade/success', '')}/account",  # where to send them back
         )
         
