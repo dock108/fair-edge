@@ -17,9 +17,7 @@ from core.rate_limit import limiter
 from core.settings import settings
 
 # Import database and services
-from db import get_db
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from db import get_supabase, check_supabase_connection
 import redis
 
 def get_redis_client():
@@ -44,16 +42,22 @@ async def health_check(request: Request):
             "checks": {}
         }
         
-        # Database health check
+        # Supabase health check
         try:
-            # This would need to be async if using get_db()
-            # For now, basic connection test
-            health_status["checks"]["database"] = {
-                "status": "healthy",
-                "message": "Database connection available"
-            }
+            supabase_healthy = await check_supabase_connection()
+            if supabase_healthy:
+                health_status["checks"]["supabase"] = {
+                    "status": "healthy",
+                    "message": "Supabase connection active"
+                }
+            else:
+                health_status["checks"]["supabase"] = {
+                    "status": "unhealthy",
+                    "message": "Supabase connection failed"
+                }
+                health_status["status"] = "degraded"
         except Exception as e:
-            health_status["checks"]["database"] = {
+            health_status["checks"]["supabase"] = {
                 "status": "unhealthy", 
                 "error": str(e)
             }
@@ -146,16 +150,19 @@ async def debug_profiles(
     Admin only - for troubleshooting user issues
     """
     try:
-        # This would need proper database integration
-        # For now, return basic debug info
+        # Get user profiles using Supabase
+        supabase = get_supabase()
+        result = supabase.table('profiles').select('id, email, role, subscription_status, created_at, updated_at').limit(limit).execute()
+        
         debug_info = {
             "profiles_debug": {
                 "endpoint": "profiles",
                 "limit": limit,
                 "requested_by": admin_user.email,
                 "timestamp": datetime.now().isoformat(),
-                "note": "This endpoint requires database integration for full functionality"
+                "total_returned": len(result.data) if result.data else 0
             },
+            "profiles": result.data if result.data else [],
             "user_context": {
                 "admin_id": admin_user.id,
                 "admin_email": admin_user.email,

@@ -1,6 +1,16 @@
 """
-Simplified database module for Supabase REST API only
-Provides Supabase client connections without direct PostgreSQL access
+Supabase REST API Database Module
+
+This module provides Supabase client connections for the Fair-Edge application.
+All database operations use Supabase REST API - no direct PostgreSQL connections.
+
+Key Functions:
+- get_supabase(): Get Supabase service client for server-side operations
+- get_supabase_anon(): Get Supabase anonymous client for frontend operations  
+- check_supabase_connection(): Test Supabase connectivity
+- get_database_status(): Health check information
+
+Legacy functions are kept for compatibility but raise errors directing to Supabase usage.
 """
 import os
 import logging
@@ -91,69 +101,34 @@ async def get_database_status() -> dict:
     }
 
 
-# Supabase session wrapper for compatibility with existing billing routes
-class SupabaseSession:
-    """
-    Mock AsyncSession interface that uses Supabase REST API
-    Provides compatibility for existing billing route code
-    """
-    def __init__(self, supabase_client):
-        self.client = supabase_client
-        self._transaction_operations = []
-        
-    async def execute(self, query, params=None):
-        """Execute a text query using Supabase operations"""
-        # This is a compatibility layer - in practice, billing routes should use 
-        # direct supabase.table() operations instead of raw SQL
-        class MockResult:
-            def __init__(self, data=None):
-                self._data = data or []
-                
-            def fetchone(self):
-                return self._data[0] if self._data else None
-                
-            def fetchall(self):
-                return self._data
-        
-        # For now, return empty result to prevent errors
-        # The billing routes will be refactored to use direct Supabase calls
-        return MockResult()
-    
-    async def commit(self):
-        """Commit is automatic with Supabase REST API"""
-        pass
-        
-    async def rollback(self):
-        """Rollback handling for Supabase operations"""
-        pass
-
+# Legacy compatibility function - no longer needed
 async def get_db():
     """
-    Get Supabase session for FastAPI dependency injection
-    Returns a mock session that wraps Supabase operations
+    Legacy function for FastAPI dependency injection compatibility.
+    This function is no longer used since we refactored to Supabase REST API.
+    Kept for any remaining legacy code that might reference it.
     """
-    supabase_client = get_supabase()
-    return SupabaseSession(supabase_client)
+    raise RuntimeError("get_db() is deprecated. Use get_supabase() directly instead.")
 
 
 async def get_async_session():
     """
-    Compatibility stub for async sessions
-    Raises error since we no longer use direct PostgreSQL connections
+    Legacy compatibility stub - no longer used.
+    All database operations now use Supabase REST API directly.
     """
-    raise RuntimeError("Direct PostgreSQL sessions disabled. Use Supabase REST API instead.")
+    raise RuntimeError("Direct PostgreSQL sessions disabled. Use get_supabase() instead.")
 
 
 async def execute_with_pgbouncer_retry(session, query_text: str, params: dict = None, max_retries: int = 2):
     """
-    Compatibility stub for pgbouncer retry logic
-    Raises error since we no longer use direct PostgreSQL connections
+    Legacy compatibility stub - no longer used.
+    All database operations now use Supabase REST API directly.
     """
-    raise RuntimeError("Direct PostgreSQL queries disabled. Use Supabase REST API instead.")
+    raise RuntimeError("Direct PostgreSQL queries disabled. Use get_supabase() instead.")
 
 
 async def check_database_connection() -> bool:
     """
-    Compatibility wrapper - redirects to Supabase connection check
+    Legacy compatibility wrapper - redirects to Supabase connection check.
     """
     return await check_supabase_connection()
