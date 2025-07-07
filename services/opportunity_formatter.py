@@ -95,8 +95,9 @@ def format_opportunities_for_frontend(opportunities, user_role="free", limit=Non
     }
     
     # Apply role-based filtering
-    if user_role in ["free", "anonymous"]:
-        # Free users: Sort by EV and limit to 10 worst opportunities
+    if user_role in ["free", "anonymous", None]:
+        # Free/unauthenticated users: Sort by EV and limit to 10 worst opportunities
+        logger.info(f"Applying free user restrictions: limiting to 10 worst opportunities")
         formatted.sort(key=lambda x: x['ev_percentage'])
         formatted = formatted[:10] if len(formatted) > 10 else formatted
     elif user_role == "basic":

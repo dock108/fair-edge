@@ -221,38 +221,29 @@ async def debug_supabase(
 @limiter.limit("10/minute")
 async def debug_database_status(
     request: Request,
-    admin_user: UserCtx = Depends(require_role("admin")),
-    db: AsyncSession = Depends(get_db)
+    admin_user: UserCtx = Depends(require_role("admin"))
 ):
     """
     Debug database connection and basic queries
     Admin only - for troubleshooting database issues
     """
     try:
-        # Test basic database connectivity
-        result = await db.execute(text("SELECT 1 as test"))
-        test_result = result.scalar()
+        # Test basic Supabase connectivity
+        supabase = get_supabase()
         
-        # Get basic table info
-        tables_result = await db.execute(text("""
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public'
-            ORDER BY table_name
-        """))
-        tables = [row[0] for row in tables_result.fetchall()]
+        # Test connection by querying profiles table
+        profiles_result = supabase.table('profiles').select('id').limit(1).execute()
+        connection_test = "passed" if hasattr(profiles_result, 'data') else "failed"
         
-        # Get profiles table count if it exists
-        profiles_count = 0
-        if 'profiles' in tables:
-            count_result = await db.execute(text("SELECT COUNT(*) FROM profiles"))
-            profiles_count = count_result.scalar()
+        # Get profiles table count
+        profiles_count_result = supabase.table('profiles').select('id', count='exact').execute()
+        profiles_count = profiles_count_result.count if hasattr(profiles_count_result, 'count') else 0
         
         debug_info = {
             "database_debug": {
-                "connection_test": "passed" if test_result == 1 else "failed",
-                "test_query_result": test_result,
-                "available_tables": tables,
+                "connection_test": connection_test,
+                "supabase_status": "connected",
+                "profiles_table": "accessible",
                 "profiles_count": profiles_count,
                 "requested_by": admin_user.email,
                 "timestamp": datetime.now().isoformat()

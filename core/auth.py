@@ -238,18 +238,23 @@ async def get_current_user(
         ...     return {"user_id": user.id, "role": user.role}
     """
     token = credentials.credentials
+    logger.info(f"🔐 Starting authentication for token: {token[:20]}...")
     
     try:
         # Decode and validate JWT using Supabase JWT secret
         # Disable audience verification for Supabase JWTs
+        logger.info(f"🔑 Using JWT secret: {settings.supabase_jwt_secret[:20]}... (algorithm: {settings.supabase_jwt_algorithm})")
         payload = jwt.decode(
             token,
             settings.supabase_jwt_secret,
             algorithms=[settings.supabase_jwt_algorithm],
             options={"verify_aud": False}
         )
+        logger.info(f"✅ JWT validation successful. Payload keys: {list(payload.keys())}")
     except PyJWTError as exc:
-        logger.warning(f"JWT validation failed: {exc}")
+        logger.error(f"❌ JWT validation failed: {exc}")
+        logger.error(f"❌ Token used: {token[:50]}...")
+        logger.error(f"❌ JWT secret configured: {bool(settings.supabase_jwt_secret)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid or expired token: {exc}",

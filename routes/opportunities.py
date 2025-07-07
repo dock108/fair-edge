@@ -90,13 +90,15 @@ async def get_opportunities(
             }
         
         # Apply role-based filtering
-        logger.info(f"Formatting {len(ev_data)} opportunities for role: {user.role if user else 'free'}")
+        user_role_for_filtering = user.role if user else "free"
+        logger.info(f"🎯 User context: {user.email if user else 'unauthenticated'} (role: {user_role_for_filtering})")
+        logger.info(f"📊 Formatting {len(ev_data)} opportunities for role: {user_role_for_filtering}")
         filtered_opportunities = format_opportunities_for_frontend(
             ev_data, 
-            user_role=user.role if user else "free",
+            user_role=user_role_for_filtering,
             limit=limit
         )
-        logger.info(f"Formatted {len(filtered_opportunities)} opportunities")
+        logger.info(f"✅ Formatted {len(filtered_opportunities)} opportunities for role {user_role_for_filtering}")
         
         # Apply search filtering if search term provided
         if search and search.strip():
@@ -112,7 +114,7 @@ async def get_opportunities(
         
         # Add metadata
         total_count = len(filtered_opportunities)
-        user_role = user.role if user else "anonymous"
+        user_role = user.role if user else "free"
         
         response_data = {
             "opportunities": filtered_opportunities,
