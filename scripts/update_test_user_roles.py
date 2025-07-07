@@ -23,9 +23,29 @@ logger = logging.getLogger(__name__)
 async def update_test_user_roles():
     """Update test user roles to their proper values"""
     
-    # Get Supabase credentials
-    url = os.getenv('SUPABASE_URL', 'PLACEHOLDER_URL')
-    service_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY', 'PLACEHOLDER_KEY')
+    # Get Supabase credentials from environment (NO DEFAULTS FOR SECURITY)
+    url = os.getenv('SUPABASE_URL')
+    service_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+    
+    # Validate required environment variables
+    if not url:
+        logger.error("❌ SUPABASE_URL environment variable is required")
+        logger.error("   Set it with: export SUPABASE_URL=https://your-project.supabase.co")
+        raise ValueError("Missing required environment variable: SUPABASE_URL")
+    
+    if not service_key:
+        logger.error("❌ SUPABASE_SERVICE_ROLE_KEY environment variable is required")
+        logger.error("   Get it from: https://supabase.com/dashboard → Settings → API")
+        raise ValueError("Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY")
+    
+    # Validate credential format
+    if not url.startswith('https://') or not url.endswith('.supabase.co'):
+        raise ValueError("Invalid SUPABASE_URL format. Expected: https://your-project.supabase.co")
+    
+    if not service_key.startswith('eyJ'):
+        raise ValueError("Invalid SUPABASE_SERVICE_ROLE_KEY format. Expected JWT token starting with 'eyJ'")
+    
+    logger.info(f"✅ Connecting to Supabase project: {url}")
     
     # Create admin client
     supabase: Client = create_client(url, service_key)

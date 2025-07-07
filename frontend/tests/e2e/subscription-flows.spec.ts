@@ -136,9 +136,9 @@ test.describe('Subscription Flow Tests', () => {
   });
 
   test('4. Cancel Subscription (Premium → Free)', async ({ page }) => {
-    // Login with the test user (who should now be on premium plan from previous test)
+    // Login with the PREMIUM test user for cancellation testing
     await page.goto('/login');
-    await page.fill('input#email', TEST_FREE_EMAIL);
+    await page.fill('input#email', TEST_PREMIUM_EMAIL);
     await page.fill('input#password', TEST_PASSWORD);
     await page.click('button[type="submit"]');
     

@@ -127,19 +127,22 @@ fi
 cp "$PROD_ENV" "${PROD_ENV}.backup.$(date +%Y%m%d-%H%M%S)"
 echo "✅ Created backup of production.env"
 
-# Update Stripe configuration
-sed -i '' "s|^STRIPE_PUBLISHABLE_KEY=.*|STRIPE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY|" "$PROD_ENV"
-sed -i '' "s|^STRIPE_SECRET_KEY=.*|STRIPE_SECRET_KEY=$SECRET_KEY|" "$PROD_ENV"
-sed -i '' "s|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$WEBHOOK_SECRET|" "$PROD_ENV"
-sed -i '' "s|^STRIPE_BASIC_PRICE=.*|STRIPE_BASIC_PRICE=$BASIC_PRICE|" "$PROD_ENV"
-sed -i '' "s|^STRIPE_PREMIUM_PRICE=.*|STRIPE_PREMIUM_PRICE=$PREMIUM_PRICE|" "$PROD_ENV"
+# Update Stripe configuration (cross-platform sed syntax)
+sed -i.bak "s|^STRIPE_PUBLISHABLE_KEY=.*|STRIPE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY|" "$PROD_ENV"
+sed -i.bak "s|^STRIPE_SECRET_KEY=.*|STRIPE_SECRET_KEY=$SECRET_KEY|" "$PROD_ENV"
+sed -i.bak "s|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$WEBHOOK_SECRET|" "$PROD_ENV"
+sed -i.bak "s|^STRIPE_BASIC_PRICE=.*|STRIPE_BASIC_PRICE=$BASIC_PRICE|" "$PROD_ENV"
+sed -i.bak "s|^STRIPE_PREMIUM_PRICE=.*|STRIPE_PREMIUM_PRICE=$PREMIUM_PRICE|" "$PROD_ENV"
 
-# Update domain settings
-sed -i '' "s|^DOMAIN=.*|DOMAIN=$CLEAN_DOMAIN|" "$PROD_ENV"
-sed -i '' "s|^CHECKOUT_SUCCESS_URL=.*|CHECKOUT_SUCCESS_URL=https://$CLEAN_DOMAIN/upgrade/success|" "$PROD_ENV"
-sed -i '' "s|^CHECKOUT_CANCEL_URL=.*|CHECKOUT_CANCEL_URL=https://$CLEAN_DOMAIN/pricing|" "$PROD_ENV"
-sed -i '' "s|^CORS_ORIGINS=.*|CORS_ORIGINS=https://$CLEAN_DOMAIN|" "$PROD_ENV"
-sed -i '' "s|^API_URL=.*|API_URL=https://$CLEAN_DOMAIN|" "$PROD_ENV"
+# Update domain settings (cross-platform sed syntax)
+sed -i.bak "s|^DOMAIN=.*|DOMAIN=$CLEAN_DOMAIN|" "$PROD_ENV"
+sed -i.bak "s|^CHECKOUT_SUCCESS_URL=.*|CHECKOUT_SUCCESS_URL=https://$CLEAN_DOMAIN/upgrade/success|" "$PROD_ENV"
+sed -i.bak "s|^CHECKOUT_CANCEL_URL=.*|CHECKOUT_CANCEL_URL=https://$CLEAN_DOMAIN/pricing|" "$PROD_ENV"
+sed -i.bak "s|^CORS_ORIGINS=.*|CORS_ORIGINS=https://$CLEAN_DOMAIN|" "$PROD_ENV"
+sed -i.bak "s|^API_URL=.*|API_URL=https://$CLEAN_DOMAIN|" "$PROD_ENV"
+
+# Clean up backup files created by sed
+rm -f "${PROD_ENV}.bak"
 
 echo "✅ Updated production environment with live Stripe configuration"
 
