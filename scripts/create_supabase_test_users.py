@@ -132,7 +132,7 @@ async def main():
             print("\n🎉 Test users created successfully!")
             print("\nYou can now use these accounts for testing:")
             for user in TEST_USERS:
-                print(f"• {user['role'].title()} User: {user['email']} / {user['password']}")
+                print(f"• {user['role'].title()} User: {user['email']}")
             print("\nThese users have confirmed emails and can login immediately.")
         else:
             print("❌ Failed to create test users")
