@@ -279,7 +279,7 @@ struct PaywallView: View {
             WebView(url: "https://fair-edge.com/terms")
         }
         .sheet(isPresented: $showingPrivacy) {
-            WebView(url: "https://fair-edge.com/privacy")
+            PrivacyPolicyView()
         }
     }
 }

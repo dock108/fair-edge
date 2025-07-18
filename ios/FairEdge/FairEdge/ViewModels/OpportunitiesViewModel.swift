@@ -109,6 +109,30 @@ class OpportunitiesViewModel: ObservableObject {
         return total / Double(opportunities.count)
     }
     
+    /// Update a specific opportunity with live data from WebSocket
+    func updateLiveOpportunity(_ opportunity: BettingOpportunity) {
+        DispatchQueue.main.async {
+            // Find and update existing opportunity or add new one
+            if let index = self.opportunities.firstIndex(where: { $0.id == opportunity.id }) {
+                self.opportunities[index] = opportunity
+            } else {
+                // Add new opportunity to the beginning of the list
+                self.opportunities.insert(opportunity, at: 0)
+            }
+            
+            // Re-apply filters to update filtered list
+            self.applyFilters(
+                searchText: self.searchText,
+                sport: self.selectedSport,
+                minimumEV: self.minimumEV,
+                classification: self.selectedClassification
+            )
+            
+            // Update last update time
+            self.lastUpdateTime = Date()
+        }
+    }
+    
     // MARK: - Private Methods
     
     /// Set up Combine bindings for filtering
@@ -179,7 +203,34 @@ class OpportunitiesViewModel: ObservableObject {
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             // Only auto-refresh if app is active and not currently loading
             guard !self?.isLoading ?? true, !self?.isRefreshing ?? true else { return }
-            self?.loadOpportunities()
+            
+            // Use background queue for refresh to avoid blocking UI
+            Task {
+                await self?.loadOpportunitiesInBackground()
+            }
+        }
+    }
+    
+    /// Load opportunities in background without blocking UI
+    private func loadOpportunitiesInBackground() async {
+        guard !isLoading else { return }
+        
+        await MainActor.run {
+            self.isLoading = true
+            self.errorMessage = nil
+        }
+        
+        do {
+            let response = try await apiService.fetchOpportunities().value
+            
+            await MainActor.run {
+                self.updateOpportunities(response)
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
+            }
         }
     }
 }

@@ -7,30 +7,36 @@
 
 import SwiftUI
 
-/// Main opportunities list view with mobile-optimized display
+/// Main opportunities list view with mobile-optimized display and real-time updates
 struct OpportunitiesListView: View {
     @StateObject private var viewModel = OpportunitiesViewModel()
     @EnvironmentObject var authenticationService: AuthenticationService
     @EnvironmentObject var storeKitService: StoreKitService
     @EnvironmentObject var pushNotificationService: PushNotificationService
+    @EnvironmentObject var webSocketService: WebSocketService
     
     @State private var showingFilters = false
     @State private var showingProfile = false
     @State private var showingPaywall = false
+    @State private var showingRealtimeSettings = false
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // Real-time connection status bar
+                realtimeStatusBar
+                
                 // Status bar
                 statusBar
                 
-                // Opportunities list
+                // Opportunities list with live updates
                 opportunitiesList
             }
             .navigationTitle("Fair-Edge")
             .navigationBarItems(
                 leading: profileButton,
                 trailing: HStack {
+                    realtimeToggleButton
                     filterButton
                     refreshButton
                 }
@@ -53,9 +59,64 @@ struct OpportunitiesListView: View {
                     Task {
                         await pushNotificationService.requestNotificationPermissions()
                     }
+                    
+                    // Start WebSocket connection for real-time updates
+                    webSocketService.connect()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("LiveOpportunityUpdate"))) { notification in
+                // Handle live opportunity updates from WebSocket
+                if let opportunity = notification.object as? BettingOpportunity {
+                    viewModel.updateLiveOpportunity(opportunity)
+                }
+            }
+            .onChange(of: authenticationService.isAuthenticated) { isAuthenticated in
+                if isAuthenticated {
+                    webSocketService.connect()
+                } else {
+                    webSocketService.disconnect()
                 }
             }
         }
+    }
+    
+    // MARK: - Real-Time Status Bar
+    
+    private var realtimeStatusBar: some View {
+        HStack {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(webSocketService.connectionStatus.color)
+                    .frame(width: 8, height: 8)
+                
+                Text(webSocketService.connectionStatus.displayText)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundColor(webSocketService.connectionStatus.color)
+            }
+            
+            Spacer()
+            
+            if webSocketService.connectionStatus == .connected && webSocketService.lastUpdateTime != nil {
+                Text(timeAgoText(from: webSocketService.lastUpdateTime!))
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            Button(action: { showingRealtimeSettings = true }) {
+                Image(systemName: "gear")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            .sheet(isPresented: $showingRealtimeSettings) {
+                RealtimeSettingsView()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+        .background(Color(.systemGray6))
+        .opacity(authenticationService.isAuthenticated ? 1.0 : 0.0)
+        .animation(.easeInOut(duration: 0.3), value: authenticationService.isAuthenticated)
     }
     
     // MARK: - Status Bar
@@ -142,6 +203,8 @@ struct OpportunitiesListView: View {
             Image(systemName: "person.circle")
                 .font(.title2)
         }
+        .accessibilityLabel("Profile")
+        .accessibilityHint("Opens your profile and account settings")
     }
     
     private var filterButton: some View {
@@ -150,6 +213,20 @@ struct OpportunitiesListView: View {
                 .font(.title2)
                 .foregroundColor(hasActiveFilters ? .blue : .primary)
         }
+        .accessibilityLabel(hasActiveFilters ? "Filters active" : "Filters")
+        .accessibilityHint("Opens filtering options for opportunities")
+    }
+    
+    private var realtimeToggleButton: some View {
+        Button(action: { webSocketService.toggleRealtimeUpdates() }) {
+            Image(systemName: webSocketService.isRealtimeEnabled ? "wifi" : "wifi.slash")
+                .font(.title2)
+                .foregroundColor(webSocketService.isRealtimeEnabled ? .blue : .gray)
+        }
+        .opacity(authenticationService.isAuthenticated ? 1.0 : 0.5)
+        .disabled(!authenticationService.isAuthenticated)
+        .accessibilityLabel(webSocketService.isRealtimeEnabled ? "Real-time updates enabled" : "Real-time updates disabled")
+        .accessibilityHint("Toggles real-time opportunity updates")
     }
     
     private var refreshButton: some View {
@@ -160,6 +237,8 @@ struct OpportunitiesListView: View {
                 .animation(viewModel.isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default, value: viewModel.isRefreshing)
         }
         .disabled(viewModel.isRefreshing)
+        .accessibilityLabel(viewModel.isRefreshing ? "Refreshing opportunities" : "Refresh opportunities")
+        .accessibilityHint("Reloads the latest betting opportunities")
     }
     
     // MARK: - Helper Properties
@@ -231,6 +310,123 @@ struct OpportunitiesListView: View {
         .background(Color(.systemGray6))
         .cornerRadius(12)
         .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func timeAgoText(from date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        
+        if interval < 60 {
+            return "Just now"
+        } else if interval < 3600 {
+            let minutes = Int(interval / 60)
+            return "\(minutes)m ago"
+        } else {
+            let hours = Int(interval / 3600)
+            return "\(hours)h ago"
+        }
+    }
+}
+
+// MARK: - Realtime Settings View
+
+struct RealtimeSettingsView: View {
+    @EnvironmentObject var webSocketService: WebSocketService
+    @Environment(\.presentationMode) var presentationMode
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section("Connection Status") {
+                    HStack {
+                        Circle()
+                            .fill(webSocketService.connectionStatus.color)
+                            .frame(width: 12, height: 12)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(webSocketService.connectionStatus.displayText)
+                                .font(.headline)
+                            Text(webSocketService.connectionStats)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Section("Settings") {
+                    HStack {
+                        Text("Real-time Updates")
+                        Spacer()
+                        Toggle("", isOn: $webSocketService.isRealtimeEnabled)
+                            .onChange(of: webSocketService.isRealtimeEnabled) { enabled in
+                                if enabled {
+                                    webSocketService.connect()
+                                } else {
+                                    webSocketService.disconnect()
+                                }
+                            }
+                    }
+                }
+                
+                if webSocketService.connectionStatus == .connected {
+                    Section("Live Updates") {
+                        HStack {
+                            Text("Connected Users")
+                            Spacer()
+                            Text("Active")
+                                .foregroundColor(.green)
+                        }
+                        
+                        if let lastUpdate = webSocketService.lastUpdateTime {
+                            HStack {
+                                Text("Last Update")
+                                Spacer()
+                                Text(timeAgoText(from: lastUpdate))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        HStack {
+                            Text("Live Opportunities")
+                            Spacer()
+                            Text("\(webSocketService.liveUpdates.count)")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+                
+                Section("Actions") {
+                    Button("Reconnect") {
+                        webSocketService.reconnect()
+                    }
+                    .disabled(webSocketService.connectionStatus == .connecting)
+                }
+            }
+            .navigationTitle("Real-time Settings")
+            .navigationBarItems(
+                trailing: Button("Done") {
+                    presentationMode.wrappedValue.dismiss()
+                }
+            )
+        }
+    }
+    
+    private func timeAgoText(from date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        
+        if interval < 60 {
+            return "Just now"
+        } else if interval < 3600 {
+            let minutes = Int(interval / 60)
+            return "\(minutes)m ago"
+        } else {
+            let hours = Int(interval / 3600)
+            return "\(hours)h ago"
+        }
     }
 }
 
@@ -325,6 +521,10 @@ struct OpportunityRowView: View {
                 UIApplication.shared.open(url)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(opportunity.event), \(opportunity.betDesc), \(opportunity.evPct.asPercentage()) expected value")
+        .accessibilityHint("Double tap to open betting opportunity")
+        .accessibilityAddTraits(.isButton)
     }
     
     private var evColor: Color {

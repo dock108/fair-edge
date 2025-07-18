@@ -123,6 +123,18 @@ class AuthenticationService: NSObject, ObservableObject {
     
     // MARK: - Private Methods
     
+    /// Preload user data for performance optimization
+    func preloadUserData() async {
+        guard isAuthenticated else { return }
+        
+        // Preload subscription status
+        do {
+            let _ = try await apiService.getSubscriptionStatus().values.first(where: { _ in true })
+        } catch {
+            print("Failed to preload subscription status: \(error)")
+        }
+    }
+    
     /// Handle successful authentication response
     private func handleSuccessfulAuthentication(_ response: MobileSessionResponse) {
         // Create user from session response

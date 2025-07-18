@@ -17,6 +17,7 @@ struct ProfileView: View {
     @State private var showingPaywall = false
     @State private var showingSubscriptionManagement = false
     @State private var showingNotificationSettings = false
+    @State private var showingPrivacyPolicy = false
     
     var body: some View {
         NavigationView {
@@ -48,6 +49,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showingNotificationSettings) {
                 NotificationSettingsView()
+            }
+            .sheet(isPresented: $showingPrivacyPolicy) {
+                PrivacyPolicyView()
             }
         }
     }
@@ -234,14 +238,18 @@ struct ProfileView: View {
                     .foregroundColor(.green)
             }
             
-            HStack {
-                Image(systemName: "doc.text")
-                    .foregroundColor(.gray)
-                Text("Privacy Policy")
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            Button(action: {
+                showingPrivacyPolicy = true
+            }) {
+                HStack {
+                    Image(systemName: "doc.text")
+                        .foregroundColor(.gray)
+                    Text("Privacy Policy")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             
             HStack {
