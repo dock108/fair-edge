@@ -82,9 +82,9 @@ from core.rate_limit import limiter
 from core.exceptions import setup_exception_handlers
 
 # Import all route modules
-from routes import opportunities, system, debug, dashboard_admin, auth, billing
+from routes import opportunities, system, debug, dashboard_admin, auth, billing, apple_iap, mobile, realtime
 # Temporarily disabled imports for startup
-# from routes import analytics, admin, realtime
+# from routes import analytics, admin
 
 # Simple service functions for startup
 async def initialize_redis():
@@ -253,9 +253,14 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     # Billing routes enabled for subscription testing
     app.include_router(billing.router)
+    # Apple In-App Purchase routes for iOS app
+    app.include_router(apple_iap.router)
+    # Mobile-optimized routes for iOS/Android apps
+    app.include_router(mobile.router)
+    # Real-time WebSocket routes for live opportunity updates
+    app.include_router(realtime.router)
     # app.include_router(analytics.router)
     # app.include_router(admin.router)
-    # app.include_router(realtime.router)
     
     # Root endpoint
     @app.get("/")

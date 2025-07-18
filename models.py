@@ -330,4 +330,58 @@ class UserProfile(Base):
     # Analytics preferences
     preferred_sports = Column(JSON)  # List of preferred sports
     alert_thresholds = Column(JSON)  # EV thresholds for alerts
-    analytics_settings = Column(JSON)  # User analytics preferences 
+    analytics_settings = Column(JSON)  # User analytics preferences
+    
+    # Apple In-App Purchase fields
+    apple_transaction_id = Column(String(255))  # Current App Store transaction ID
+    apple_original_transaction_id = Column(String(255))  # Original transaction ID for subscription group
+    apple_receipt_data = Column(Text)  # Latest receipt data from App Store
+    apple_subscription_group_id = Column(String(255))  # Apple subscription group identifier
+    apple_purchase_date = Column(DateTime(timezone=True))  # Date of purchase/subscription start
+    apple_expires_date = Column(DateTime(timezone=True))  # Subscription expiration date
+    
+    # Stripe fields for web users (maintaining compatibility)
+    stripe_customer_id = Column(String(255))  # Stripe customer ID
+    stripe_subscription_id = Column(String(255))  # Stripe subscription ID
+
+
+class DeviceToken(Base):
+    """Device tokens for push notifications"""
+    __tablename__ = "device_tokens"
+    
+    id = Column(String, primary_key=True)  # UUID
+    user_id = Column(String, ForeignKey("profiles.id"), nullable=False)
+    device_token = Column(String(255), unique=True, nullable=False)
+    device_type = Column(String(10), nullable=False)  # "ios", "android"
+    device_name = Column(String(100))  # Device name/model
+    app_version = Column(String(20))  # App version when registered
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_used_at = Column(DateTime(timezone=True))  # Last successful notification
+    
+    # Notification preferences stored per device
+    notification_preferences = Column(JSON)  # EV thresholds, sports, quiet hours
+    
+    # Push notification statistics
+    total_notifications_sent = Column(Integer, default=0)
+    last_notification_sent_at = Column(DateTime(timezone=True))
+    notification_failures = Column(Integer, default=0)  # Failed delivery count
+    
+    # Relationships
+    user = relationship("UserProfile")
+    
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_device_tokens_user_id', 'user_id'),
+        Index('idx_device_tokens_device_token', 'device_token'),
+        Index('idx_device_tokens_active', 'is_active'),
+        Index('idx_device_tokens_user_active', 'user_id', 'is_active'),
+        Index('idx_device_tokens_created_at', 'created_at'),
+    )
+    
+    @staticmethod
+    def generate_device_id() -> str:
+        """Generate unique device token ID using UUID"""
+        import uuid
+        return str(uuid.uuid4()) 

@@ -216,6 +216,28 @@ class Settings(BaseSettings):
     checkout_success_url: str = "http://localhost:8000/upgrade/success"
     checkout_cancel_url: str = "http://localhost:8000/pricing"
     
+    # Apple In-App Purchase Configuration
+    apple_shared_secret: Optional[str] = None  # App Store shared secret for receipt validation
+    apple_bundle_id: str = "com.fairedge.app"  # iOS app bundle identifier
+    apple_basic_product_id: str = "com.fairedge.basic_monthly"  # $3.99/month Basic plan
+    apple_premium_monthly_product_id: str = "com.fairedge.premium_monthly"  # $9.99/month Premium plan
+    apple_premium_yearly_product_id: str = "com.fairedge.premium_yearly"  # $89.99/year Premium plan
+    
+    # Apple Push Notification Service (APNs) Configuration
+    apns_key_id: Optional[str] = None  # APNs Key ID from Apple Developer Portal
+    apns_team_id: Optional[str] = None  # Apple Developer Team ID
+    apns_private_key: Optional[str] = None  # APNs private key (ES256 format)
+    apns_topic: Optional[str] = None  # APNs topic (usually the bundle ID)
+    apns_environment: str = "sandbox"  # "sandbox" or "production"
+    
+    @property
+    def apns_base_url(self) -> str:
+        """Get APNs base URL based on environment"""
+        if self.apns_environment == "production":
+            return "https://api.push.apple.com"
+        else:
+            return "https://api.sandbox.push.apple.com"
+    
     # CORS Configuration
     cors_origins: str = "*"  # Will be parsed into list
     
@@ -250,6 +272,26 @@ class Settings(BaseSettings):
             self.stripe_webhook_secret,
             self.stripe_basic_price,
             self.stripe_premium_price
+        ])
+    
+    @property
+    def apple_iap_configured(self) -> bool:
+        """Check if Apple In-App Purchase is properly configured"""
+        return all([
+            self.apple_shared_secret,
+            self.apple_bundle_id,
+            self.apple_basic_product_id,
+            self.apple_premium_monthly_product_id
+        ])
+    
+    @property
+    def apns_configured(self) -> bool:
+        """Check if Apple Push Notification Service is properly configured"""
+        return all([
+            self.apns_key_id,
+            self.apns_team_id,
+            self.apns_private_key,
+            self.apns_topic or self.apple_bundle_id  # Use bundle ID as topic if not specified
         ])
 
 

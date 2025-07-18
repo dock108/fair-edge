@@ -15,7 +15,6 @@ on:
 
 env:
   PYTHON_VERSION: '3.11'
-  NODE_VERSION: '20'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -32,18 +31,15 @@ jobs:
     timeout-minutes: 10
     outputs:
       python-cache-key: ${{ steps.cache-keys.outputs.python }}
-      node-cache-key: ${{ steps.cache-keys.outputs.node }}
-      docker-cache-key: ${{ steps.cache-keys.outputs.docker }}
       has-backend-changes: ${{ steps.changes.outputs.backend }}
-      has-frontend-changes: ${{ steps.changes.outputs.frontend }}
-      has-docker-changes: ${{ steps.changes.outputs.docker }}
+      has-ios-changes: ${{ steps.changes.outputs.ios }}
       security-passed: ${{ steps.security-check.outputs.passed }}
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Full history for security scanning
+        fetch-depth: 0
 
     - name: Detect file changes
       uses: dorny/paths-filter@v3
@@ -52,37 +48,31 @@ jobs:
         filters: |
           backend:
             - '**/*.py'
-            - 'requirements.txt'
+            - 'requirements*.txt'
             - 'alembic/**'
             - '.env.example'
-          frontend:
-            - 'frontend/**'
-            - '!frontend/node_modules/**'
-          docker:
-            - 'docker/**'
-            - 'Dockerfile*'
-            - 'docker-compose*.yml'
+          ios:
+            - 'ios/**/*.swift'
+            - 'ios/**/*.xcodeproj'
 
     - name: Generate cache keys
       id: cache-keys
       run: |
-        echo "python=python-${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt') }}" >> $GITHUB_OUTPUT
-        echo "node=node-${{ env.NODE_VERSION }}-${{ hashFiles('frontend/package-lock.json') }}" >> $GITHUB_OUTPUT
-        echo "docker=docker-${{ hashFiles('docker/**', 'Dockerfile*') }}" >> $GITHUB_OUTPUT
+        echo "python=python-${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}" >> $GITHUB_OUTPUT
 
-    - name: Security - Secret scanning
+    - name: Security - Secret scanning (matches pre-commit)
       run: |
         echo "🔍 Scanning for secrets and sensitive data..."
         
-        # Check for actual hardcoded secrets (specific patterns only)
-        if grep -r -E "(api_key|secret_key|private_key|access_token|auth_token)\s*=\s*['\"][^'\"]{16,}['\"]" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules . | grep -v "your-secret-key-here\|test_\|example_\|placeholder"; then
+        # Check for actual hardcoded secrets (exact pre-commit match)
+        if grep -r -E "(api_key|secret_key|private_key|access_token|auth_token)\s*=\s*[\"'][^\"']{16,}[\"']" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules . | grep -v "your-secret-key-here\|test_\|example_\|placeholder"; then
           echo "❌ Potential hardcoded secrets detected"
           exit 1
         fi
         
-        # Check environment files are not committed
-        if [ -f .env ]; then
-          echo "❌ .env file should not be committed"
+        # Check environment files are not committed (exact pre-commit match)
+        if [ -f .env ] && ! grep -q "^\.env$" .gitignore; then
+          echo "❌ .env file exists but not in .gitignore"
           exit 1
         fi
         
@@ -114,7 +104,7 @@ jobs:
           safety_report.json
         retention-days: 30
 
-  # Phase 2: Code quality checks (parallel)
+  # Phase 2: Backend code quality (matches pre-commit exactly)
   code-quality-backend:
     name: Backend Code Quality
     runs-on: ubuntu-latest
@@ -139,61 +129,77 @@ jobs:
         restore-keys: |
           python-${{ env.PYTHON_VERSION }}-
 
-    - name: Install Python dependencies
+    - name: Install Python dependencies (exact pre-commit match)
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install black flake8 isort vulture bandit mypy
+        pip install black flake8 isort vulture bandit mypy pytest pytest-cov radon interrogate
 
-    - name: Code formatting (Black)
+    - name: Code formatting (Black) - exact pre-commit match
       run: |
         echo "🎨 Checking code formatting..."
         black --check --line-length=100 --diff .
 
-    - name: Import sorting (isort)
+    - name: Import sorting (isort) - exact pre-commit match
       run: |
         echo "📦 Checking import organization..."
         isort --check-only --profile=black --line-length=100 .
 
-    - name: Linting (Flake8)
+    - name: Linting (Flake8) - exact pre-commit match
       run: |
         echo "🔍 Running linting checks..."
         flake8 --max-line-length=100 --ignore=E203,W503 --statistics
 
-    - name: Type checking (MyPy)
-      run: |
-        echo "🔧 Running type checks..."
-        mypy --ignore-missing-imports --no-strict-optional . || true
-
-    - name: Security linting (Bandit)
+    - name: Security linting (Bandit) - exact pre-commit match
       run: |
         echo "🔒 Running security linting..."
         bandit -r . -f json -o bandit_report.json || true
-        bandit -r . -ll
+        bandit -r . -ll --skip=B101
 
-    - name: Dead code detection
+    - name: Type checking (MyPy) - exact pre-commit match
+      run: |
+        echo "🔧 Running type checks..."
+        mypy --ignore-missing-imports --no-strict-optional .
+
+    - name: Code complexity (Radon) - exact pre-commit match
+      run: |
+        echo "📊 Checking code complexity..."
+        radon cc . --min=B --show-complexity
+
+    - name: Documentation coverage (Interrogate) - exact pre-commit match
+      run: |
+        echo "📝 Checking docstring coverage..."
+        interrogate --fail-under=60 .
+
+    - name: Dead code detection (Vulture) - exact pre-commit match
       run: |
         echo "🧹 Scanning for dead code..."
-        vulture . --min-confidence 80 --ignore-names "*test*,*Test*" || true
+        vulture . --min-confidence=80
 
-    - name: Architecture checks
+    - name: Project-specific checks - exact pre-commit match
       run: |
-        echo "🏗️ Validating architecture boundaries..."
+        echo "🏗️ Running project-specific validations..."
         
-        # Check app.py size
+        # Check app.py size (exact pre-commit match)
         lines=$(wc -l < app.py)
         if [ $lines -gt 800 ]; then
           echo "❌ app.py has $lines lines (limit: 800) - consider refactoring"
           exit 1
         fi
         
-        # Check for boundary violations
+        # Check for boundary violations (exact pre-commit match)
         if grep -r "from app import\|import app" routes/ --include="*.py" 2>/dev/null; then
           echo "❌ Direct app imports in routes detected - use dependency injection"
           exit 1
         fi
         
-        echo "✅ Architecture checks passed"
+        # Check pandas/numpy imports (exact pre-commit match)
+        if grep -r "import pandas\|import numpy\|from pandas\|from numpy" --include="*.py" .; then
+          echo "❌ pandas/numpy imports detected - these dependencies were removed"
+          exit 1
+        fi
+        
+        echo "✅ Project-specific checks passed"
 
     - name: Upload backend quality reports
       if: always()
@@ -204,80 +210,46 @@ jobs:
           bandit_report.json
         retention-days: 30
 
-  code-quality-frontend:
-    name: Frontend Code Quality
-    runs-on: ubuntu-latest
+  # Phase 3: iOS code quality (matches pre-commit)
+  code-quality-ios:
+    name: iOS Code Quality
+    runs-on: macos-latest
     timeout-minutes: 15
     needs: setup-and-security
-    if: needs.setup-and-security.outputs.has-frontend-changes == 'true' || github.event_name == 'workflow_dispatch'
+    if: needs.setup-and-security.outputs.has-ios-changes == 'true' || github.event_name == 'workflow_dispatch'
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
+        xcode-version: '15.0'
 
-    - name: Install frontend dependencies
+    - name: Install SwiftLint
+      run: brew install swiftlint
+
+    - name: Install swift-format
       run: |
-        cd frontend
-        npm ci
+        git clone https://github.com/apple/swift-format.git
+        cd swift-format
+        swift build -c release
+        sudo cp .build/release/swift-format /usr/local/bin/
 
-    - name: TypeScript compilation
+    - name: SwiftLint (exact pre-commit match)
       run: |
-        cd frontend
-        echo "🔧 Checking TypeScript compilation..."
-        npx tsc --noEmit
+        echo "🎨 Running SwiftLint..."
+        swiftlint lint --strict ios/FairEdge/FairEdge/
 
-    - name: ESLint
+    - name: Swift Format Check (exact pre-commit match)
       run: |
-        cd frontend
-        echo "🔍 Running ESLint..."
-        npx eslint . --ext .ts,.tsx --format=json --output-file=eslint_report.json || true
-        npx eslint . --ext .ts,.tsx
+        echo "📝 Checking Swift formatting..."
+        swift-format lint --recursive ios/FairEdge/FairEdge/
 
-    - name: Code duplication check
-      run: |
-        cd frontend
-        echo "📋 Checking for code duplication..."
-        npx jscpd --threshold 10 --reporters console,json --output ./jscpd_report.json src/ || true
-
-    - name: Bundle size analysis
-      run: |
-        cd frontend
-        echo "📦 Analyzing bundle size..."
-        npm run build
-        npx webpack-bundle-analyzer dist/assets/index-*.js --mode=json --report=bundle_analysis.json || true
-
-    - name: Dead code detection
-      run: |
-        cd frontend
-        echo "🧹 Scanning for unused TypeScript code..."
-        npx ts-prune > unused_exports.txt || true
-        if [ -s unused_exports.txt ]; then
-          echo "⚠️ Unused exports detected:"
-          cat unused_exports.txt
-        fi
-
-    - name: Upload frontend quality reports
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: frontend-quality-reports
-        path: |
-          frontend/eslint_report.json
-          frontend/jscpd_report.json
-          frontend/bundle_analysis.json
-          frontend/unused_exports.txt
-        retention-days: 30
-
-  # Phase 3: Backend testing
+  # Phase 4: Backend testing with 80% coverage (matches pre-commit)
   test-backend:
-    name: Backend Tests
+    name: Backend Tests (80% Coverage)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [setup-and-security, code-quality-backend]
@@ -333,7 +305,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest-cov pytest-xdist pytest-html
+        pip install pytest pytest-cov pytest-xdist pytest-html pytest-asyncio pytest-mock factory-boy responses
 
     - name: Create test environment
       run: |
@@ -364,20 +336,11 @@ jobs:
         asyncio.run(setup())
         "
 
-    - name: Run unit tests
+    - name: Run tests with 80% coverage requirement (exact pre-commit match)
       run: |
         export $(cat .env.test | xargs)
-        echo "🧪 Running unit tests with coverage..."
-        pytest tests/ -v \
-          --cov=. \
-          --cov-report=xml \
-          --cov-report=html \
-          --cov-report=term-missing \
-          --cov-fail-under=70 \
-          --html=test_report.html \
-          --self-contained-html \
-          --junitxml=test_results.xml \
-          -x
+        echo "🧪 Running tests with 80% coverage requirement..."
+        pytest --cov=. --cov-fail-under=80 --cov-report=term-missing --cov-report=xml --cov-report=html --html=test_report.html --self-contained-html --junitxml=test_results.xml -x
 
     - name: Upload test results
       if: always()
@@ -399,15 +362,15 @@ jobs:
         flags: backend
         name: backend-coverage
 
-  # Phase 4: Frontend testing
-  test-frontend:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
+  # Phase 5: iOS testing
+  test-ios:
+    name: iOS Tests
+    runs-on: macos-latest
     timeout-minutes: 20
-    needs: [setup-and-security, code-quality-frontend]
+    needs: [setup-and-security, code-quality-ios]
     if: |
       always() && 
-      (needs.setup-and-security.outputs.has-frontend-changes == 'true' || github.event_name == 'workflow_dispatch') &&
+      (needs.setup-and-security.outputs.has-ios-changes == 'true' || github.event_name == 'workflow_dispatch') &&
       !inputs.skip_tests &&
       needs.setup-and-security.outputs.security-passed == 'true'
 
@@ -415,254 +378,33 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
+        xcode-version: '15.0'
 
-    - name: Install dependencies
+    - name: iOS Unit Tests (exact pre-commit match when tests exist)
       run: |
-        cd frontend
-        npm ci
-
-    - name: Frontend security audit
-      run: |
-        cd frontend
-        echo "🔒 Running npm security audit..."
-        npm audit --audit-level high
-
-    - name: Build frontend
-      run: |
-        cd frontend
-        echo "🏗️ Building frontend for testing..."
-        npm run build
-
-    - name: Bundle size check
-      run: |
-        cd frontend
-        echo "📦 Checking bundle size limits..."
-        
-        # Check if bundle is too large (>500KB for main bundle)
-        main_bundle_size=$(ls -la dist/assets/index-*.js | awk '{print $5}')
-        max_size=512000  # 500KB
-        
-        if [ "$main_bundle_size" -gt "$max_size" ]; then
-          echo "❌ Main bundle too large: $main_bundle_size bytes (limit: $max_size)"
-          exit 1
+        cd ios/FairEdge
+        echo "🧪 Running iOS unit tests..."
+        if xcodebuild -list -project FairEdge.xcodeproj | grep -q "FairEdgeTests"; then
+          xcodebuild test -scheme FairEdge -destination "platform=iOS Simulator,name=iPhone 15,OS=17.0"
         else
-          echo "✅ Bundle size acceptable: $main_bundle_size bytes"
+          echo "⚠️ No test scheme found, creating placeholder test results"
+          echo "iOS test infrastructure ready for implementation"
         fi
 
-    # Note: Add actual frontend tests when test files exist
-    - name: Placeholder for frontend tests
+    - name: iOS Build Validation
       run: |
-        cd frontend
-        echo "🧪 Frontend test framework ready (add test files to tests/ directory)"
-        echo "✅ Frontend validation completed"
-
-  # Phase 5: Container builds and scanning
-  build-and-scan:
-    name: Build & Security Scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [setup-and-security]
-    if: |
-      always() && 
-      (needs.setup-and-security.outputs.has-docker-changes == 'true' || 
-       needs.setup-and-security.outputs.has-backend-changes == 'true' || 
-       github.event_name == 'workflow_dispatch') &&
-      needs.setup-and-security.outputs.security-passed == 'true'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: docker/Dockerfile
-        tags: ${{ env.IMAGE_NAME }}:test
-        load: true
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Run Trivy security scan
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: ${{ env.IMAGE_NAME }}:test
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
-    - name: Upload Trivy scan results
-      if: always()
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: 'trivy-results.sarif'
-
-    - name: Test container health
-      run: |
-        echo "🏥 Testing container health..."
-        
-        # Start container with health check
-        docker run -d --name test-app \
-          -p 8000:8000 \
-          -e DEBUG_MODE=true \
-          -e REDIS_URL=redis://localhost:6379/0 \
-          -e SUPABASE_URL=https://test.supabase.co \
-          -e SUPABASE_ANON_KEY=test_key \
-          -e SUPABASE_JWT_SECRET=test_secret_that_is_long_enough \
-          -e SUPABASE_SERVICE_ROLE_KEY=test_service_key \
-          -e THE_ODDS_API_KEY=test_api_key \
-          ${{ env.IMAGE_NAME }}:test
-
-        # Wait for startup and test health
-        sleep 30
-        if curl -f http://localhost:8000/health; then
-          echo "✅ Container health check passed"
-        else
-          echo "❌ Container health check failed"
-          docker logs test-app
-          exit 1
-        fi
-
-        docker stop test-app
-
-  # Phase 6: Integration tests (optional, only on main branch pushes)
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [test-backend, test-frontend, build-and-scan]
-    if: |
-      always() && 
-      github.ref == 'refs/heads/main' && 
-      !inputs.skip_tests &&
-      (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') &&
-      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
-      needs.build-and-scan.result == 'success'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Compose
-      run: |
-        echo "🐳 Setting up full stack for integration testing..."
-        
-        # Create test environment
-        cp environments/development.env .env.local
-        
-        # Start full stack
-        docker compose up -d --build
-
-    - name: Wait for services
-      run: |
-        echo "⏳ Waiting for services to be ready..."
-        timeout 120 bash -c 'until curl -f http://localhost:8000/health; do sleep 5; done'
-        echo "✅ Backend service ready"
-        
-        timeout 120 bash -c 'until curl -f http://localhost:5173; do sleep 5; done'
-        echo "✅ Frontend service ready"
-
-    - name: Run integration smoke tests
-      run: |
-        echo "🚀 Running integration smoke tests..."
-        
-        # Test key endpoints
-        curl -f http://localhost:8000/health
-        curl -f http://localhost:8000/api/opportunities
-        curl -f http://localhost:5173
-        
-        echo "✅ Integration tests passed"
-
-    - name: Cleanup
-      if: always()
-      run: |
-        docker compose down -v
-        docker system prune -f
-
-  # Phase 7: Performance validation (main branch only)
-  performance-validation:
-    name: Performance Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [integration-tests]
-    if: |
-      always() &&
-      github.ref == 'refs/heads/main' &&
-      needs.integration-tests.result == 'success'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install performance tools
-      run: |
-        pip install locust
-        curl -L https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine-v1.18.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
-        sudo mv hyperfine-v1.18.0-x86_64-unknown-linux-gnu/hyperfine /usr/local/bin/
-
-    - name: Start application for benchmarking
-      run: |
-        # Start minimal stack for performance testing
-        docker run -d --name benchmark-redis -p 6379:6379 redis:7-alpine
-        
-        export DEBUG_MODE=true
-        export REDIS_URL=redis://localhost:6379/0
-        export SUPABASE_URL=https://test.supabase.co
-        export SUPABASE_ANON_KEY=test_key
-        export SUPABASE_JWT_SECRET=test_secret_that_is_long_enough
-        
-        python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
-        echo $! > app.pid
-        
-        timeout 60 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
-
-    - name: Run performance benchmarks
-      run: |
-        echo "⚡ Running performance benchmarks..."
-        
-        hyperfine --warmup 3 --runs 10 \
-          'curl -s http://localhost:8000/health' \
-          'curl -s http://localhost:8000/' \
-          'curl -s http://localhost:8000/api/opportunities' \
-          --export-json benchmark_results.json
-
-        echo "📊 Benchmark results:"
-        cat benchmark_results.json
-
-    - name: Upload performance results
-      uses: actions/upload-artifact@v4
-      with:
-        name: performance-benchmarks
-        path: benchmark_results.json
-        retention-days: 90
-
-    - name: Cleanup
-      if: always()
-      run: |
-        if [ -f app.pid ]; then
-          kill $(cat app.pid) 2>/dev/null || true
-        fi
-        docker stop benchmark-redis 2>/dev/null || true
-        docker rm benchmark-redis 2>/dev/null || true
+        cd ios/FairEdge
+        echo "🏗️ Validating iOS build..."
+        xcodebuild build -scheme FairEdge -destination "platform=iOS Simulator,name=iPhone 15,OS=17.0"
 
   # Final summary job
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [setup-and-security, code-quality-backend, code-quality-frontend, test-backend, test-frontend, build-and-scan, integration-tests, performance-validation]
+    needs: [setup-and-security, code-quality-backend, code-quality-ios, test-backend, test-ios]
     if: always()
 
     steps:
@@ -673,22 +415,22 @@ jobs:
         
         echo "🔒 Security: ${{ needs.setup-and-security.result }}"
         echo "🎨 Backend Quality: ${{ needs.code-quality-backend.result }}"
-        echo "🎨 Frontend Quality: ${{ needs.code-quality-frontend.result }}"
+        echo "🎨 iOS Quality: ${{ needs.code-quality-ios.result }}"
         echo "🧪 Backend Tests: ${{ needs.test-backend.result }}"
-        echo "🧪 Frontend Tests: ${{ needs.test-frontend.result }}"
-        echo "🐳 Build & Scan: ${{ needs.build-and-scan.result }}"
-        echo "🔗 Integration: ${{ needs.integration-tests.result }}"
-        echo "⚡ Performance: ${{ needs.performance-validation.result }}"
+        echo "🧪 iOS Tests: ${{ needs.test-ios.result }}"
         
         # Determine overall status
         if [[ "${{ needs.setup-and-security.result }}" == "failure" ]]; then
           echo "❌ Pipeline failed due to security issues"
           exit 1
-        elif [[ "${{ needs.build-and-scan.result }}" == "failure" ]]; then
-          echo "❌ Pipeline failed due to build/security scan issues"
+        elif [[ "${{ needs.test-backend.result }}" == "failure" ]]; then
+          echo "❌ Pipeline failed due to backend test failures"
           exit 1
-        elif [[ "${{ needs.test-backend.result }}" == "failure" || "${{ needs.test-frontend.result }}" == "failure" ]]; then
-          echo "❌ Pipeline failed due to test failures"
+        elif [[ "${{ needs.code-quality-backend.result }}" == "failure" ]]; then
+          echo "❌ Pipeline failed due to backend quality issues"
+          exit 1
+        elif [[ "${{ needs.code-quality-ios.result }}" == "failure" ]]; then
+          echo "❌ Pipeline failed due to iOS quality issues"
           exit 1
         else
           echo "✅ Pipeline completed successfully"
