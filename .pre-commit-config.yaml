@@ -2,6 +2,47 @@ repos:
   # Custom project-specific checks
   - repo: local
     hooks:
+      # Enhanced Python testing
+      - id: pytest-coverage
+        name: Run tests with 80% coverage requirement
+        entry: pytest --cov=. --cov-fail-under=80 --cov-report=term-missing
+        language: system
+        pass_filenames: false
+        files: '\.py$'
+      
+      # Type checking
+      - id: mypy-check
+        name: MyPy type checking
+        entry: mypy --ignore-missing-imports --no-strict-optional .
+        language: system
+        files: '\.py$'
+        pass_filenames: false
+      
+      # Code complexity
+      - id: radon-complexity
+        name: Check code complexity
+        entry: radon cc . --min=B --show-complexity
+        language: system
+        files: '\.py$'
+        pass_filenames: false
+      
+      # Documentation coverage
+      - id: interrogate-docs
+        name: Check docstring coverage
+        entry: interrogate --fail-under=60 .
+        language: system
+        files: '\.py$'
+        pass_filenames: false
+      
+      # Dead code detection
+      - id: vulture-dead-code
+        name: Find dead code
+        entry: vulture . --min-confidence=80
+        language: system
+        files: '\.py$'
+        pass_filenames: false
+        
+      # Existing project-specific checks
       - id: no-pandas-numpy
         name: Block pandas/numpy imports
         entry: bash
@@ -37,21 +78,20 @@ repos:
         language: system
         files: '\.(py|js|ts)$'
         
-      - id: frontend-lint
-        name: Frontend ESLint
+      # iOS Swift quality checks
+      - id: swiftlint
+        name: SwiftLint
         entry: bash
-        args: ['-c', 'cd frontend && npm run lint']
+        args: ['-c', 'if command -v swiftlint >/dev/null 2>&1; then swiftlint lint --strict ios/FairEdge/FairEdge/; else echo "⚠️ SwiftLint not installed, skipping"; fi']
         language: system
-        files: '^frontend/.*\.(js|ts|jsx|tsx)$'
-        pass_filenames: false
+        files: '\.swift$'
         
-      - id: frontend-type-check
-        name: Frontend TypeScript Check
+      - id: swift-format-check
+        name: Swift Format Check
         entry: bash
-        args: ['-c', 'cd frontend && npm run type-check']
+        args: ['-c', 'if command -v swift-format >/dev/null 2>&1; then swift-format lint --recursive ios/FairEdge/FairEdge/; else echo "⚠️ swift-format not installed, skipping"; fi']
         language: system
-        files: '^frontend/.*\.(ts|tsx)$'
-        pass_filenames: false
+        files: '\.swift$'
         
   # Python formatting and linting
   - repo: https://github.com/psf/black

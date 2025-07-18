@@ -15,7 +15,7 @@ from sqlalchemy import and_, or_
 
 from core.settings import settings
 from models import DeviceToken, UserProfile, UserRole
-from db import get_session
+from db import get_async_session
 
 logger = logging.getLogger(__name__)
 

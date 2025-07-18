@@ -24,7 +24,7 @@ from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime, timezone, timedelta
 
-from core.auth import get_current_user, get_current_user_optional, UserCtx
+from core.auth import get_current_user, get_user_or_none, UserCtx
 from core.rate_limit import limiter
 from core.settings import settings
 from db import get_supabase
@@ -430,7 +430,7 @@ async def remove_device(
 @router.get("/config")
 async def get_mobile_config(
     request: Request,
-    user: UserCtx = Depends(get_current_user_optional)
+    user: UserCtx = Depends(get_user_or_none)
 ) -> Dict[str, Any]:
     """
     Get mobile-specific configuration and feature flags

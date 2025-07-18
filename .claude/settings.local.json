@@ -7,7 +7,11 @@
       "Bash(ls:*)",
       "Bash(mkdir:*)",
       "Bash(alembic revision:*)",
-      "Bash(alembic check:*)"
+      "Bash(alembic check:*)",
+      "Bash(python -m pytest --cov=. --cov-report=term-missing --cov-report=html tests/unit/ -v)",
+      "Bash(python -m pytest tests/unit/test_core/ -v --tb=short)",
+      "Bash(python -m pytest tests/unit/test_core/test_ev_analyzer.py -v --tb=short)",
+      "Bash(python:*)"
     ],
     "deny": []
   }
