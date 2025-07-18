@@ -5,7 +5,9 @@
       "Bash(find:*)",
       "Bash(rg:*)",
       "Bash(ls:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(alembic revision:*)",
+      "Bash(alembic check:*)"
     ],
     "deny": []
   }

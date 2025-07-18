@@ -281,3 +281,6 @@ celerybeat-schedule
 
 # Byte-compiled / optimized / DLL files 
 environments/*.env
+
+# Development documentation and task lists
+*.ignore.*
