@@ -2,6 +2,7 @@
 Stripe integration utilities for bet-intel
 Handles subscription management and payment processing
 """
+
 import logging
 from typing import Optional
 

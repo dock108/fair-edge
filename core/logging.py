@@ -2,6 +2,7 @@
 Structured logging configuration for bet-intel application
 Sets up JSON logging with contextual information for production observability
 """
+
 import logging
 import logging.config
 import os
@@ -57,15 +58,17 @@ def setup_structlog():
         # Add timestamp
         structlog.processors.TimeStamper(fmt="iso"),
         # Add caller info in development
-        structlog.processors.CallsiteParameterAdder(
-            parameters=[
-                structlog.processors.CallsiteParameter.FILENAME,
-                structlog.processors.CallsiteParameter.FUNC_NAME,
-                structlog.processors.CallsiteParameter.LINENO,
-            ]
-        )
-        if not is_production
-        else structlog.processors.CallsiteParameterAdder(),
+        (
+            structlog.processors.CallsiteParameterAdder(
+                parameters=[
+                    structlog.processors.CallsiteParameter.FILENAME,
+                    structlog.processors.CallsiteParameter.FUNC_NAME,
+                    structlog.processors.CallsiteParameter.LINENO,
+                ]
+            )
+            if not is_production
+            else structlog.processors.CallsiteParameterAdder()
+        ),
         # Stack info for exceptions
         structlog.processors.StackInfoRenderer(),
         # Format exceptions

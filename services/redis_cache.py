@@ -2,6 +2,7 @@
 Redis cache layer for bet-intel
 Handles caching of EV opportunities and analytics data
 """
+
 import json
 import logging
 from datetime import datetime
@@ -100,7 +101,10 @@ def store_analytics_data(analytics: Dict[str, Any]) -> bool:
         return False
 
     try:
-        analytics_with_timestamp = {**analytics, "timestamp": datetime.utcnow().isoformat()}
+        analytics_with_timestamp = {
+            **analytics,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
 
         redis_client.set(ANALYTICS_CACHE_KEY, json.dumps(analytics_with_timestamp))
         logger.info("✅ Stored analytics data in Redis")

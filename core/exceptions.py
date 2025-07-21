@@ -2,6 +2,7 @@
 Standardized exception handling for FairEdge application
 Provides consistent error handling patterns and responses
 """
+
 import logging
 from typing import Any, Dict, Optional
 
@@ -16,7 +17,10 @@ class FairEdgeException(Exception):
     """Base exception for FairEdge application"""
 
     def __init__(
-        self, message: str, code: str = "UNKNOWN_ERROR", details: Optional[Dict[str, Any]] = None
+        self,
+        message: str,
+        code: str = "UNKNOWN_ERROR",
+        details: Optional[Dict[str, Any]] = None,
     ):
         self.message = message
         self.code = code
@@ -28,7 +32,10 @@ class DataFetchError(FairEdgeException):
     """Exception for data fetching failures"""
 
     def __init__(
-        self, message: str, source: str = "unknown", details: Optional[Dict[str, Any]] = None
+        self,
+        message: str,
+        source: str = "unknown",
+        details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, "DATA_FETCH_ERROR", details)
         self.source = source
@@ -38,7 +45,10 @@ class CacheError(FairEdgeException):
     """Exception for cache-related failures"""
 
     def __init__(
-        self, message: str, operation: str = "unknown", details: Optional[Dict[str, Any]] = None
+        self,
+        message: str,
+        operation: str = "unknown",
+        details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, "CACHE_ERROR", details)
         self.operation = operation
@@ -48,7 +58,10 @@ class ValidationError(FairEdgeException):
     """Exception for input validation failures"""
 
     def __init__(
-        self, message: str, field: str = "unknown", details: Optional[Dict[str, Any]] = None
+        self,
+        message: str,
+        field: str = "unknown",
+        details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, "VALIDATION_ERROR", details)
         self.field = field
@@ -58,7 +71,9 @@ class AuthenticationError(FairEdgeException):
     """Exception for authentication failures"""
 
     def __init__(
-        self, message: str = "Authentication failed", details: Optional[Dict[str, Any]] = None
+        self,
+        message: str = "Authentication failed",
+        details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, "AUTH_ERROR", details)
 
@@ -117,10 +132,18 @@ class ExceptionHandler:
                 )
             else:
                 logger.warning(f"Cache error during {operation}: {error.message}")
-            return {"cache_status": "degraded", "fallback_active": True, "operation": operation}
+            return {
+                "cache_status": "degraded",
+                "fallback_active": True,
+                "operation": operation,
+            }
 
         logger.error(f"Unexpected cache error during {operation}: {str(error)}", exc_info=True)
-        return {"cache_status": "error", "fallback_active": True, "operation": operation}
+        return {
+            "cache_status": "error",
+            "fallback_active": True,
+            "operation": operation,
+        }
 
     @staticmethod
     def handle_validation_error(error: Exception, context: str = "unknown") -> HTTPException:
@@ -140,7 +163,11 @@ class ExceptionHandler:
         logger.error(f"Unexpected validation error in {context}: {str(error)}", exc_info=True)
         return HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": "Invalid request", "code": "VALIDATION_ERROR", "context": context},
+            detail={
+                "error": "Invalid request",
+                "code": "VALIDATION_ERROR",
+                "context": context,
+            },
         )
 
     @staticmethod
@@ -203,7 +230,11 @@ class ExceptionHandler:
         else:
             return HTTPException(
                 status_code=status_code,
-                detail={"error": str(error), "code": "REQUEST_ERROR", "context": context},
+                detail={
+                    "error": str(error),
+                    "code": "REQUEST_ERROR",
+                    "context": context,
+                },
             )
 
 
@@ -235,7 +266,8 @@ def setup_exception_handlers(app):
     async def global_exception_handler(request: Request, exc: Exception):
         """Global exception handler for unhandled exceptions"""
         logger.error(
-            f"Unhandled exception on {request.method} {request.url}: {str(exc)}", exc_info=True
+            f"Unhandled exception on {request.method} {request.url}: {str(exc)}",
+            exc_info=True,
         )
 
         return JSONResponse(
@@ -252,5 +284,5 @@ def setup_exception_handlers(app):
         """Handle FastAPI HTTP exceptions"""
         return JSONResponse(
             status_code=exc.status_code,
-            content=exc.detail if isinstance(exc.detail, dict) else {"error": exc.detail},
+            content=(exc.detail if isinstance(exc.detail, dict) else {"error": exc.detail}),
         )

@@ -5,6 +5,7 @@ Handles saving betting opportunities to the database with proper data normalizat
 batch operations, and error handling that doesn't break the refresh pipeline.
 Specifically designed for Celery tasks with pgbouncer compatibility.
 """
+
 import hashlib
 import json
 import logging
@@ -511,7 +512,11 @@ class SyncBetPersistenceService:
 
             decimal_odds = MathUtils.american_to_decimal(american_int)
 
-            return {"american": odds_str, "decimal": decimal_odds, "raw": str(fair_odds)}
+            return {
+                "american": odds_str,
+                "decimal": decimal_odds,
+                "raw": str(fair_odds),
+            }
 
         except Exception as e:
             # Fallback to even odds if parsing fails
@@ -690,7 +695,11 @@ class SyncBetPersistenceService:
 
         # Sports data
         sports_data = [
-            {"sport_id": "americanfootball_nfl", "name": "NFL", "category": "americanfootball"},
+            {
+                "sport_id": "americanfootball_nfl",
+                "name": "NFL",
+                "category": "americanfootball",
+            },
             {"sport_id": "basketball_nba", "name": "NBA", "category": "basketball"},
             {"sport_id": "baseball_mlb", "name": "MLB", "category": "baseball"},
             {"sport_id": "icehockey_nhl", "name": "NHL", "category": "icehockey"},
@@ -709,18 +718,51 @@ class SyncBetPersistenceService:
                 "name": "National Basketball Association",
                 "sport_id": "basketball_nba",
             },
-            {"league_id": "mlb", "name": "Major League Baseball", "sport_id": "baseball_mlb"},
-            {"league_id": "nhl", "name": "National Hockey League", "sport_id": "icehockey_nhl"},
+            {
+                "league_id": "mlb",
+                "name": "Major League Baseball",
+                "sport_id": "baseball_mlb",
+            },
+            {
+                "league_id": "nhl",
+                "name": "National Hockey League",
+                "sport_id": "icehockey_nhl",
+            },
             {"league_id": "unknown", "name": "Unknown League", "sport_id": "unknown"},
         ]
 
         # Books data - only the 5 supported books
         books_data = [
-            {"book_id": "draftkings", "name": "DraftKings", "book_type": "us_book", "region": "us"},
-            {"book_id": "fanduel", "name": "FanDuel", "book_type": "us_book", "region": "us"},
-            {"book_id": "novig", "name": "NoVig", "book_type": "us_book", "region": "us"},
-            {"book_id": "prophetx", "name": "ProphetX", "book_type": "us_book", "region": "us"},
-            {"book_id": "pinnacle", "name": "Pinnacle", "book_type": "sharp", "region": "global"},
+            {
+                "book_id": "draftkings",
+                "name": "DraftKings",
+                "book_type": "us_book",
+                "region": "us",
+            },
+            {
+                "book_id": "fanduel",
+                "name": "FanDuel",
+                "book_type": "us_book",
+                "region": "us",
+            },
+            {
+                "book_id": "novig",
+                "name": "NoVig",
+                "book_type": "us_book",
+                "region": "us",
+            },
+            {
+                "book_id": "prophetx",
+                "name": "ProphetX",
+                "book_type": "us_book",
+                "region": "us",
+            },
+            {
+                "book_id": "pinnacle",
+                "name": "Pinnacle",
+                "book_type": "sharp",
+                "region": "global",
+            },
         ]
 
         # Insert lookup data with ON CONFLICT handling
@@ -744,7 +786,10 @@ class SyncBetPersistenceService:
                 logger.warning(f"Error upserting {table}: {e}")
 
     def _process_api_batch(
-        self, opportunities: List[Dict[str, Any]], supabase_url: str, headers: Dict[str, str]
+        self,
+        opportunities: List[Dict[str, Any]],
+        supabase_url: str,
+        headers: Dict[str, str],
     ) -> Dict[str, Any]:
         """Process a batch of opportunities via REST API with aggregation by bet_id"""
         import requests
@@ -1061,7 +1106,10 @@ class SyncBetPersistenceService:
                 else:
                     avg_american = f"-{int(100 / (avg_decimal - 1))}"
 
-                offer_data["market_average"] = {"american": avg_american, "decimal": avg_decimal}
+                offer_data["market_average"] = {
+                    "american": avg_american,
+                    "decimal": avg_decimal,
+                }
             else:
                 offer_data["market_average"] = None
         else:
@@ -1100,7 +1148,11 @@ class SyncBetPersistenceService:
             response = requests.get(
                 f"{supabase_url}/rest/v1/bet_offers",
                 headers=headers,
-                params={"bet_id": f"eq.{bet_id}", "order": "timestamp.desc", "limit": "1"},
+                params={
+                    "bet_id": f"eq.{bet_id}",
+                    "order": "timestamp.desc",
+                    "limit": "1",
+                },
                 timeout=10,
             )
 
@@ -1198,7 +1250,11 @@ class SyncBetPersistenceService:
             response = requests.get(
                 f"{supabase_url}/rest/v1/bet_offers",
                 headers=headers,
-                params={"bet_id": f"eq.{bet_id}", "order": "timestamp.desc", "limit": "1"},
+                params={
+                    "bet_id": f"eq.{bet_id}",
+                    "order": "timestamp.desc",
+                    "limit": "1",
+                },
                 timeout=10,
             )
 

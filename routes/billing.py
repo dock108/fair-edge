@@ -125,6 +125,7 @@ ERROR HANDLING:
 - Automatic retry logic for transient failures
 - Database transaction safety with proper rollback handling
 """
+
 import logging
 
 import stripe
@@ -178,7 +179,8 @@ async def create_stripe_checkout(
         if request.plan == "basic":
             if not settings.stripe_basic_price:
                 raise HTTPException(
-                    status_code=503, detail="Basic plan is not configured. Please contact support."
+                    status_code=503,
+                    detail="Basic plan is not configured. Please contact support.",
                 )
             price_id = settings.stripe_basic_price
         elif request.plan == "premium":
@@ -338,7 +340,13 @@ async def _handle_subscription_cancelled(subscription: dict):
         supabase = get_supabase()
         result = (
             supabase.table("profiles")
-            .update({"role": "free", "subscription_status": "cancelled", "updated_at": "now()"})
+            .update(
+                {
+                    "role": "free",
+                    "subscription_status": "cancelled",
+                    "updated_at": "now()",
+                }
+            )
             .eq("stripe_subscription_id", subscription_id)
             .execute()
         )
@@ -388,7 +396,13 @@ async def _handle_subscription_updated(subscription: dict):
         supabase = get_supabase()
         result = (
             supabase.table("profiles")
-            .update({"role": user_role, "subscription_status": status, "updated_at": "now()"})
+            .update(
+                {
+                    "role": user_role,
+                    "subscription_status": status,
+                    "updated_at": "now()",
+                }
+            )
             .eq("stripe_subscription_id", subscription_id)
             .execute()
         )

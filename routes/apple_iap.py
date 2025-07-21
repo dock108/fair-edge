@@ -28,6 +28,7 @@ iOS app flow:
 4. Server validates with Apple and updates user role
 5. App refreshes user state and unlocks premium features
 """
+
 import logging
 from typing import Any, Dict
 

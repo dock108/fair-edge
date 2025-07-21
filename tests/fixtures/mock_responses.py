@@ -38,8 +38,16 @@ class MockOddsAPI:
                                 {
                                     "key": "spreads",
                                     "outcomes": [
-                                        {"name": "Dallas Cowboys", "price": 1.91, "point": -3.5},
-                                        {"name": "Green Bay Packers", "price": 1.91, "point": 3.5},
+                                        {
+                                            "name": "Dallas Cowboys",
+                                            "price": 1.91,
+                                            "point": -3.5,
+                                        },
+                                        {
+                                            "name": "Green Bay Packers",
+                                            "price": 1.91,
+                                            "point": 3.5,
+                                        },
                                     ],
                                 },
                             ],
@@ -65,7 +73,10 @@ class MockOddsAPI:
     @staticmethod
     def rate_limit_error():
         """Mock rate limit error response."""
-        return {"success": False, "error": "Rate limit exceeded. Please try again later."}
+        return {
+            "success": False,
+            "error": "Rate limit exceeded. Please try again later.",
+        }
 
     @staticmethod
     def api_key_error():

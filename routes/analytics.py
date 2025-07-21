@@ -255,14 +255,16 @@ async def get_analytics_summary(
             "total_opportunities": len(ev_data),
             "positive_ev_count": len(positive_ev_opps),
             "avg_ev": (sum(opp.get("ev_percentage", 0) for opp in ev_data) / len(ev_data)),
-            "best_opportunity": {
-                "game": best_opp.get("game", ""),
-                "market": best_opp.get("market", ""),
-                "sportsbook": best_opp.get("sportsbook", ""),
-                "ev_percentage": best_opp.get("ev_percentage", 0),
-            }
-            if best_opp
-            else None,
+            "best_opportunity": (
+                {
+                    "game": best_opp.get("game", ""),
+                    "market": best_opp.get("market", ""),
+                    "sportsbook": best_opp.get("sportsbook", ""),
+                    "ev_percentage": best_opp.get("ev_percentage", 0),
+                }
+                if best_opp
+                else None
+            ),
             "sports_count": len(set(opp.get("sport", "") for opp in ev_data)),
             "sportsbooks_count": len(set(opp.get("sportsbook", "") for opp in ev_data)),
         }

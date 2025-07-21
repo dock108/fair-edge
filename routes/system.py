@@ -85,9 +85,9 @@ async def get_build_info(request: Request):
             "version": app_version,
             "environment": environment,
             "build_time": build_time,
-            "build_timestamp": datetime.fromtimestamp(int(build_time))
-            if build_time.isdigit()
-            else "unknown",
+            "build_timestamp": (
+                datetime.fromtimestamp(int(build_time)) if build_time.isdigit() else "unknown"
+            ),
             "api_status": "healthy",
             "timestamp": datetime.now().isoformat(),
         }
@@ -140,7 +140,10 @@ async def get_cache_status(request: Request, admin_user: UserCtx = Depends(requi
             "key_statistics": key_pattern_stats,
             "cache_hit_ratio": (
                 redis_info.get("keyspace_hits", 0)
-                / max(redis_info.get("keyspace_hits", 0) + redis_info.get("keyspace_misses", 0), 1)
+                / max(
+                    redis_info.get("keyspace_hits", 0) + redis_info.get("keyspace_misses", 0),
+                    1,
+                )
             )
             * 100,
             "checked_by": admin_user.email,
@@ -280,12 +283,14 @@ async def get_celery_health(request: Request, admin_user: UserCtx = Depends(requ
                 "scheduled_tasks": len(scheduled) if scheduled else 0,
             },
             "broker_info": {
-                "broker_url": celery_app.conf.broker_url.split("@")[-1]
-                if "@" in celery_app.conf.broker_url
-                else "Redis",
-                "result_backend": "Redis"
-                if "redis" in str(celery_app.conf.result_backend)
-                else "Unknown",
+                "broker_url": (
+                    celery_app.conf.broker_url.split("@")[-1]
+                    if "@" in celery_app.conf.broker_url
+                    else "Redis"
+                ),
+                "result_backend": (
+                    "Redis" if "redis" in str(celery_app.conf.result_backend) else "Unknown"
+                ),
             },
             "checked_by": admin_user.email,
             "timestamp": datetime.now().isoformat(),
@@ -323,9 +328,11 @@ async def trigger_manual_refresh(
             )
 
         # Set queue based on priority
-        queue_name = {"low": "low_priority", "normal": "celery", "high": "high_priority"}.get(
-            priority, "celery"
-        )
+        queue_name = {
+            "low": "low_priority",
+            "normal": "celery",
+            "high": "high_priority",
+        }.get(priority, "celery")
 
         # Start background refresh task
         task = refresh_odds_data.apply_async(

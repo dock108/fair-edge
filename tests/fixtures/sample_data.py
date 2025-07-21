@@ -23,7 +23,12 @@ class BettingOpportunityFactory(factory.Factory):
     )
     sport = factory.Faker("random_element", elements=["NFL", "NBA", "MLB", "NHL", "Soccer"])
     ev_pct = factory.Faker(
-        "pyfloat", left_digits=2, right_digits=1, positive=True, min_value=1.0, max_value=25.0
+        "pyfloat",
+        left_digits=2,
+        right_digits=1,
+        positive=True,
+        min_value=1.0,
+        max_value=25.0,
     )
     best_odds = factory.LazyAttribute(lambda obj: f"+{int(obj.ev_pct * 10)}")
     fair_odds = factory.LazyAttribute(lambda obj: f"+{int(obj.ev_pct * 8)}")
@@ -32,13 +37,15 @@ class BettingOpportunityFactory(factory.Factory):
     )
     game_time = factory.Faker("future_datetime", end_date="+30d")
     classification = factory.LazyAttribute(
-        lambda obj: "great"
-        if obj.ev_pct >= 15
-        else "good"
-        if obj.ev_pct >= 10
-        else "fair"
-        if obj.ev_pct >= 5
-        else "poor"
+        lambda obj: (
+            "great"
+            if obj.ev_pct >= 15
+            else "good"
+            if obj.ev_pct >= 10
+            else "fair"
+            if obj.ev_pct >= 5
+            else "poor"
+        )
     )
 
 

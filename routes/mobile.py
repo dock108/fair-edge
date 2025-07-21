@@ -18,6 +18,7 @@ INTEGRATION:
 Works alongside existing API endpoints but provides mobile-specific
 optimizations for better battery life, network efficiency, and UX.
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -324,7 +325,8 @@ async def update_notification_preferences(
     except Exception as e:
         logger.error(f"Error updating notification preferences for user {user.id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to update notification preferences: {str(e)}"
+            status_code=500,
+            detail=f"Failed to update notification preferences: {str(e)}",
         )
 
 
@@ -361,9 +363,11 @@ async def send_test_notification(
             "success": result["status"] in ["completed", "no_devices"],
             "devices_targeted": result.get("devices_targeted", 0),
             "notifications_sent": result.get("notifications_sent", 0),
-            "message": "Test notification sent successfully"
-            if result["status"] == "completed"
-            else result.get("message", "No devices found"),
+            "message": (
+                "Test notification sent successfully"
+                if result["status"] == "completed"
+                else result.get("message", "No devices found")
+            ),
             "details": result,
         }
 
@@ -402,7 +406,11 @@ async def remove_device(
         # For now, return success
         logger.info(f"Removing device {device_id} for user {user.id}")
 
-        return {"success": True, "device_id": device_id, "message": "Device removed successfully"}
+        return {
+            "success": True,
+            "device_id": device_id,
+            "message": "Device removed successfully",
+        }
 
     except Exception as e:
         logger.error(f"Error removing device {device_id} for user {user.id}: {e}")
@@ -482,7 +490,7 @@ async def mobile_health_check(request: Request) -> Dict[str, Any]:
                 "api": "available",
                 "authentication": "available",
                 "opportunities_data": "available",
-                "apple_iap": "available" if settings.apple_iap_configured else "unavailable",
+                "apple_iap": ("available" if settings.apple_iap_configured else "unavailable"),
                 "push_notifications": "available",
             },
             "performance": {

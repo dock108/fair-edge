@@ -2,6 +2,7 @@
 FastAPI-compatible data processing service for sports betting +EV analysis
 Handles raw data fetching, processing, and opportunity generation without Streamlit dependencies
 """
+
 import logging
 import os
 import pickle
@@ -48,7 +49,9 @@ logger.info(
 )
 
 
-def deduplicate_opportunities(opportunities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def deduplicate_opportunities(
+    opportunities: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
     """
     Remove duplicate opportunities, keeping only the most recent version of each unique bet.
 
@@ -73,7 +76,7 @@ def deduplicate_opportunities(opportunities: List[Dict[str, Any]]) -> List[Dict[
         "spreads": "spread",
         "point_spread": "spread",
         "totals": "total",
-        "over_under": "total"
+        "over_under": "total",
         # Don't normalize h2h variants - they're different time periods
     }
 
@@ -745,9 +748,11 @@ def validate_data_pipeline() -> Dict[str, Any]:
             "data_fetch": api_connection,
             "data_processing": data_processing,
             "total_opportunities": len(opportunities),
-            "errors": []
-            if api_connection and data_processing
-            else [raw_data.get("error", "Unknown error")],
+            "errors": (
+                []
+                if api_connection and data_processing
+                else [raw_data.get("error", "Unknown error")]
+            ),
         }
     except Exception as e:
         return {

@@ -1,6 +1,7 @@
 """
 Opportunity formatter to transform backend data to frontend expected format
 """
+
 import logging
 
 logger = logging.getLogger(__name__)

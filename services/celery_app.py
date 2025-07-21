@@ -2,6 +2,7 @@
 Celery app configuration for FairEdge background tasks
 Handles odds data fetching and processing on a schedule with fault tolerance
 """
+
 import logging
 import os
 import sys

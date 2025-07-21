@@ -2,6 +2,7 @@
 Unified management CLI for bet-intel application
 Consolidates frequently used scripts into a single command interface
 """
+
 import asyncio
 import logging
 import os
@@ -120,14 +121,17 @@ def create_test_users(count: int = typer.Option(3, help="Number of test users to
 
 
 @user_app.command("promote-admin")
-def promote_admin(email: str = typer.Argument(help="Email of user to promote to admin")):
+def promote_admin(
+    email: str = typer.Argument(help="Email of user to promote to admin"),
+):
     """Promote a user to admin role"""
 
     async def _promote_admin():
         async with engine.begin() as conn:
             # Check if user exists
             result = await conn.execute(
-                text("SELECT id, email, role FROM profiles WHERE email = :email"), {"email": email}
+                text("SELECT id, email, role FROM profiles WHERE email = :email"),
+                {"email": email},
             )
 
             user = result.fetchone()

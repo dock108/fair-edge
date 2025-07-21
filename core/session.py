@@ -2,6 +2,7 @@
 Session Management for Production Authentication
 Handles httpOnly cookies and CSRF protection
 """
+
 import hashlib
 import hmac
 import secrets
@@ -161,7 +162,9 @@ def get_current_user_from_cookie(request: Request) -> Optional[UserCtx]:
         # Validate JWT token (same logic as core.auth but from cookie)
         # Note: PyJWT doesn't verify audience by default, so no options needed
         payload = jwt.decode(
-            token, settings.supabase_jwt_secret, algorithms=[settings.supabase_jwt_algorithm]
+            token,
+            settings.supabase_jwt_secret,
+            algorithms=[settings.supabase_jwt_algorithm],
         )
 
         user_id = payload.get("sub")

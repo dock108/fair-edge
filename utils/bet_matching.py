@@ -2,6 +2,7 @@
 Centralized bet identification and matching utilities
 All bet matching logic should flow through here to ensure consistency across the entire system
 """
+
 from typing import Any, Dict, List, Optional, Tuple
 
 from utils.math_utils import MathUtils
@@ -44,7 +45,9 @@ class BetMatcher:
 
     @staticmethod
     def find_outcome_by_name(
-        outcome_name: str, market_odds: Dict[str, List[Dict[str, Any]]], market_key: str = None
+        outcome_name: str,
+        market_odds: Dict[str, List[Dict[str, Any]]],
+        market_key: str = None,
     ) -> Optional[Tuple[str, Dict[str, Any]]]:
         """Find the first outcome that matches the given name"""
         for bookmaker_key, outcomes in market_odds.items():
@@ -55,7 +58,9 @@ class BetMatcher:
 
     @staticmethod
     def create_target_identifier(
-        outcome_name: str, market_odds: Dict[str, List[Dict[str, Any]]], market_key: str = None
+        outcome_name: str,
+        market_odds: Dict[str, List[Dict[str, Any]]],
+        market_key: str = None,
     ) -> Optional[str]:
         """Create target identifier by finding a matching outcome in the market data"""
         result = BetMatcher.find_outcome_by_name(outcome_name, market_odds, market_key)
@@ -66,7 +71,9 @@ class BetMatcher:
 
     @staticmethod
     def find_matching_outcomes(
-        target_identifier: str, market_odds: Dict[str, List[Dict[str, Any]]], market_key: str = None
+        target_identifier: str,
+        market_odds: Dict[str, List[Dict[str, Any]]],
+        market_key: str = None,
     ) -> List[Tuple[str, Dict[str, Any]]]:
         """Find all outcomes that match the target identifier"""
         matches = []
@@ -156,7 +163,9 @@ class BetMatcher:
 
     @staticmethod
     def format_all_odds(
-        outcome_name: str, market_odds: Dict[str, List[Dict[str, Any]]], market_key: str = None
+        outcome_name: str,
+        market_odds: Dict[str, List[Dict[str, Any]]],
+        market_key: str = None,
     ) -> str:
         """Format all available odds for an outcome as a display string"""
         target_identifier = BetMatcher.create_target_identifier(

@@ -24,7 +24,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # List of supported sports (can be expanded)
-SPORTS_SUPPORTED = ["americanfootball_nfl", "basketball_nba", "baseball_mlb", "icehockey_nhl"]
+SPORTS_SUPPORTED = [
+    "americanfootball_nfl",
+    "basketball_nba",
+    "baseball_mlb",
+    "icehockey_nhl",
+]
 
 # Redis configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
@@ -459,7 +464,9 @@ def store_role_based_cache(opportunities: List[Dict[str, Any]], analytics: Dict[
 
         # Cache for free users (main lines only, masked fields)
         redis_client.setex(
-            "ev_opportunities:free", 3600, json.dumps(free_opportunities)  # 1 hour expiry
+            "ev_opportunities:free",
+            3600,
+            json.dumps(free_opportunities),  # 1 hour expiry
         )
 
         # Cache for full access users (subscribers/admins) - all markets

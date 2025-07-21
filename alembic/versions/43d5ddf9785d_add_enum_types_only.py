@@ -5,6 +5,7 @@ Revises: f25d88596077
 Create Date: 2025-06-03 20:35:21.674444
 
 """
+
 from typing import Sequence, Union
 
 from sqlalchemy.dialects import postgresql
@@ -38,7 +39,12 @@ def upgrade() -> None:
     user_role_enum.create(op.get_bind())
 
     subscription_status_enum = postgresql.ENUM(
-        "NONE", "ACTIVE", "CANCELLED", "EXPIRED", "TRIAL", name="subscription_status_enum"
+        "NONE",
+        "ACTIVE",
+        "CANCELLED",
+        "EXPIRED",
+        "TRIAL",
+        name="subscription_status_enum",
     )
     subscription_status_enum.create(op.get_bind())
 

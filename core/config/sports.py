@@ -1,6 +1,7 @@
 """
 Sports and bookmaker configuration consolidated from services/config.py
 """
+
 from typing import Any, Dict, List
 
 

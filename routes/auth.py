@@ -34,7 +34,9 @@ class LogoutRequest(BaseModel):
 @router.post("/api/logout")
 @limiter.limit("10/minute")
 async def logout_user(
-    request: Request, response: Response, user: Optional[UserCtx] = Depends(get_user_or_none)
+    request: Request,
+    response: Response,
+    user: Optional[UserCtx] = Depends(get_user_or_none),
 ):
     """
     Basic logout endpoint - clears client-side session
@@ -51,7 +53,10 @@ async def logout_user(
         )
 
         response.delete_cookie(
-            key="csrf_token", path="/", secure=settings.environment == "production", samesite="lax"
+            key="csrf_token",
+            path="/",
+            secure=settings.environment == "production",
+            samesite="lax",
         )
 
         if user:
@@ -191,7 +196,10 @@ async def logout_secure(
         )
 
         response.delete_cookie(
-            key="csrf_token", path="/", secure=settings.environment == "production", samesite="lax"
+            key="csrf_token",
+            path="/",
+            secure=settings.environment == "production",
+            samesite="lax",
         )
 
         # Log the secure logout
@@ -309,7 +317,13 @@ async def get_user_info(request: Request, user: Optional[UserCtx] = Depends(get_
             "premium": {
                 "max_opportunities": None,
                 "ev_threshold": None,
-                "market_access": ["main_lines", "spreads", "totals", "props", "futures"],
+                "market_access": [
+                    "main_lines",
+                    "spreads",
+                    "totals",
+                    "props",
+                    "futures",
+                ],
                 "export_access": True,
                 "refresh_access": False,
             },
@@ -332,7 +346,10 @@ async def get_user_info(request: Request, user: Optional[UserCtx] = Depends(get_
             "role": user.role,
             "subscription_status": getattr(user, "subscription_status", "free"),
             "capabilities": user_capabilities,
-            "session_info": {"last_activity": datetime.now().isoformat(), "api_version": "v1"},
+            "session_info": {
+                "last_activity": datetime.now().isoformat(),
+                "api_version": "v1",
+            },
         }
 
     except Exception as e:

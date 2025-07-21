@@ -124,7 +124,7 @@ def get_cardinality_stats() -> Dict[str, Dict[str, Any]]:
             "distinct_values": len(values),
             "is_high_cardinality": len(values)
             >= MAX_DISTINCT_VALUES_PER_LABEL * 0.8,  # 80% threshold
-            "sample_values": list(values)[:5] if values else [],  # First 5 values as examples
+            "sample_values": (list(values)[:5] if values else []),  # First 5 values as examples
         }
 
     return stats
@@ -268,7 +268,9 @@ def safe_endpoint_label(endpoint: str) -> Optional[str]:
     # Replace dynamic segments with placeholders
     # Replace UUIDs first (more specific pattern)
     normalized = re.sub(
-        r"/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", "/{uuid}", normalized
+        r"/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}",
+        "/{uuid}",
+        normalized,
     )
     # Replace numeric IDs (but only pure numbers, not UUIDs that start with numbers)
     normalized = re.sub(r"/\d+(?![a-f0-9-])", "/{id}", normalized)

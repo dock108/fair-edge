@@ -247,7 +247,8 @@ async def authenticate_websocket(token: Optional[str]) -> Optional[UserCtx]:
 
 @router.websocket("/ws/opportunities")
 async def websocket_opportunities_endpoint(
-    websocket: WebSocket, token: Optional[str] = Query(None, description="JWT authentication token")
+    websocket: WebSocket,
+    token: Optional[str] = Query(None, description="JWT authentication token"),
 ):
     """
     Enhanced WebSocket endpoint for real-time opportunity updates with authentication
@@ -355,7 +356,10 @@ async def send_heartbeat(websocket: WebSocket):
         while True:
             await asyncio.sleep(30)  # Send heartbeat every 30 seconds
             await websocket.send_json(
-                {"type": "heartbeat", "timestamp": datetime.now(timezone.utc).isoformat()}
+                {
+                    "type": "heartbeat",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
             )
     except Exception:
         # Connection closed or error occurred
@@ -480,7 +484,7 @@ async def get_websocket_stats(user: UserCtx = Depends(get_optional_user)):
         # Return limited stats for non-admin users
         return {
             "total_connections": len(manager.active_connections),
-            "user_authenticated": user.id in manager.user_connections if user else False,
+            "user_authenticated": (user.id in manager.user_connections if user else False),
         }
 
     return {

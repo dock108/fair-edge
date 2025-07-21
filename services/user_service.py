@@ -71,6 +71,7 @@ elif user_ctx.role == "premium":
 # Response metadata:
 metadata = create_user_response_metadata(user)
 """
+
 import logging
 from typing import Any, Dict
 

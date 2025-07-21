@@ -14,6 +14,7 @@ Key Functions:
 Legacy functions are kept for compatibility but raise errors directing to
 Supabase usage.
 """
+
 import logging
 import os
 
@@ -100,7 +101,10 @@ async def get_database_status() -> dict:
     supabase_connected = await check_supabase_connection()
 
     return {
-        "supabase_client": {"configured": supabase is not None, "connected": supabase_connected},
+        "supabase_client": {
+            "configured": supabase is not None,
+            "connected": supabase_connected,
+        },
         "overall_status": "healthy" if supabase_connected else "degraded",
         "persistence_method": "supabase_rest_api",
     }

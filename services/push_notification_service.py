@@ -2,6 +2,7 @@
 Push Notification Service with Apple Push Notification service (APNs) integration
 Handles device token management and notification delivery for iOS clients
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -163,7 +164,10 @@ class PushNotificationService:
                 session.close()
 
     async def send_opportunity_alert(
-        self, user_id: str, opportunity: Dict[str, Any], custom_message: Optional[str] = None
+        self,
+        user_id: str,
+        opportunity: Dict[str, Any],
+        custom_message: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Send push notification for high-value betting opportunity
@@ -187,7 +191,10 @@ class PushNotificationService:
             )
 
             if not device_tokens:
-                return {"status": "no_devices", "message": "No active devices found for user"}
+                return {
+                    "status": "no_devices",
+                    "message": "No active devices found for user",
+                }
 
             # Prepare notification payload
             ev_pct = opportunity.get("ev_pct", opportunity.get("EV%", 0))
@@ -306,7 +313,10 @@ class PushNotificationService:
             )
 
             if not device_tokens:
-                return {"status": "no_devices", "message": "No active devices found for user"}
+                return {
+                    "status": "no_devices",
+                    "message": "No active devices found for user",
+                }
 
             # Prepare notification payload
             default_messages = {
@@ -370,7 +380,11 @@ class PushNotificationService:
                 session.close()
 
     async def send_system_notification(
-        self, user_ids: List[str], title: str, message: str, category: str = "SYSTEM_NOTIFICATION"
+        self,
+        user_ids: List[str],
+        title: str,
+        message: str,
+        category: str = "SYSTEM_NOTIFICATION",
     ) -> Dict[str, Any]:
         """
         Send system-wide notification to multiple users
@@ -597,7 +611,8 @@ class PushNotificationService:
                     or_(
                         DeviceToken.last_used_at < cutoff_date,
                         and_(
-                            DeviceToken.last_used_at.is_(None), DeviceToken.created_at < cutoff_date
+                            DeviceToken.last_used_at.is_(None),
+                            DeviceToken.created_at < cutoff_date,
                         ),
                     )
                 )
@@ -651,10 +666,10 @@ class PushNotificationService:
                     "device_type": device.device_type,
                     "app_version": device.app_version,
                     "is_active": device.is_active,
-                    "created_at": device.created_at.isoformat() if device.created_at else None,
-                    "last_used_at": device.last_used_at.isoformat()
-                    if device.last_used_at
-                    else None,
+                    "created_at": (device.created_at.isoformat() if device.created_at else None),
+                    "last_used_at": (
+                        device.last_used_at.isoformat() if device.last_used_at else None
+                    ),
                     "total_notifications_sent": device.total_notifications_sent,
                     "notification_failures": device.notification_failures,
                     "notification_preferences": device.notification_preferences or {},

@@ -36,7 +36,8 @@ async def promote_user_to_admin(email: str):
     async with engine.begin() as conn:
         # Check if user exists
         result = await conn.execute(
-            text("SELECT id, email, role FROM profiles WHERE email = :email"), {"email": email}
+            text("SELECT id, email, role FROM profiles WHERE email = :email"),
+            {"email": email},
         )
 
         user = result.fetchone()

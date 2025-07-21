@@ -165,7 +165,8 @@ async def get_opportunities(
     except Exception as e:
         logger.error(f"Error getting opportunities: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail="Error retrieving opportunities. Please try again later."
+            status_code=500,
+            detail="Error retrieving opportunities. Please try again later.",
         )
 
 
@@ -252,8 +253,15 @@ async def get_premium_opportunities(
                 "advanced_sorting": sort_by,
                 "subscriber_benefits": "Full market access",
             },
-            "filters_applied": {"user_role": "subscriber", "min_ev": min_ev, "sort_by": sort_by},
-            "subscriber_info": {"id": subscriber_user.id, "email": subscriber_user.email},
+            "filters_applied": {
+                "user_role": "subscriber",
+                "min_ev": min_ev,
+                "sort_by": sort_by,
+            },
+            "subscriber_info": {
+                "id": subscriber_user.id,
+                "email": subscriber_user.email,
+            },
             "timestamp": datetime.now().isoformat(),
         }
 

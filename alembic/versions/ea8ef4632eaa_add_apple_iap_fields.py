@@ -14,6 +14,7 @@ This migration adds fields to support Apple In-App Purchase integration:
 - stripe_customer_id: Stripe customer ID (for web users)
 - stripe_subscription_id: Stripe subscription ID (for web users)
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -32,17 +33,21 @@ def upgrade() -> None:
     # Add Apple In-App Purchase fields
     op.add_column("profiles", sa.Column("apple_transaction_id", sa.String(255), nullable=True))
     op.add_column(
-        "profiles", sa.Column("apple_original_transaction_id", sa.String(255), nullable=True)
+        "profiles",
+        sa.Column("apple_original_transaction_id", sa.String(255), nullable=True),
     )
     op.add_column("profiles", sa.Column("apple_receipt_data", sa.Text, nullable=True))
     op.add_column(
-        "profiles", sa.Column("apple_subscription_group_id", sa.String(255), nullable=True)
+        "profiles",
+        sa.Column("apple_subscription_group_id", sa.String(255), nullable=True),
     )
     op.add_column(
-        "profiles", sa.Column("apple_purchase_date", sa.DateTime(timezone=True), nullable=True)
+        "profiles",
+        sa.Column("apple_purchase_date", sa.DateTime(timezone=True), nullable=True),
     )
     op.add_column(
-        "profiles", sa.Column("apple_expires_date", sa.DateTime(timezone=True), nullable=True)
+        "profiles",
+        sa.Column("apple_expires_date", sa.DateTime(timezone=True), nullable=True),
     )
 
     # Add Stripe fields for web users (to maintain compatibility)
@@ -52,7 +57,9 @@ def upgrade() -> None:
     # Create indexes for efficient lookups
     op.create_index("idx_profiles_apple_transaction_id", "profiles", ["apple_transaction_id"])
     op.create_index(
-        "idx_profiles_apple_original_transaction_id", "profiles", ["apple_original_transaction_id"]
+        "idx_profiles_apple_original_transaction_id",
+        "profiles",
+        ["apple_original_transaction_id"],
     )
     op.create_index("idx_profiles_stripe_customer_id", "profiles", ["stripe_customer_id"])
     op.create_index("idx_profiles_stripe_subscription_id", "profiles", ["stripe_subscription_id"])

@@ -295,15 +295,19 @@ def create_app() -> FastAPI:
             "version": "2.0.0",
             "status": "operational",
             "environment": settings.environment,
-            "documentation": "/docs" if settings.environment != "production" else "Contact support",
+            "documentation": (
+                "/docs" if settings.environment != "production" else "Contact support"
+            ),
             "timestamp": datetime.now().isoformat(),
             "endpoints": {
                 "opportunities": "/api/opportunities",
                 "authentication": "/api/session",
                 "health": "/health",
-                "admin": "/api/admin"
-                if settings.environment != "production"
-                else "Admin access restricted",
+                "admin": (
+                    "/api/admin"
+                    if settings.environment != "production"
+                    else "Admin access restricted"
+                ),
             },
         }
 

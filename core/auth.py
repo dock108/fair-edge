@@ -144,6 +144,7 @@ Critical Alerts:
 - Unusual role privilege access patterns
 - JWT token validation failures (potential security issue)
 """
+
 import logging
 from typing import Optional
 
@@ -275,7 +276,8 @@ async def get_current_user(
     user_id: Optional[str] = payload.get("sub")
     if not user_id:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Malformed JWT (no sub claim)"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Malformed JWT (no sub claim)",
         )
 
     # Extract email from JWT payload
@@ -350,7 +352,8 @@ def require_subscription():
     async def checker(user: UserCtx = Depends(get_current_user)) -> UserCtx:
         if user.role not in ["subscriber", "admin"] and user.subscription_status != "active":
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Active subscription required"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Active subscription required",
             )
         return user
 

@@ -56,7 +56,11 @@ async def update_test_user_roles():
     role_updates = [
         ("test-free@fairedge.com", "free", "none"),
         ("test-basic@fairedge.com", "basic", "active"),  # Changed to basic
-        ("test-premium@fairedge.com", "subscriber", "active"),  # Keep as subscriber (premium)
+        (
+            "test-premium@fairedge.com",
+            "subscriber",
+            "active",
+        ),  # Keep as subscriber (premium)
     ]
 
     logger.info("Updating test user roles...")

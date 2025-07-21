@@ -2,6 +2,7 @@
 Maker Odds Calculator for exchange posting recommendations
 Calculates optimal posting odds with 4.5% margin and recommends exchange selection
 """
+
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -209,7 +210,9 @@ class MakerOddsCalculator:
         return f"{side_prefix}{american_str} ({decimal:.2f}) | Net EV: {ev_display}"
 
     def get_posting_recommendations(
-        self, fair_odds_result: Dict[str, Any], market_odds: Dict[str, List[Dict[str, Any]]]
+        self,
+        fair_odds_result: Dict[str, Any],
+        market_odds: Dict[str, List[Dict[str, Any]]],
     ) -> Dict[str, Any]:
         """
         Get complete posting recommendations for all outcomes

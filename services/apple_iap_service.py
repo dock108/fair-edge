@@ -27,6 +27,7 @@ SUBSCRIPTION TIERS:
 - Premium Monthly ($9.99): All markets, props, export features
 - Premium Yearly ($89.99): Premium features with 25% discount
 """
+
 import json
 import logging
 from datetime import datetime, timezone
@@ -193,8 +194,8 @@ class AppleIAPService:
                 "apple_transaction_id": transaction_id,
                 "apple_original_transaction_id": original_transaction_id,
                 "apple_receipt_data": receipt_result.get("latest_receipt", receipt_data),
-                "apple_purchase_date": purchase_date.isoformat() if purchase_date else None,
-                "apple_expires_date": expires_date.isoformat() if expires_date else None,
+                "apple_purchase_date": (purchase_date.isoformat() if purchase_date else None),
+                "apple_expires_date": (expires_date.isoformat() if expires_date else None),
                 "updated_at": datetime.now(tz=timezone.utc).isoformat(),
             }
 

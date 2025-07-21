@@ -144,7 +144,8 @@ async def update_user_role(
         valid_roles = ["admin", "subscriber", "free"]
         if role_update.role not in valid_roles:
             raise HTTPException(
-                status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+                status_code=400,
+                detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}",
             )
 
         # Prevent self-demotion from admin
@@ -355,7 +356,7 @@ async def get_performance_statistics() -> Dict[str, Any]:
             "memory_available_mb": memory.available // 1024 // 1024,
             "disk_usage_percent": disk.percent,
             "disk_free_gb": disk.free // 1024 // 1024 // 1024,
-            "load_average": psutil.getloadavg() if hasattr(psutil, "getloadavg") else None,
+            "load_average": (psutil.getloadavg() if hasattr(psutil, "getloadavg") else None),
             "boot_time": datetime.fromtimestamp(psutil.boot_time()).isoformat(),
         }
 
@@ -390,7 +391,8 @@ async def delete_user(
 
         # Check if user exists
         user_check = await db.execute(
-            text("SELECT email, role FROM profiles WHERE id = :user_id"), {"user_id": user_id}
+            text("SELECT email, role FROM profiles WHERE id = :user_id"),
+            {"user_id": user_id},
         )
         user_data = user_check.fetchone()
 

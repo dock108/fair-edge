@@ -4,6 +4,7 @@ Betting Opportunities Persistence Service
 Handles saving betting opportunities to the database with proper data normalization,
 batch operations, and error handling that doesn't break the refresh pipeline.
 """
+
 import hashlib
 import json
 import logging
@@ -114,7 +115,12 @@ class BetPersistenceService:
         self, session: AsyncSession, opportunities: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Process a single batch of opportunities"""
-        results = {"bets_created": 0, "bets_updated": 0, "offers_created": 0, "errors": []}
+        results = {
+            "bets_created": 0,
+            "bets_updated": 0,
+            "offers_created": 0,
+            "errors": [],
+        }
 
         for opportunity in opportunities:
             try:
@@ -156,7 +162,8 @@ class BetPersistenceService:
 
         # Check if bet already exists using raw SQL for pgbouncer compatibility
         result = await session.execute(
-            text("SELECT EXISTS(SELECT 1 FROM bets WHERE bet_id = :bet_id)"), {"bet_id": bet_id}
+            text("SELECT EXISTS(SELECT 1 FROM bets WHERE bet_id = :bet_id)"),
+            {"bet_id": bet_id},
         )
         bet_exists = result.scalar()
 
@@ -179,7 +186,10 @@ class BetPersistenceService:
             )
 
             # Convert parameters to JSON string for raw SQL
-            bet_data_sql = {**bet_data, "parameters": json.dumps(bet_data.get("parameters", {}))}
+            bet_data_sql = {
+                **bet_data,
+                "parameters": json.dumps(bet_data.get("parameters", {})),
+            }
 
             await session.execute(insert_sql, bet_data_sql)
 
@@ -221,9 +231,11 @@ class BetPersistenceService:
                 **offer_data,
                 "odds": json.dumps(offer_data.get("odds", {})),
                 "fair_odds": json.dumps(offer_data.get("fair_odds", {})),
-                "available_limits": json.dumps(offer_data.get("available_limits"))
-                if offer_data.get("available_limits")
-                else None,
+                "available_limits": (
+                    json.dumps(offer_data.get("available_limits"))
+                    if offer_data.get("available_limits")
+                    else None
+                ),
                 "offer_metadata": json.dumps(offer_data.get("offer_metadata", {})),
             }
 

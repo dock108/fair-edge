@@ -28,7 +28,10 @@ class AnonymousUser(HttpUser):
     @task(5)
     def view_opportunities_with_filters(self):
         """View opportunities with various filters"""
-        params = {"limit": random.choice([10, 20, 50]), "min_ev": random.choice([None, 0, 1, 2])}
+        params = {
+            "limit": random.choice([10, 20, 50]),
+            "min_ev": random.choice([None, 0, 1, 2]),
+        }
         # Remove None values
         params = {k: v for k, v in params.items() if v is not None}
         self.client.get("/api/opportunities", params=params)

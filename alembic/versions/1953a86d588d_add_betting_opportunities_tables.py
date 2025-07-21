@@ -5,6 +5,7 @@ Revises:
 Create Date: 2025-06-02 19:07:15.555749
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -88,7 +89,10 @@ def upgrade() -> None:
     op.create_index("idx_bets_teams", "bets", ["home_team", "away_team"], unique=False)
     op.create_index("idx_bets_created_at", "bets", ["created_at"], unique=False)
     op.create_index(
-        "idx_bets_sport_type_created", "bets", ["sport", "bet_type", "created_at"], unique=False
+        "idx_bets_sport_type_created",
+        "bets",
+        ["sport", "bet_type", "created_at"],
+        unique=False,
     )
 
     # Create bet_offers table (time-series data)
@@ -124,13 +128,19 @@ def upgrade() -> None:
     op.create_index("idx_bet_offers_book", "bet_offers", ["book"], unique=False)
     op.create_index("idx_bet_offers_ev", "bet_offers", ["expected_value"], unique=False)
     op.create_index(
-        "idx_bet_offers_bet_timestamp", "bet_offers", ["bet_id", "timestamp"], unique=False
+        "idx_bet_offers_bet_timestamp",
+        "bet_offers",
+        ["bet_id", "timestamp"],
+        unique=False,
     )
     op.create_index(
         "idx_bet_offers_refresh_cycle", "bet_offers", ["refresh_cycle_id"], unique=False
     )
     op.create_index(
-        "idx_offers_recent_high_ev", "bet_offers", ["timestamp", "expected_value"], unique=False
+        "idx_offers_recent_high_ev",
+        "bet_offers",
+        ["timestamp", "expected_value"],
+        unique=False,
     )
 
 

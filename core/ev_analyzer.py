@@ -30,6 +30,7 @@ Deployment Notes:
 - Comprehensive error handling for production reliability
 - Extensive logging for monitoring and debugging
 """
+
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -85,7 +86,10 @@ class EVAnalyzer:
     # Removed redundant wrapper methods - use MathUtils directly
 
     def calculate_ev_percentage(
-        self, fair_probability: float, market_decimal_odds: float, exchange_fee: float = 0.0
+        self,
+        fair_probability: float,
+        market_decimal_odds: float,
+        exchange_fee: float = 0.0,
     ) -> float:
         """
         Calculate Expected Value percentage with comprehensive fee handling.
@@ -247,28 +251,36 @@ class EVAnalyzer:
 
                 # Store outcome analysis with both pre-fee and post-fee data
                 analysis["outcomes"][outcome_name] = {
-                    "fair_odds": {"american": fair_american_odds, "probability": fair_probability},
+                    "fair_odds": {
+                        "american": fair_american_odds,
+                        "probability": fair_probability,
+                    },
                     "best_market_odds": {
                         "bookmaker": best_bookmaker,
                         "american": best_american_odds,
                         "decimal": best_decimal_odds,
                         "is_exchange": exchange_data["is_exchange"],
-                        "exchange_data": exchange_data if exchange_data["is_exchange"] else None,
+                        "exchange_data": (exchange_data if exchange_data["is_exchange"] else None),
                     },
                     "ev_analysis": {
                         "ev_percentage": ev_percentage_adjusted,  # Use adjusted for main classification
                         "ev_percentage_original": ev_percentage_original,  # Keep original for display
                         "ev_display": f"{ev_percentage_adjusted*100:+.2f}%",
-                        "ev_display_original": f"{ev_percentage_original*100:+.2f}%"
-                        if exchange_data["is_exchange"]
-                        else None,
+                        "ev_display_original": (
+                            f"{ev_percentage_original*100:+.2f}%"
+                            if exchange_data["is_exchange"]
+                            else None
+                        ),
                         "classification": classification,
                     },
                 }
             else:
                 # No market odds found for this outcome
                 analysis["outcomes"][outcome_name] = {
-                    "fair_odds": {"american": fair_american_odds, "probability": fair_probability},
+                    "fair_odds": {
+                        "american": fair_american_odds,
+                        "probability": fair_probability,
+                    },
                     "best_market_odds": None,
                     "ev_analysis": {
                         "ev_percentage": -1.0,

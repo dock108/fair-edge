@@ -5,6 +5,7 @@ Revises: ea8ef4632eaa
 Create Date: 2025-01-18 10:30:00.000000
 
 """
+
 import sqlalchemy as sa
 
 from alembic import op
@@ -28,7 +29,10 @@ def upgrade():
         sa.Column("app_version", sa.String(length=20), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=True
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=True,
         ),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
@@ -47,11 +51,17 @@ def upgrade():
     # Create indexes
     op.create_index("idx_device_tokens_user_id", "device_tokens", ["user_id"], unique=False)
     op.create_index(
-        "idx_device_tokens_device_token", "device_tokens", ["device_token"], unique=False
+        "idx_device_tokens_device_token",
+        "device_tokens",
+        ["device_token"],
+        unique=False,
     )
     op.create_index("idx_device_tokens_active", "device_tokens", ["is_active"], unique=False)
     op.create_index(
-        "idx_device_tokens_user_active", "device_tokens", ["user_id", "is_active"], unique=False
+        "idx_device_tokens_user_active",
+        "device_tokens",
+        ["user_id", "is_active"],
+        unique=False,
     )
     op.create_index("idx_device_tokens_created_at", "device_tokens", ["created_at"], unique=False)
 

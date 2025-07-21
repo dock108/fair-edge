@@ -62,6 +62,7 @@ result = processor.process(search="Lakers", sport="basketball_nba")
 # Manual filtering:
 filtered_opps = apply_filters(opportunities, search="NBA", sport="basketball_nba")
 """
+
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -229,7 +230,9 @@ def fetch_opportunities_data() -> DataFetchResult:
     return DataFetchResult(opportunities=[], analytics={}, data_source="error")
 
 
-def process_opportunities_for_ui(opportunities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def process_opportunities_for_ui(
+    opportunities: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
     """
     Transform opportunities data from the backend into UI-friendly format
     This is imported from app.py to maintain the existing logic
@@ -241,7 +244,9 @@ def process_opportunities_for_ui(opportunities: List[Dict[str, Any]]) -> List[Di
 
 
 def apply_filters(
-    opportunities: List[Dict[str, Any]], search: Optional[str] = None, sport: Optional[str] = None
+    opportunities: List[Dict[str, Any]],
+    search: Optional[str] = None,
+    sport: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Apply search and sport filters to opportunities
@@ -280,9 +285,30 @@ def apply_filters(
                     "packers",
                     "steelers",
                 ],
-                "basketball_nba": ["nba", "basketball", "lakers", "warriors", "celtics", "nets"],
-                "baseball_mlb": ["mlb", "baseball", "yankees", "dodgers", "red sox", "giants"],
-                "icehockey_nhl": ["nhl", "hockey", "rangers", "bruins", "kings", "devils"],
+                "basketball_nba": [
+                    "nba",
+                    "basketball",
+                    "lakers",
+                    "warriors",
+                    "celtics",
+                    "nets",
+                ],
+                "baseball_mlb": [
+                    "mlb",
+                    "baseball",
+                    "yankees",
+                    "dodgers",
+                    "red sox",
+                    "giants",
+                ],
+                "icehockey_nhl": [
+                    "nhl",
+                    "hockey",
+                    "rangers",
+                    "bruins",
+                    "kings",
+                    "devils",
+                ],
             }
 
             keywords = sport_keywords.get(sport, [sport])
@@ -310,7 +336,9 @@ def apply_role_based_filtering(
     return filter_opportunities_by_role(opportunities, user_role)
 
 
-def sort_opportunities_by_ev(opportunities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def sort_opportunities_by_ev(
+    opportunities: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
     """
     Sort opportunities by EV percentage (highest first)
     Centralizes the sorting logic that was repeated

@@ -2,6 +2,7 @@
 Celery configuration manager for different environments
 Handles local stress testing vs production scheduling
 """
+
 import os
 
 from celery.schedules import crontab

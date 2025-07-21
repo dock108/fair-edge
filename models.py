@@ -2,6 +2,7 @@
 Database models for bet-intel application
 Implements persistent storage for betting opportunities with normalized schema
 """
+
 import hashlib
 import json
 from enum import Enum
@@ -9,7 +10,16 @@ from typing import Any, Dict
 
 from sqlalchemy import JSON, Boolean, Column, DateTime
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -104,7 +114,8 @@ class Book(Base):
     # e.g., "draftkings", "fanduel"
     name = Column(String(100), nullable=False)  # e.g., "DraftKings"
     book_type: BookType = Column(
-        SAEnum(BookType, name="book_type_enum", create_constraint=True), default=BookType.US_BOOK
+        SAEnum(BookType, name="book_type_enum", create_constraint=True),
+        default=BookType.US_BOOK,
     )
     region: Region = Column(
         SAEnum(Region, name="region_enum", create_constraint=True), default=Region.US
@@ -355,7 +366,8 @@ class UserProfile(Base):
     id = Column(String, primary_key=True)
     email = Column(String, unique=True)
     role: UserRole = Column(
-        SAEnum(UserRole, name="user_role_enum", create_constraint=True), default=UserRole.FREE
+        SAEnum(UserRole, name="user_role_enum", create_constraint=True),
+        default=UserRole.FREE,
     )
     subscription_status: SubscriptionStatus = Column(
         SAEnum(SubscriptionStatus, name="subscription_status_enum", create_constraint=True),

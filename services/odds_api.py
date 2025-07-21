@@ -2,6 +2,7 @@
 Odds API Client for fetching real-time sports betting odds
 Integrates with The Odds API v4 to retrieve odds from specified bookmakers
 """
+
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional

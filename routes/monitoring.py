@@ -1,6 +1,7 @@
 """
 Monitoring and health check endpoints for the betting system
 """
+
 import logging
 from datetime import datetime
 from typing import Any, Dict
@@ -47,7 +48,9 @@ async def health_check() -> Dict[str, Any]:
 
 
 @router.get("/persistence/performance")
-async def persistence_performance(current_user: Dict = Depends(get_current_user)) -> Dict[str, Any]:
+async def persistence_performance(
+    current_user: Dict = Depends(get_current_user),
+) -> Dict[str, Any]:
     """
     Get detailed persistence performance metrics
     Requires authentication
@@ -63,7 +66,9 @@ async def persistence_performance(current_user: Dict = Depends(get_current_user)
 
 
 @router.get("/persistence/health")
-async def persistence_health(current_user: Dict = Depends(get_current_user)) -> Dict[str, Any]:
+async def persistence_health(
+    current_user: Dict = Depends(get_current_user),
+) -> Dict[str, Any]:
     """
     Get detailed persistence health check
     Requires authentication
@@ -94,7 +99,9 @@ async def persistence_errors(
 
 
 @router.get("/persistence/metrics/export")
-async def export_metrics(current_user: Dict = Depends(get_current_user)) -> Dict[str, Any]:
+async def export_metrics(
+    current_user: Dict = Depends(get_current_user),
+) -> Dict[str, Any]:
     """
     Export all persistence metrics for external monitoring
     Requires authentication

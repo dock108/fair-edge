@@ -136,10 +136,10 @@ async def test_smart_refresh_logic(
                 "has_active_sessions": pre_stats.get("has_active_sessions", False),
                 "active_sessions_count": pre_stats.get("active_sessions", 0),
                 "time_since_last_refresh_minutes": (
-                    pre_stats.get("time_since_last_refresh", 0) / 60
-                )
-                if pre_stats.get("time_since_last_refresh")
-                else None,
+                    (pre_stats.get("time_since_last_refresh", 0) / 60)
+                    if pre_stats.get("time_since_last_refresh")
+                    else None
+                ),
             },
             "refresh_triggered": force_refresh,
             "task_id": task_id,
@@ -180,12 +180,16 @@ async def get_refresh_history(
         history_data = {
             "last_refresh": {
                 "timestamp": last_refresh_timestamp,
-                "iso_time": datetime.fromtimestamp(last_refresh_timestamp).isoformat()
-                if last_refresh_timestamp
-                else None,
-                "time_ago_minutes": (activity_stats.get("time_since_last_refresh", 0) / 60)
-                if activity_stats.get("time_since_last_refresh")
-                else None,
+                "iso_time": (
+                    datetime.fromtimestamp(last_refresh_timestamp).isoformat()
+                    if last_refresh_timestamp
+                    else None
+                ),
+                "time_ago_minutes": (
+                    (activity_stats.get("time_since_last_refresh", 0) / 60)
+                    if activity_stats.get("time_since_last_refresh")
+                    else None
+                ),
             },
             "current_state": {
                 "active_sessions": sessions_info["active_sessions_count"],
@@ -196,9 +200,11 @@ async def get_refresh_history(
             "next_scheduled_actions": {
                 "next_auto_refresh_eligible": "15 minutes from last refresh if dashboard is active",
                 "refresh_on_load_eligible": "If data is >30 minutes old when dashboard accessed",
-                "current_data_age_minutes": (activity_stats.get("time_since_last_refresh", 0) / 60)
-                if activity_stats.get("time_since_last_refresh")
-                else None,
+                "current_data_age_minutes": (
+                    (activity_stats.get("time_since_last_refresh", 0) / 60)
+                    if activity_stats.get("time_since_last_refresh")
+                    else None
+                ),
             },
             "api_call_optimization": {
                 "strategy": "Only refresh when dashboard is active or when stale data accessed",

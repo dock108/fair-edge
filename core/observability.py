@@ -2,6 +2,7 @@
 Observability configuration for FairEdge application
 Integrates Prometheus metrics and Sentry error tracking
 """
+
 import os
 import time
 from typing import Any, Dict, Optional
@@ -31,10 +32,14 @@ OPPORTUNITY_METRICS = {
         buckets=[0, 1, 2.5, 4.5, 7.5, 10, 15, 20, 999.0],
     ),
     "cache_operations": Counter(
-        "fair_edge_cache_operations_total", "Redis cache operations", ["operation", "result"]
+        "fair_edge_cache_operations_total",
+        "Redis cache operations",
+        ["operation", "result"],
     ),
     "active_opportunities": Gauge(
-        "bet_intel_opportunities_active", "Current number of active opportunities", ["ev_tier"]
+        "bet_intel_opportunities_active",
+        "Current number of active opportunities",
+        ["ev_tier"],
     ),
     "api_requests_by_role": Counter(
         "bet_intel_api_requests_by_role_total",
@@ -42,10 +47,14 @@ OPPORTUNITY_METRICS = {
         ["role", "endpoint", "status_code"],
     ),
     "data_refresh_duration": Histogram(
-        "bet_intel_data_refresh_seconds", "Time taken for data refresh operations", ["source"]
+        "bet_intel_data_refresh_seconds",
+        "Time taken for data refresh operations",
+        ["source"],
     ),
     "database_query_duration": Histogram(
-        "bet_intel_db_query_seconds", "Database query execution time", ["query_type", "table"]
+        "bet_intel_db_query_seconds",
+        "Database query execution time",
+        ["query_type", "table"],
     ),
 }
 
@@ -165,7 +174,10 @@ class ObservabilityManager:
     def _register_custom_metrics(self):
         """Register custom Prometheus metrics"""
         # Metrics are already defined globally, just log their registration
-        logger.info("Custom Prometheus metrics registered", metrics_count=len(OPPORTUNITY_METRICS))
+        logger.info(
+            "Custom Prometheus metrics registered",
+            metrics_count=len(OPPORTUNITY_METRICS),
+        )
 
     def start_metrics_server(self, port: int = 8001):
         """Start standalone Prometheus metrics server"""
@@ -296,7 +308,9 @@ def setup_observability(app=None) -> ObservabilityManager:
     prometheus_ok = observability.setup_prometheus(app)
 
     logger.info(
-        "Observability setup complete", sentry_enabled=sentry_ok, prometheus_enabled=prometheus_ok
+        "Observability setup complete",
+        sentry_enabled=sentry_ok,
+        prometheus_enabled=prometheus_ok,
     )
 
     return observability

@@ -1,6 +1,7 @@
 """
 Feature and role-based configuration consolidated from core/constants.py
 """
+
 from typing import Any, Dict, Tuple
 
 

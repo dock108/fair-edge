@@ -62,7 +62,10 @@ async def health_check(request: Request):
                 }
                 health_status["status"] = "degraded"
         except Exception as e:
-            health_status["checks"]["supabase"] = {"status": "unhealthy", "error": str(e)}
+            health_status["checks"]["supabase"] = {
+                "status": "unhealthy",
+                "error": str(e),
+            }
             health_status["status"] = "degraded"
 
         # Redis health check
@@ -87,9 +90,11 @@ async def health_check(request: Request):
             disk_status = "healthy" if disk.percent < 95 else "warning"
 
             health_status["checks"]["system_resources"] = {
-                "status": "healthy"
-                if memory_status == "healthy" and disk_status == "healthy"
-                else "warning",
+                "status": (
+                    "healthy"
+                    if memory_status == "healthy" and disk_status == "healthy"
+                    else "warning"
+                ),
                 "memory_usage_percent": memory.percent,
                 "disk_usage_percent": disk.percent,
                 "memory_status": memory_status,
@@ -100,7 +105,10 @@ async def health_check(request: Request):
                 health_status["status"] = "degraded"
 
         except Exception as e:
-            health_status["checks"]["system_resources"] = {"status": "unknown", "error": str(e)}
+            health_status["checks"]["system_resources"] = {
+                "status": "unknown",
+                "error": str(e),
+            }
 
         # Determine overall status
         unhealthy_checks = [
@@ -120,14 +128,20 @@ async def health_check(request: Request):
             status_code = 200  # Still operational
 
         return Response(
-            content=str(health_status), status_code=status_code, media_type="application/json"
+            content=str(health_status),
+            status_code=status_code,
+            media_type="application/json",
         )
 
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return Response(
             content=str(
-                {"status": "unhealthy", "error": str(e), "timestamp": datetime.now().isoformat()}
+                {
+                    "status": "unhealthy",
+                    "error": str(e),
+                    "timestamp": datetime.now().isoformat(),
+                }
             ),
             status_code=503,
             media_type="application/json",
@@ -137,7 +151,9 @@ async def health_check(request: Request):
 @router.get("/debug/profiles")
 @limiter.limit("10/minute")
 async def debug_profiles(
-    request: Request, limit: int = 10, admin_user: UserCtx = Depends(require_role("admin"))
+    request: Request,
+    limit: int = 10,
+    admin_user: UserCtx = Depends(require_role("admin")),
 ):
     """
     Debug endpoint to view user profiles
@@ -365,9 +381,13 @@ async def debug_system_info(request: Request, admin_user: UserCtx = Depends(requ
             "platform": sys.platform,
             "cpu_count": os.cpu_count(),
             "environment_variables": {
-                key: "***"
-                if any(secret in key.lower() for secret in ["key", "secret", "password", "token"])
-                else value
+                key: (
+                    "***"
+                    if any(
+                        secret in key.lower() for secret in ["key", "secret", "password", "token"]
+                    )
+                    else value
+                )
                 for key, value in os.environ.items()
                 if not key.startswith("_")
             },

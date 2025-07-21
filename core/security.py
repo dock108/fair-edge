@@ -2,6 +2,7 @@
 Security utilities for cookie management and authentication
 Handles secure cookie setting based on environment configuration
 """
+
 from fastapi import Response
 
 from core.settings import get_settings

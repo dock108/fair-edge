@@ -4,6 +4,7 @@ Persistence Monitoring Service
 Provides monitoring, metrics, and performance tracking for the betting opportunities
 persistence system.
 """
+
 import json
 import logging
 import time
@@ -25,7 +26,11 @@ class PersistenceMonitor:
         self.start_time = datetime.now()
 
     def record_operation(
-        self, operation_type: str, duration_ms: int, success: bool, details: Dict[str, Any] = None
+        self,
+        operation_type: str,
+        duration_ms: int,
+        success: bool,
+        details: Dict[str, Any] = None,
     ):
         """Record a persistence operation for monitoring"""
         record = {
@@ -40,7 +45,11 @@ class PersistenceMonitor:
 
         # Track performance metrics
         self.performance_metrics[operation_type].append(
-            {"duration_ms": duration_ms, "success": success, "timestamp": record["timestamp"]}
+            {
+                "duration_ms": duration_ms,
+                "success": success,
+                "timestamp": record["timestamp"],
+            }
         )
 
         # Keep only recent metrics (last 24 hours)
@@ -122,7 +131,12 @@ class PersistenceMonitor:
 
     def check_health(self) -> Dict[str, Any]:
         """Check overall health of persistence system"""
-        health: Dict[str, Any] = {"status": "healthy", "checks": {}, "warnings": [], "errors": []}
+        health: Dict[str, Any] = {
+            "status": "healthy",
+            "checks": {},
+            "warnings": [],
+            "errors": [],
+        }
 
         # Check recent operation success rate
         recent_ops = [
@@ -137,11 +151,13 @@ class PersistenceMonitor:
             )
             health["checks"]["recent_success_rate"] = {
                 "value": recent_success_rate,
-                "status": "healthy"
-                if recent_success_rate >= 95
-                else "warning"
-                if recent_success_rate >= 85
-                else "error",
+                "status": (
+                    "healthy"
+                    if recent_success_rate >= 95
+                    else "warning"
+                    if recent_success_rate >= 85
+                    else "error"
+                ),
             }
 
             if recent_success_rate < 95:
@@ -164,11 +180,13 @@ class PersistenceMonitor:
                 avg_duration = sum(m["duration_ms"] for m in batch_metrics) / len(batch_metrics)
                 health["checks"]["avg_batch_duration"] = {
                     "value": avg_duration,
-                    "status": "healthy"
-                    if avg_duration < 5000
-                    else "warning"
-                    if avg_duration < 10000
-                    else "error",
+                    "status": (
+                        "healthy"
+                        if avg_duration < 5000
+                        else "warning"
+                        if avg_duration < 10000
+                        else "error"
+                    ),
                 }
 
                 if avg_duration > 10000:

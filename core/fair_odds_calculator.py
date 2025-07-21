@@ -2,6 +2,7 @@
 Fair Odds Calculator for Sports Betting +EV Analysis
 Calculates no-vig fair odds by removing bookmaker margins
 """
+
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -150,7 +151,11 @@ class FairOddsCalculator:
             "raw_probabilities": {},
         }
 
-        for outcome_name, (anchor_book, outcome_odds, opposite_odds) in anchor_data.items():
+        for outcome_name, (
+            anchor_book,
+            outcome_odds,
+            opposite_odds,
+        ) in anchor_data.items():
             # Convert to probabilities
             prob_outcome = MathUtils.american_to_probability(outcome_odds)
             prob_opposite = MathUtils.american_to_probability(opposite_odds)

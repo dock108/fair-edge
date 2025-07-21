@@ -212,7 +212,11 @@ class DashboardActivityTracker:
 
         except Exception as e:
             logger.error(f"Failed to get session info: {e}")
-            return {"error": str(e), "active_sessions_count": 0, "has_active_sessions": False}
+            return {
+                "error": str(e),
+                "active_sessions_count": 0,
+                "has_active_sessions": False,
+            }
 
     def should_auto_refresh(self) -> bool:
         """
@@ -286,7 +290,10 @@ class DashboardActivityTracker:
             self.redis_client.set(
                 self.last_refresh_key,
                 json.dumps(
-                    {"last_refresh": current_time, "timestamp": datetime.utcnow().isoformat()}
+                    {
+                        "last_refresh": current_time,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
                 ),
                 ex=86400,  # Keep for 24 hours
             )
@@ -331,7 +338,7 @@ class DashboardActivityTracker:
                 "active_sessions": sessions_info["active_sessions_count"],
                 "has_active_sessions": sessions_info["has_active_sessions"],
                 "last_refresh_timestamp": last_refresh,
-                "time_since_last_refresh": current_time - last_refresh if last_refresh else None,
+                "time_since_last_refresh": (current_time - last_refresh if last_refresh else None),
                 "should_auto_refresh": self.should_auto_refresh(),
                 "should_refresh_on_load": self.should_refresh_on_load(),
                 "configuration": {

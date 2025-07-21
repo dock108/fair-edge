@@ -249,7 +249,11 @@ async def run_startup_migrations() -> bool:
         bool: True if successful or skipped, False if failed
     """
     # Check if migrations should be run
-    run_migrations = os.getenv("RUN_MIGRATIONS", "false").lower() in ("true", "1", "yes")
+    run_migrations = os.getenv("RUN_MIGRATIONS", "false").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
 
     if not run_migrations:
         logger.info("Migrations disabled (RUN_MIGRATIONS=false)")
