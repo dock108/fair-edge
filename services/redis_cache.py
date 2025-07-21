@@ -2,11 +2,13 @@
 Redis cache layer for bet-intel
 Handles caching of EV opportunities and analytics data
 """
-import redis
 import json
 import logging
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import redis
+
 from core.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,7 @@ except Exception as e:
     logger.error(f"❌ Failed to connect to Redis: {e}")
     redis_client = None
 
+
 def store_ev_data(ev_list: List[Dict[str, Any]]) -> bool:
     """
     Store EV opportunities data in Redis
@@ -38,24 +41,25 @@ def store_ev_data(ev_list: List[Dict[str, Any]]) -> bool:
     if not redis_client:
         logger.error("Redis client not available")
         return False
-    
+
     try:
         # Store the opportunities data
         data_to_store = {
-            'opportunities': ev_list,
-            'count': len(ev_list),
-            'timestamp': datetime.utcnow().isoformat()
+            "opportunities": ev_list,
+            "count": len(ev_list),
+            "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
         redis_client.set(EV_CACHE_KEY, json.dumps(data_to_store))
         redis_client.set(LAST_UPDATE_KEY, datetime.utcnow().isoformat())
-        
+
         logger.info(f"✅ Stored {len(ev_list)} EV opportunities in Redis")
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to store EV data in Redis: {e}")
         return False
+
 
 def get_ev_data() -> List[Dict[str, Any]]:
     """
@@ -66,21 +70,22 @@ def get_ev_data() -> List[Dict[str, Any]]:
     if not redis_client:
         logger.error("Redis client not available")
         return []
-    
+
     try:
         data = redis_client.get(EV_CACHE_KEY)
         if data:
             parsed_data = json.loads(data)
-            opportunities = parsed_data.get('opportunities', [])
+            opportunities = parsed_data.get("opportunities", [])
             logger.info(f"✅ Retrieved {len(opportunities)} EV opportunities from Redis")
             return opportunities
         else:
             logger.info("No EV data found in Redis cache")
             return []
-            
+
     except Exception as e:
         logger.error(f"❌ Failed to retrieve EV data from Redis: {e}")
         return []
+
 
 def store_analytics_data(analytics: Dict[str, Any]) -> bool:
     """
@@ -93,20 +98,18 @@ def store_analytics_data(analytics: Dict[str, Any]) -> bool:
     if not redis_client:
         logger.error("Redis client not available")
         return False
-    
+
     try:
-        analytics_with_timestamp = {
-            **analytics,
-            'timestamp': datetime.utcnow().isoformat()
-        }
-        
+        analytics_with_timestamp = {**analytics, "timestamp": datetime.utcnow().isoformat()}
+
         redis_client.set(ANALYTICS_CACHE_KEY, json.dumps(analytics_with_timestamp))
         logger.info("✅ Stored analytics data in Redis")
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to store analytics data in Redis: {e}")
         return False
+
 
 def get_analytics_data() -> Dict[str, Any]:
     """
@@ -117,7 +120,7 @@ def get_analytics_data() -> Dict[str, Any]:
     if not redis_client:
         logger.error("Redis client not available")
         return {}
-    
+
     try:
         data = redis_client.get(ANALYTICS_CACHE_KEY)
         if data:
@@ -127,10 +130,11 @@ def get_analytics_data() -> Dict[str, Any]:
         else:
             logger.info("No analytics data found in Redis cache")
             return {}
-            
+
     except Exception as e:
         logger.error(f"❌ Failed to retrieve analytics data from Redis: {e}")
         return {}
+
 
 def get_last_update() -> Optional[str]:
     """
@@ -140,12 +144,13 @@ def get_last_update() -> Optional[str]:
     """
     if not redis_client:
         return None
-    
+
     try:
         return redis_client.get(LAST_UPDATE_KEY)
     except Exception as e:
         logger.error(f"❌ Failed to retrieve last update time: {e}")
         return None
+
 
 def clear_cache() -> bool:
     """
@@ -156,16 +161,17 @@ def clear_cache() -> bool:
     if not redis_client:
         logger.error("Redis client not available")
         return False
-    
+
     try:
         keys_to_delete = [EV_CACHE_KEY, ANALYTICS_CACHE_KEY, LAST_UPDATE_KEY]
         deleted_count = redis_client.delete(*keys_to_delete)
         logger.info(f"✅ Cleared {deleted_count} cache keys from Redis")
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to clear cache: {e}")
         return False
+
 
 def health_check() -> Dict[str, Any]:
     """
@@ -175,33 +181,33 @@ def health_check() -> Dict[str, Any]:
     """
     if not redis_client:
         return {
-            'status': 'error',
-            'message': 'Redis client not initialized',
-            'timestamp': datetime.utcnow().isoformat()
+            "status": "error",
+            "message": "Redis client not initialized",
+            "timestamp": datetime.utcnow().isoformat(),
         }
-    
+
     try:
         # Test Redis connection
         redis_client.ping()
-        
+
         # Get cache status
         ev_data_exists = redis_client.exists(EV_CACHE_KEY)
         analytics_exists = redis_client.exists(ANALYTICS_CACHE_KEY)
         last_update = get_last_update()
-        
+
         return {
-            'status': 'healthy',
-            'redis_connected': True,
-            'ev_data_cached': bool(ev_data_exists),
-            'analytics_cached': bool(analytics_exists),
-            'last_update': last_update,
-            'timestamp': datetime.utcnow().isoformat()
+            "status": "healthy",
+            "redis_connected": True,
+            "ev_data_cached": bool(ev_data_exists),
+            "analytics_cached": bool(analytics_exists),
+            "last_update": last_update,
+            "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
     except Exception as e:
         return {
-            'status': 'error',
-            'redis_connected': False,
-            'message': str(e),
-            'timestamp': datetime.utcnow().isoformat()
-        } 
+            "status": "error",
+            "redis_connected": False,
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }

@@ -65,28 +65,28 @@ export const Header = () => {
             <span className="brand-text">FairEdge</span>
           </Link>
         </div>
-        
+
         <div className="header-nav">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
           >
             Dashboard
           </Link>
-          <Link 
-            to="/pricing" 
+          <Link
+            to="/pricing"
             className={`nav-link ${location.pathname === '/pricing' ? 'active' : ''}`}
           >
             Pricing
           </Link>
-          <Link 
-            to="/education" 
+          <Link
+            to="/education"
             className={`nav-link ${location.pathname === '/education' ? 'active' : ''}`}
           >
             Education
           </Link>
-          <Link 
-            to="/disclaimer" 
+          <Link
+            to="/disclaimer"
             className={`nav-link ${location.pathname === '/disclaimer' ? 'active' : ''}`}
           >
             Disclaimer
@@ -100,14 +100,14 @@ export const Header = () => {
             </div>
           ) : isAuthenticated && user ? (
             <div className="user-menu-container" ref={menuRef}>
-              <button 
+              <button
                 className="user-menu-trigger"
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >
                 <span className="user-email">{user.email}</span>
                 <i className={`fas fa-chevron-${showUserMenu ? 'up' : 'down'}`}></i>
               </button>
-              
+
               {showUserMenu && (
                 <div className="user-menu-dropdown">
                   <div className="user-menu-header">
@@ -115,15 +115,15 @@ export const Header = () => {
                       <strong>{user.email}</strong>
                       <span className="user-plan">
                         {userRole === 'admin' ? '👑 Admin Account' :
-                         userRole === 'basic' ? '💰 Basic Plan' : 
-                         userRole === 'premium' ? '🚀 Premium Plan' : 
+                         userRole === 'basic' ? '💰 Basic Plan' :
+                         userRole === 'premium' ? '🚀 Premium Plan' :
                          '🆓 Free Account'}
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="user-menu-items">
-                    <button 
+                    <button
                       onClick={handleManageBilling}
                       className="user-menu-item"
                       disabled={managingBilling}
@@ -140,7 +140,7 @@ export const Header = () => {
                         'Upgrade Account'
                       )}
                     </button>
-                    
+
                     <button onClick={handleLogout} className="user-menu-item logout">
                       <i className="fas fa-sign-out-alt"></i>
                       Logout
@@ -159,4 +159,4 @@ export const Header = () => {
       </nav>
     </header>
   );
-}; 
+};

@@ -15,7 +15,7 @@ struct MobileSessionRequest: Codable {
     let deviceType: String
     let appVersion: String
     let appleIdToken: String?  // For Sign in with Apple
-    
+
     enum CodingKeys: String, CodingKey {
         case email
         case password
@@ -36,7 +36,7 @@ struct MobileSessionResponse: Codable {
     let userInfo: UserInfo
     let deviceInfo: DeviceInfo
     let sessionConfig: SessionConfig
-    
+
     enum CodingKeys: String, CodingKey {
         case success
         case accessToken = "access_token"
@@ -55,7 +55,7 @@ struct UserInfo: Codable {
     let role: String
     let subscriptionStatus: String
     let mobileOptimized: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case email
         case role
@@ -70,7 +70,7 @@ struct DeviceInfo: Codable {
     let deviceType: String
     let appVersion: String
     let registeredAt: String
-    
+
     enum CodingKeys: String, CodingKey {
         case deviceId = "device_id"
         case deviceType = "device_type"
@@ -85,7 +85,7 @@ struct SessionConfig: Codable {
     let cacheDuration: Int  // 5 minutes
     let refreshThreshold: Int  // 1 hour before expiry
     let backgroundRefreshEnabled: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case apiVersion = "api_version"
         case cacheDuration = "cache_duration"
@@ -100,7 +100,7 @@ struct AuthToken: Codable {
     let refreshToken: String
     let expiresIn: Int
     let tokenType: String
-    
+
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case refreshToken = "refresh_token"
@@ -113,7 +113,7 @@ struct AuthToken: Codable {
 struct TokenRefreshRequest: Codable {
     let refreshToken: String
     let deviceId: String
-    
+
     enum CodingKeys: String, CodingKey {
         case refreshToken = "refresh_token"
         case deviceId = "device_id"

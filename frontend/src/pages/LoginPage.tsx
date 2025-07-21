@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     try {
       await signIn(email, password);
       // Redirect to the page they were trying to access, or dashboard
@@ -46,11 +46,11 @@ const LoginPage: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="auth-form">
               {error && (
-                <div className="error-message" style={{ 
-                  backgroundColor: 'var(--error-50)', 
-                  color: 'var(--error-700)', 
-                  padding: 'var(--space-3)', 
-                  borderRadius: 'var(--radius-md)', 
+                <div className="error-message" style={{
+                  backgroundColor: 'var(--error-50)',
+                  color: 'var(--error-700)',
+                  padding: 'var(--space-3)',
+                  borderRadius: 'var(--radius-md)',
                   marginBottom: 'var(--space-4)',
                   border: '1px solid var(--error-200)'
                 }}>
@@ -93,8 +93,8 @@ const LoginPage: React.FC = () => {
                 <a href="#" className="forgot-link">Forgot password?</a>
               </div>
 
-              <LoadingButton 
-                type="submit" 
+              <LoadingButton
+                type="submit"
                 className="auth-button"
                 loading={loading}
                 loadingText="Signing in..."
@@ -116,4 +116,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage; 
+export default LoginPage;

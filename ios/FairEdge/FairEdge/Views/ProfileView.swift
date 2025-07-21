@@ -13,51 +13,51 @@ struct ProfileView: View {
     @EnvironmentObject var storeKitService: StoreKitService
     @EnvironmentObject var pushNotificationService: PushNotificationService
     @Environment(\.presentationMode) var presentationMode
-    
+
     @State private var showingPaywall = false
     @State private var showingSubscriptionManagement = false
     @State private var showingNotificationSettings = false
     @State private var showingPrivacyPolicy = false
-    
+
     var body: some View {
         NavigationView {
             List {
                 // User info section
                 userInfoSection
-                
+
                 // Subscription section
                 subscriptionSection
-                
+
                 // App settings section
                 appSettingsSection
-                
+
                 // About section
                 aboutSection
-                
+
                 // Sign out section
                 signOutSection
             }
             .navigationTitle("Profile")
-            .navigationBarItems(trailing: Button("Done") {
+            .navigationBarItems(trailing: Button("Done", action: {
                 presentationMode.wrappedValue.dismiss()
-            })
-            .sheet(isPresented: $showingPaywall) {
+            }))
+            .sheet(isPresented: $showingPaywall, content: {
                 PaywallView()
-            }
-            .sheet(isPresented: $showingSubscriptionManagement) {
+            })
+            .sheet(isPresented: $showingSubscriptionManagement, content: {
                 SubscriptionManagementView()
-            }
-            .sheet(isPresented: $showingNotificationSettings) {
+            })
+            .sheet(isPresented: $showingNotificationSettings, content: {
                 NotificationSettingsView()
-            }
-            .sheet(isPresented: $showingPrivacyPolicy) {
+            })
+            .sheet(isPresented: $showingPrivacyPolicy, content: {
                 PrivacyPolicyView()
-            }
+            })
         }
     }
-    
+
     // MARK: - User Info Section
-    
+
     private var userInfoSection: some View {
         Section {
             if let user = authenticationService.currentUser {
@@ -66,24 +66,24 @@ struct ProfileView: View {
                         Image(systemName: "person.circle.fill")
                             .font(.title)
                             .foregroundColor(.blue)
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(user.displayName)
                                 .font(.headline)
-                            
+
                             Text(user.email)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         Spacer()
                     }
-                    
+
                     HStack {
                         subscriptionBadge(for: user.role)
-                        
+
                         Spacer()
-                        
+
                         if user.subscriptionStatus.isActive {
                             Text("✓ Active")
                                 .font(.caption)
@@ -99,16 +99,16 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     // MARK: - Subscription Section
-    
+
     private var subscriptionSection: some View {
         Section("Subscription") {
             if let user = authenticationService.currentUser {
                 HStack {
                     Image(systemName: "star.circle.fill")
                         .foregroundColor(.purple)
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Current Plan")
                             .font(.subheadline)
@@ -116,9 +116,9 @@ struct ProfileView: View {
                             .font(.headline)
                             .fontWeight(.semibold)
                     }
-                    
+
                     Spacer()
-                    
+
                     if storeKitService.hasActiveSubscription {
                         Text("Active")
                             .font(.caption)
@@ -129,11 +129,11 @@ struct ProfileView: View {
                             .cornerRadius(4)
                     }
                 }
-                
+
                 if storeKitService.hasActiveSubscription {
                     Button(action: {
                         showingSubscriptionManagement = true
-                    }) {
+                    }, label: {
                         HStack {
                             Image(systemName: "gearshape")
                                 .foregroundColor(.blue)
@@ -147,7 +147,7 @@ struct ProfileView: View {
                 } else {
                     Button(action: {
                         showingPaywall = true
-                    }) {
+                    }, label: {
                         HStack {
                             Image(systemName: "arrow.up.circle")
                                 .foregroundColor(.blue)
@@ -162,20 +162,20 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     // MARK: - App Settings Section
-    
+
     private var appSettingsSection: some View {
         Section("Settings") {
             Button(action: {
                 showingNotificationSettings = true
-            }) {
+            }, label: {
                 HStack {
                     Image(systemName: "bell")
                         .foregroundColor(.orange)
                     Text("Notifications")
                     Spacer()
-                    
+
                     if pushNotificationService.authorizationStatus == .authorized {
                         Text("Enabled")
                             .foregroundColor(.green)
@@ -183,13 +183,13 @@ struct ProfileView: View {
                         Text("Disabled")
                             .foregroundColor(.red)
                     }
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             HStack {
                 Image(systemName: "slider.horizontal.3")
                     .foregroundColor(.blue)
@@ -201,7 +201,7 @@ struct ProfileView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             HStack {
                 Image(systemName: "sportscourt")
                     .foregroundColor(.green)
@@ -215,9 +215,9 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     // MARK: - About Section
-    
+
     private var aboutSection: some View {
         Section("About") {
             HStack {
@@ -228,7 +228,7 @@ struct ProfileView: View {
                 Text(Bundle.main.fullVersion)
                     .foregroundColor(.secondary)
             }
-            
+
             HStack {
                 Image(systemName: "network")
                     .foregroundColor(.green)
@@ -237,10 +237,10 @@ struct ProfileView: View {
                 Text("Connected")
                     .foregroundColor(.green)
             }
-            
+
             Button(action: {
                 showingPrivacyPolicy = true
-            }) {
+            }, label: {
                 HStack {
                     Image(systemName: "doc.text")
                         .foregroundColor(.gray)
@@ -251,7 +251,7 @@ struct ProfileView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             HStack {
                 Image(systemName: "questionmark.circle")
                     .foregroundColor(.gray)
@@ -263,15 +263,15 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     // MARK: - Sign Out Section
-    
+
     private var signOutSection: some View {
         Section {
             Button(action: {
                 authenticationService.signOut()
                 presentationMode.wrappedValue.dismiss()
-            }) {
+            }, label: {
                 HStack {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .foregroundColor(.red)
@@ -281,9 +281,9 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     // MARK: - Helper Views
-    
+
     private func subscriptionBadge(for role: UserRole) -> some View {
         Text(role.displayName)
             .font(.caption)
@@ -294,7 +294,7 @@ struct ProfileView: View {
             .background(badgeBackgroundColor(for: role))
             .cornerRadius(4)
     }
-    
+
     private func badgeTextColor(for role: UserRole) -> Color {
         switch role {
         case .free:
@@ -307,7 +307,7 @@ struct ProfileView: View {
             return .red
         }
     }
-    
+
     private func badgeBackgroundColor(for role: UserRole) -> Color {
         switch role {
         case .free:

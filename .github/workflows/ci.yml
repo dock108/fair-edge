@@ -97,26 +97,26 @@ jobs:
     - name: Project-specific checks - exact pre-commit match
       run: |
         echo "🏗️ Running project-specific validations..."
-        
+
         # Check app.py size (exact pre-commit match)
         lines=$(wc -l < app.py)
         if [ $lines -gt 800 ]; then
           echo "❌ app.py has $lines lines (limit: 800) - consider refactoring"
           exit 1
         fi
-        
+
         # Check for boundary violations (exact pre-commit match)
         if grep -r "from app import\|import app" routes/ --include="*.py" 2>/dev/null; then
           echo "❌ Direct app imports in routes detected - use dependency injection"
           exit 1
         fi
-        
+
         # Check pandas/numpy imports (exact pre-commit match)
         if grep -r "import pandas\|import numpy\|from pandas\|from numpy" --include="*.py" .; then
           echo "❌ pandas/numpy imports detected - these dependencies were removed"
           exit 1
         fi
-        
+
         echo "✅ Project-specific checks passed"
 
     - name: Upload backend quality reports
@@ -308,11 +308,11 @@ jobs:
       run: |
         cd ios/FairEdge
         echo "🧪 Running iOS unit tests with coverage..."
-        
+
         # Create derived data directory for consistent test results
         export DERIVED_DATA_PATH="$(pwd)/DerivedData"
         mkdir -p "$DERIVED_DATA_PATH"
-        
+
         # Run unit tests with code coverage
         xcodebuild test \
           -scheme FairEdge \
@@ -323,16 +323,16 @@ jobs:
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
           | xcpretty --report junit --output ios_test_results.xml
-        
+
         echo "✅ iOS unit tests completed"
 
     - name: iOS UI Tests
       run: |
         cd ios/FairEdge
         echo "🧪 Running iOS UI tests..."
-        
+
         export DERIVED_DATA_PATH="$(pwd)/DerivedData"
-        
+
         # Run UI tests
         xcodebuild test \
           -scheme FairEdge \
@@ -344,17 +344,17 @@ jobs:
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
           | xcpretty --report junit --output ios_ui_test_results.xml
-        
+
         echo "✅ iOS UI tests completed"
 
     - name: Extract iOS Test Coverage
       run: |
         cd ios/FairEdge
         echo "📊 Extracting iOS test coverage..."
-        
+
         # Install xcov for coverage extraction
         gem install xcov
-        
+
         # Extract coverage data
         xcov \
           --derived_data_path DerivedData \
@@ -362,7 +362,7 @@ jobs:
           --output_directory coverage \
           --json_report \
           --minimum_coverage_percentage 75
-        
+
         echo "✅ iOS coverage extraction completed"
 
     - name: iOS Build Validation
@@ -408,12 +408,12 @@ jobs:
       run: |
         echo "📋 CI Pipeline Summary"
         echo "====================="
-        
+
         echo "🎨 Backend Quality: ${{ needs.code-quality-backend.result }}"
         echo "🎨 iOS Quality: ${{ needs.code-quality-ios.result }}"
         echo "🧪 Backend Tests: ${{ needs.test-backend.result }}"
         echo "🧪 iOS Tests: ${{ needs.test-ios.result }}"
-        
+
         # Determine overall status
         if [[ "${{ needs.test-backend.result }}" == "failure" ]]; then
           echo "❌ Pipeline failed due to backend test failures"

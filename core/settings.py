@@ -124,27 +124,28 @@ MONITORING AND VALIDATION:
 - Configuration drift detection in production
 """
 from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import AnyUrl
 from typing import Optional
+
+from pydantic import AnyUrl
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """
     COMPREHENSIVE APPLICATION SETTINGS WITH PYDANTIC VALIDATION
-    
+
     This class defines all configuration settings for the Fair-Edge platform,
     providing type-safe environment variable loading with comprehensive validation
     and deployment-ready defaults. All settings are loaded from environment
     variables to ensure security and environment-specific configuration.
-    
+
     Configuration Features:
     - Type-safe environment variable parsing
     - Automatic validation with clear error messages
     - Environment-specific defaults and overrides
     - Security-first configuration with fail-safe behavior
     - Performance optimization with caching and lazy loading
-    
+
     Production Benefits:
     - No sensitive defaults in source code
     - Automatic configuration validation at startup
@@ -152,61 +153,61 @@ class Settings(BaseSettings):
     - Comprehensive error handling for missing configuration
     - IDE-friendly type hints for development productivity
     """
-    
+
     model_config = SettingsConfigDict(
-        env_file=".env",           # Load from .env file in development
-        case_sensitive=False,      # Environment variables are case-insensitive
-        extra="ignore"            # Ignore unknown environment variables
+        env_file=".env",  # Load from .env file in development
+        case_sensitive=False,  # Environment variables are case-insensitive
+        extra="ignore",  # Ignore unknown environment variables
     )
-    
+
     # ===========================================
     # DATABASE & AUTHENTICATION CONFIGURATION
     # ===========================================
-    
+
     # Supabase Configuration - Core backend infrastructure
-    supabase_url: AnyUrl                    # Supabase project URL (required)
-    supabase_anon_key: str                  # Public anonymous key for client-side operations
-    supabase_service_role_key: str          # Service role key for server-side operations
-    supabase_jwt_secret: str                # JWT signing secret from Supabase project settings
-    
+    supabase_url: AnyUrl  # Supabase project URL (required)
+    supabase_anon_key: str  # Public anonymous key for client-side operations
+    supabase_service_role_key: str  # Service role key for server-side operations
+    supabase_jwt_secret: str  # JWT signing secret from Supabase project settings
+
     # Database Connection - PostgreSQL via Supabase or direct connection
-    db_connection_string: str               # Full PostgreSQL connection string with pooling
-    
+    db_connection_string: str  # Full PostgreSQL connection string with pooling
+
     # ===========================================
     # SECURITY & ADMINISTRATION CONFIGURATION
     # ===========================================
-    
+
     # Admin Access Control - Production requires secure secret
-    admin_secret: str = "CHANGE_ME"         # SECURITY: Will fail fast in production if unchanged
-    
+    admin_secret: str = "CHANGE_ME"  # SECURITY: Will fail fast in production if unchanged
+
     # JWT Authentication Configuration
-    supabase_jwt_algorithm: str = "HS256"   # JWT algorithm - Supabase default is HS256
-    
+    supabase_jwt_algorithm: str = "HS256"  # JWT algorithm - Supabase default is HS256
+
     # ===========================================
     # APPLICATION ENVIRONMENT CONFIGURATION
     # ===========================================
-    
+
     # Environment Detection and Behavior
-    app_env: str = "dev"                    # Environment: dev/staging/prod
-    debug_mode: bool = False                # Enable debug features and verbose logging
-    environment: str = "development"        # Application environment for feature flags
-    
+    app_env: str = "dev"  # Environment: dev/staging/prod
+    debug_mode: bool = False  # Enable debug features and verbose logging
+    environment: str = "development"  # Application environment for feature flags
+
     # ===========================================
     # EXTERNAL API CONFIGURATION
     # ===========================================
-    
+
     # Sports Odds API - Primary data source for betting opportunities
-    odds_api_key: str                       # API key for The Odds API (required)
+    odds_api_key: str  # API key for The Odds API (required)
     odds_api_base_url: str = "https://api.the-odds-api.com/v4"  # Base URL for odds API
-    
+
     # ===========================================
     # CACHING & PERFORMANCE CONFIGURATION
     # ===========================================
-    
+
     # Redis Configuration - Caching and session management
-    redis_url: str = "redis://localhost:6379/0"    # Redis connection string
-    refresh_interval_minutes: int = 5               # Background data refresh interval
-    
+    redis_url: str = "redis://localhost:6379/0"  # Redis connection string
+    refresh_interval_minutes: int = 5  # Background data refresh interval
+
     # Stripe Configuration (Optional - set defaults for development)
     stripe_publishable_key: Optional[str] = None
     stripe_secret_key: Optional[str] = None
@@ -215,21 +216,23 @@ class Settings(BaseSettings):
     stripe_premium_price: Optional[str] = None  # $9.99/month Premium plan
     checkout_success_url: str = "http://localhost:8000/upgrade/success"
     checkout_cancel_url: str = "http://localhost:8000/pricing"
-    
+
     # Apple In-App Purchase Configuration
     apple_shared_secret: Optional[str] = None  # App Store shared secret for receipt validation
     apple_bundle_id: str = "com.fairedge.app"  # iOS app bundle identifier
     apple_basic_product_id: str = "com.fairedge.basic_monthly"  # $3.99/month Basic plan
-    apple_premium_monthly_product_id: str = "com.fairedge.premium_monthly"  # $9.99/month Premium plan
+    apple_premium_monthly_product_id: str = (
+        "com.fairedge.premium_monthly"  # $9.99/month Premium plan
+    )
     apple_premium_yearly_product_id: str = "com.fairedge.premium_yearly"  # $89.99/year Premium plan
-    
+
     # Apple Push Notification Service (APNs) Configuration
     apns_key_id: Optional[str] = None  # APNs Key ID from Apple Developer Portal
     apns_team_id: Optional[str] = None  # Apple Developer Team ID
     apns_private_key: Optional[str] = None  # APNs private key (ES256 format)
     apns_topic: Optional[str] = None  # APNs topic (usually the bundle ID)
     apns_environment: str = "sandbox"  # "sandbox" or "production"
-    
+
     @property
     def apns_base_url(self) -> str:
         """Get APNs base URL based on environment"""
@@ -237,62 +240,65 @@ class Settings(BaseSettings):
             return "https://api.push.apple.com"
         else:
             return "https://api.sandbox.push.apple.com"
-    
+
     # CORS Configuration
     cors_origins: str = "*"  # Will be parsed into list
-    
+
     @property
     def is_debug(self) -> bool:
         """Check if debug mode is enabled"""
         return self.debug_mode or self.environment == "development"
-    
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Get CORS origins as list based on environment"""
         if self.app_env == "prod":
-            return [
-                "https://app.fairedge.com",
-                "https://fairedge.com"
-            ]
+            return ["https://app.fairedge.com", "https://fairedge.com"]
         else:
             return [
                 "http://localhost:3000",
                 "http://localhost:5173",
-                "http://127.0.0.1:3000", 
+                "http://127.0.0.1:3000",
                 "http://127.0.0.1:5173",
                 "http://localhost:8000",
-                "http://127.0.0.1:8000"
+                "http://127.0.0.1:8000",
             ]
-    
+
     @property
     def stripe_configured(self) -> bool:
         """Check if Stripe is properly configured"""
-        return all([
-            self.stripe_secret_key,
-            self.stripe_webhook_secret,
-            self.stripe_basic_price,
-            self.stripe_premium_price
-        ])
-    
+        return all(
+            [
+                self.stripe_secret_key,
+                self.stripe_webhook_secret,
+                self.stripe_basic_price,
+                self.stripe_premium_price,
+            ]
+        )
+
     @property
     def apple_iap_configured(self) -> bool:
         """Check if Apple In-App Purchase is properly configured"""
-        return all([
-            self.apple_shared_secret,
-            self.apple_bundle_id,
-            self.apple_basic_product_id,
-            self.apple_premium_monthly_product_id
-        ])
-    
+        return all(
+            [
+                self.apple_shared_secret,
+                self.apple_bundle_id,
+                self.apple_basic_product_id,
+                self.apple_premium_monthly_product_id,
+            ]
+        )
+
     @property
     def apns_configured(self) -> bool:
         """Check if Apple Push Notification Service is properly configured"""
-        return all([
-            self.apns_key_id,
-            self.apns_team_id,
-            self.apns_private_key,
-            self.apns_topic or self.apple_bundle_id  # Use bundle ID as topic if not specified
-        ])
+        return all(
+            [
+                self.apns_key_id,
+                self.apns_team_id,
+                self.apns_private_key,
+                self.apns_topic or self.apple_bundle_id,  # Use bundle ID as topic if not specified
+            ]
+        )
 
 
 @lru_cache
@@ -302,4 +308,4 @@ def get_settings() -> Settings:
 
 
 # Global settings instance for backward compatibility
-settings = get_settings() 
+settings = get_settings()

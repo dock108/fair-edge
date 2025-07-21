@@ -45,17 +45,17 @@ check_ios_project() {
 # Function to install dependencies
 install_dependencies() {
     print_status "Installing iOS testing dependencies..."
-    
+
     if ! command -v xcpretty &> /dev/null; then
         print_status "Installing xcpretty..."
         gem install xcpretty
     fi
-    
+
     if ! command -v xcov &> /dev/null; then
         print_status "Installing xcov for coverage reporting..."
         gem install xcov
     fi
-    
+
     print_success "Dependencies installed"
 }
 
@@ -72,9 +72,9 @@ clean_build() {
 # Function to run unit tests
 run_unit_tests() {
     print_status "Running iOS unit tests..."
-    
+
     cd "$IOS_PROJECT_DIR"
-    
+
     xcodebuild test \
         -scheme FairEdge \
         -destination "$SIMULATOR_DESTINATION" \
@@ -84,10 +84,10 @@ run_unit_tests() {
         CODE_SIGN_IDENTITY="" \
         CODE_SIGNING_REQUIRED=NO \
         | xcpretty --report junit --output unit_test_results.xml
-    
+
     local exit_code=${PIPESTATUS[0]}
     cd - > /dev/null
-    
+
     if [ $exit_code -eq 0 ]; then
         print_success "Unit tests passed"
     else
@@ -99,9 +99,9 @@ run_unit_tests() {
 # Function to run UI tests
 run_ui_tests() {
     print_status "Running iOS UI tests..."
-    
+
     cd "$IOS_PROJECT_DIR"
-    
+
     xcodebuild test \
         -scheme FairEdge \
         -destination "$SIMULATOR_DESTINATION" \
@@ -112,10 +112,10 @@ run_ui_tests() {
         CODE_SIGN_IDENTITY="" \
         CODE_SIGNING_REQUIRED=NO \
         | xcpretty --report junit --output ui_test_results.xml
-    
+
     local exit_code=${PIPESTATUS[0]}
     cd - > /dev/null
-    
+
     if [ $exit_code -eq 0 ]; then
         print_success "UI tests passed"
     else
@@ -127,9 +127,9 @@ run_ui_tests() {
 # Function to generate coverage report
 generate_coverage() {
     print_status "Generating coverage report..."
-    
+
     cd "$IOS_PROJECT_DIR"
-    
+
     xcov \
         --derived_data_path "$DERIVED_DATA_PATH" \
         --scheme FairEdge \
@@ -137,9 +137,9 @@ generate_coverage() {
         --json_report \
         --minimum_coverage_percentage 70 \
         --ignore_file_path .xcovignore || true
-    
+
     cd - > /dev/null
-    
+
     if [ -f "$IOS_PROJECT_DIR/coverage/report.json" ]; then
         print_success "Coverage report generated at $IOS_PROJECT_DIR/coverage/"
     else
@@ -151,9 +151,9 @@ generate_coverage() {
 run_specific_test() {
     local test_class=$1
     print_status "Running specific test class: $test_class"
-    
+
     cd "$IOS_PROJECT_DIR"
-    
+
     xcodebuild test \
         -scheme FairEdge \
         -destination "$SIMULATOR_DESTINATION" \
@@ -161,10 +161,10 @@ run_specific_test() {
         CODE_SIGN_IDENTITY="" \
         CODE_SIGNING_REQUIRED=NO \
         | xcpretty
-    
+
     local exit_code=${PIPESTATUS[0]}
     cd - > /dev/null
-    
+
     if [ $exit_code -eq 0 ]; then
         print_success "Test class $test_class passed"
     else
@@ -176,19 +176,19 @@ run_specific_test() {
 # Function to validate build
 validate_build() {
     print_status "Validating iOS build..."
-    
+
     cd "$IOS_PROJECT_DIR"
-    
+
     xcodebuild build \
         -scheme FairEdge \
         -destination "$SIMULATOR_DESTINATION" \
         CODE_SIGN_IDENTITY="" \
         CODE_SIGNING_REQUIRED=NO \
         | xcpretty
-    
+
     local exit_code=${PIPESTATUS[0]}
     cd - > /dev/null
-    
+
     if [ $exit_code -eq 0 ]; then
         print_success "Build validation passed"
     else
@@ -201,24 +201,24 @@ validate_build() {
 show_summary() {
     print_status "Test Results Summary"
     echo "===================="
-    
+
     if [ -f "$IOS_PROJECT_DIR/unit_test_results.xml" ]; then
         local unit_tests=$(grep -o 'tests="[0-9]*"' "$IOS_PROJECT_DIR/unit_test_results.xml" | grep -o '[0-9]*' || echo "0")
         local unit_failures=$(grep -o 'failures="[0-9]*"' "$IOS_PROJECT_DIR/unit_test_results.xml" | grep -o '[0-9]*' || echo "0")
         echo -e "Unit Tests: ${GREEN}$unit_tests tests${NC}, ${RED}$unit_failures failures${NC}"
     fi
-    
+
     if [ -f "$IOS_PROJECT_DIR/ui_test_results.xml" ]; then
         local ui_tests=$(grep -o 'tests="[0-9]*"' "$IOS_PROJECT_DIR/ui_test_results.xml" | grep -o '[0-9]*' || echo "0")
         local ui_failures=$(grep -o 'failures="[0-9]*"' "$IOS_PROJECT_DIR/ui_test_results.xml" | grep -o '[0-9]*' || echo "0")
         echo -e "UI Tests: ${GREEN}$ui_tests tests${NC}, ${RED}$ui_failures failures${NC}"
     fi
-    
+
     if [ -f "$IOS_PROJECT_DIR/coverage/report.json" ]; then
         # Extract coverage percentage if available
         echo "Coverage report: $IOS_PROJECT_DIR/coverage/"
     fi
-    
+
     echo "===================="
 }
 
@@ -245,7 +245,7 @@ show_usage() {
 # Main script logic
 main() {
     local command=${1:-"all"}
-    
+
     case $command in
         "all")
             check_ios_project

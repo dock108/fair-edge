@@ -8,14 +8,14 @@
   --color-primary: #0C2C55;      /* Navy - trust and stability */
   --color-accent: #6FCF00;       /* Lime - growth and success */
   --color-accent-2: #029672;     /* Teal - professional confidence */
-  
+
   /* Legacy brand colors (for migration) */
   --brand-50:  rgba(111, 207, 0, 0.1);  /* Light lime tint */
   --brand-100: rgba(111, 207, 0, 0.2);  /* Slightly stronger lime tint */
   --brand-500: var(--color-primary);  /* Point to new primary */
   --brand-600: var(--color-primary);
   --brand-700: #081c3a;               /* Darker navy for hover states */
-  
+
   /* New extended brand palette */
   --brand-navy:     var(--color-primary);
   --brand-lime:     var(--color-accent);
@@ -54,7 +54,7 @@
   --surface-primary:   #ffffff;
   --surface-secondary: var(--grey-50);
   --surface-tertiary:  var(--grey-100);
-  
+
   --text-primary:   var(--grey-900);
   --text-secondary: var(--grey-700);
   --text-muted:     var(--grey-600);
@@ -63,7 +63,7 @@
   --border-light:   var(--grey-200);
   --border-medium:  var(--grey-300);
   --border-focus:   var(--color-accent);  /* Lime focus outline for accessibility */
-  
+
   /* ===== GRADIENTS ===== */
   --gradient-primary: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
   --gradient-primary-hover: linear-gradient(135deg, var(--brand-lime-light) 0%, var(--brand-teal-light) 100%);
@@ -164,6 +164,4 @@
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-} 
- 
- 
+}

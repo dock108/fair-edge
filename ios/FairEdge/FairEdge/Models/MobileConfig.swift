@@ -15,7 +15,7 @@ struct MobileConfig: Codable {
     let cache: CacheConfig
     let push: PushConfig
     let appStore: AppStoreConfig
-    
+
     enum CodingKeys: String, CodingKey {
         case apiVersion = "api_version"
         case features
@@ -33,7 +33,7 @@ struct Features: Codable {
     let appleIAP: Bool
     let backgroundRefresh: Bool
     let offlineMode: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case realTimeUpdates = "real_time_updates"
         case pushNotifications = "push_notifications"
@@ -49,7 +49,7 @@ struct Limits: Codable {
     let apiRequestsPerMinute: Int
     let cacheTimeoutSeconds: Int
     let maxRetryAttempts: Int
-    
+
     enum CodingKeys: String, CodingKey {
         case freeUserOpportunities = "free_user_opportunities"
         case apiRequestsPerMinute = "api_requests_per_minute"
@@ -64,7 +64,7 @@ struct CacheConfig: Codable {
     let userDataTTL: Int
     let configTTL: Int
     let enableCompression: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case opportunitiesTTL = "opportunities_ttl"
         case userDataTTL = "user_data_ttl"
@@ -80,7 +80,7 @@ struct PushConfig: Codable {
     let defaultThreshold: Double
     let quietHoursStart: String
     let quietHoursEnd: String
-    
+
     enum CodingKeys: String, CodingKey {
         case enabled
         case topics
@@ -96,7 +96,7 @@ struct AppStoreConfig: Codable {
     let premiumMonthlyProductId: String
     let premiumYearlyProductId: String
     let subscriptionGroupId: String
-    
+
     enum CodingKeys: String, CodingKey {
         case basicMonthlyProductId = "basic_monthly_product_id"
         case premiumMonthlyProductId = "premium_monthly_product_id"
@@ -112,7 +112,7 @@ struct MobileHealthResponse: Codable {
     let version: String
     let uptime: String
     let services: HealthServices
-    
+
     enum CodingKeys: String, CodingKey {
         case status
         case timestamp
@@ -128,7 +128,7 @@ struct HealthServices: Codable {
     let redis: String
     let appleIAP: String
     let pushNotifications: String
-    
+
     enum CodingKeys: String, CodingKey {
         case database
         case redis

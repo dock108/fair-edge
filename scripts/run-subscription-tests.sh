@@ -53,18 +53,18 @@ if pgrep -f "stripe listen" > /dev/null; then
 else
     echo "⚠️  Stripe webhook forwarding not detected"
     echo "   Starting webhook forwarding in background..."
-    
+
     # Start webhook forwarding in background
     nohup stripe listen --forward-to localhost:8000/api/billing/webhook \
         --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted \
         > stripe-webhook.log 2>&1 &
-    
+
     STRIPE_PID=$!
     echo "   Started with PID: $STRIPE_PID"
-    
+
     # Wait a moment for it to initialize
     sleep 3
-    
+
     # Check if it's still running
     if kill -0 $STRIPE_PID 2>/dev/null; then
         echo "✅ Webhook forwarding started successfully"

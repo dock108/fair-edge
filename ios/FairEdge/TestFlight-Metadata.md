@@ -30,7 +30,7 @@
 
 2. **Subscription Management**
    - Basic Monthly Plan ($3.99/month)
-   - Premium Monthly Plan ($9.99/month) 
+   - Premium Monthly Plan ($9.99/month)
    - Premium Yearly Plan ($89.99/year)
    - In-app purchase flow
    - Subscription restoration
@@ -160,7 +160,7 @@
 
 **Beta Testing Groups:**
 - Internal Team (10 testers)
-- Sports Betting Enthusiasts (50 testers) 
+- Sports Betting Enthusiasts (50 testers)
 - iOS Developers (25 testers)
 - General Beta Users (100 testers)
 

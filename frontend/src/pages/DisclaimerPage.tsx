@@ -46,7 +46,7 @@ const DisclaimerPage: React.FC = () => {
           <h2 className="section-title">⚖️ Legal Considerations</h2>
           <div className="disclaimer-content">
             <p><strong>Age Requirement:</strong> You must be <span className="highlight">21 years or older</span> (or the legal gambling age in your jurisdiction) to use sports betting services.</p>
-            
+
             <p><strong>Jurisdictional Compliance:</strong> Sports betting laws vary by location. It is your responsibility to ensure that:</p>
             <div className="risk-list">
               <ul>
@@ -56,7 +56,7 @@ const DisclaimerPage: React.FC = () => {
                 <li>You use only licensed and regulated betting platforms</li>
               </ul>
             </div>
-            
+
             <div className="legal-text">
               <p><em>This application does not facilitate betting transactions and is not affiliated with any gambling operators. All betting activities are conducted through third-party platforms subject to their own terms and conditions.</em></p>
             </div>
@@ -76,7 +76,7 @@ const DisclaimerPage: React.FC = () => {
                 <li>Incomplete or temporarily unavailable</li>
               </ul>
             </div>
-            
+
             <p><strong>Analysis Limitations:</strong> Our calculations are based on mathematical models that:</p>
             <div className="risk-list">
               <ul>
@@ -86,7 +86,7 @@ const DisclaimerPage: React.FC = () => {
                 <li>Assume rational market behavior (which may not occur)</li>
               </ul>
             </div>
-            
+
             <p><span className="highlight">Past performance does not guarantee future results.</span> Expected value calculations are theoretical and may not reflect actual betting outcomes.</p>
           </div>
         </section>
@@ -131,7 +131,7 @@ const DisclaimerPage: React.FC = () => {
           <h2 className="section-title">🔗 Affiliate Link Disclosure</h2>
           <div className="disclaimer-content">
             <p><strong>Affiliate Relationships:</strong> This website contains affiliate links to third-party betting platforms, including but not limited to ProphetX and Novig.</p>
-            
+
             <div className="risk-list">
               <ul>
                 <li><strong>Commission Disclosure:</strong> We may receive compensation when you click on these links and create an account or place bets on partner platforms</li>
@@ -140,9 +140,9 @@ const DisclaimerPage: React.FC = () => {
                 <li><strong>Platform Selection:</strong> We recommend platforms based on mathematical calculations and user experience, not commission rates</li>
               </ul>
             </div>
-            
+
             <p><span className="highlight">Transparency:</span> We believe in full transparency about our business relationships. Any affiliate links are clearly marked as external links that will take you to partner websites.</p>
-            
+
             <div className="legal-text">
               <p><em>Please review the terms and conditions of any third-party platforms before creating accounts or placing bets. We are not responsible for the policies, practices, or services of affiliate partners.</em></p>
             </div>
@@ -163,7 +163,7 @@ const DisclaimerPage: React.FC = () => {
                 <li>You understand this is for educational purposes only</li>
               </ul>
             </div>
-            
+
             <div className="legal-text">
               <p><em>The developers, contributors, and hosts of this application disclaim all liability for any losses, damages, or negative outcomes resulting from the use of this tool or any betting activities undertaken based on its analysis.</em></p>
             </div>
@@ -174,7 +174,7 @@ const DisclaimerPage: React.FC = () => {
         <div className="disclaimer-footer">
           <a href="/" className="back-link">← Return to Dashboard</a>
         </div>
-        
+
         <div className="legal-footer">
           <p>Last Updated: {new Date().toLocaleDateString()}</p>
           <p>Sports Betting +EV Analyzer v2.1.0</p>
@@ -184,4 +184,4 @@ const DisclaimerPage: React.FC = () => {
   );
 };
 
-export default DisclaimerPage; 
+export default DisclaimerPage;

@@ -10,7 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var authenticationService: AuthenticationService
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    
+
     var body: some View {
         Group {
             if horizontalSizeClass == .regular {
@@ -44,9 +44,9 @@ struct ContentView: View {
             authenticationService.checkAuthenticationStatus()
         }
     }
-    
+
     // MARK: - iPad Sidebar
-    
+
     @ViewBuilder
     private func iPadSidebarView() -> some View {
         List {
@@ -54,16 +54,16 @@ struct ContentView: View {
                 NavigationLink(destination: OpportunitiesListView()) {
                     Label("All Opportunities", systemImage: "chart.line.uptrend.xyaxis")
                 }
-                
+
                 NavigationLink(destination: OpportunitiesListView()) {
                     Label("High Value (>10%)", systemImage: "star.fill")
                 }
-                
+
                 NavigationLink(destination: OpportunitiesListView()) {
                     Label("Recent Updates", systemImage: "clock.fill")
                 }
             }
-            
+
             Section("Sports") {
                 NavigationLink(destination: EmptyView()) {
                     Label("NFL", systemImage: "sportscourt.fill")
@@ -78,7 +78,7 @@ struct ContentView: View {
                     Label("NHL", systemImage: "hockey.puck.fill")
                 }
             }
-            
+
             Section("Account") {
                 NavigationLink(destination: ProfileView()) {
                     Label("Profile", systemImage: "person.circle")

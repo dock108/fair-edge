@@ -10,23 +10,23 @@ import Combine
 @testable import FairEdge
 
 class APIServiceTests: XCTestCase {
-    
+
     // MARK: - Properties
-    
+
     var apiService: APIService!
     var mockURLSession: MockURLSession!
     var cancellables: Set<AnyCancellable>!
-    
+
     // MARK: - Setup & Teardown
-    
+
     override func setUpWithError() throws {
         try super.setUpWithError()
-        
+
         mockURLSession = MockURLSession()
         apiService = APIService(urlSession: mockURLSession)
         cancellables = Set<AnyCancellable>()
     }
-    
+
     override func tearDownWithError() throws {
         apiService = nil
         mockURLSession = nil
@@ -34,9 +34,9 @@ class APIServiceTests: XCTestCase {
         cancellables = nil
         try super.tearDownWithError()
     }
-    
+
     // MARK: - Opportunities API Tests
-    
+
     func testFetchOpportunities_Success() throws {
         // Given: Mock successful response
         let mockOpportunities = [createMockOpportunity()]
@@ -45,7 +45,7 @@ class APIServiceTests: XCTestCase {
             totalCount: 1,
             filtersApplied: FiltersApplied(userRole: "premium")
         ))
-        
+
         mockURLSession.data = mockData
         mockURLSession.response = HTTPURLResponse(
             url: URL(string: "https://api.fair-edge.com/opportunities")!,
@@ -53,9 +53,9 @@ class APIServiceTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-        
+
         let expectation = XCTestExpectation(description: "Fetch opportunities succeeds")
-        
+
         // When: Fetching opportunities
         apiService.fetchOpportunities()
             .sink(
@@ -71,16 +71,16 @@ class APIServiceTests: XCTestCase {
                 }
             )
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testFetchOpportunities_NetworkError() throws {
         // Given: Network error
         mockURLSession.error = URLError(.notConnectedToInternet)
-        
+
         let expectation = XCTestExpectation(description: "Network error handled")
-        
+
         // When: Fetching opportunities
         apiService.fetchOpportunities()
             .sink(
@@ -95,10 +95,10 @@ class APIServiceTests: XCTestCase {
                 }
             )
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testFetchOpportunities_InvalidResponse() throws {
         // Given: Invalid JSON response
         mockURLSession.data = "invalid json".data(using: .utf8)
@@ -108,9 +108,9 @@ class APIServiceTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-        
+
         let expectation = XCTestExpectation(description: "Invalid response handled")
-        
+
         // When: Fetching opportunities
         apiService.fetchOpportunities()
             .sink(
@@ -125,10 +125,10 @@ class APIServiceTests: XCTestCase {
                 }
             )
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testFetchOpportunities_HTTPError() throws {
         // Given: HTTP error response
         mockURLSession.response = HTTPURLResponse(
@@ -137,9 +137,9 @@ class APIServiceTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-        
+
         let expectation = XCTestExpectation(description: "HTTP error handled")
-        
+
         // When: Fetching opportunities
         apiService.fetchOpportunities()
             .sink(
@@ -154,12 +154,12 @@ class APIServiceTests: XCTestCase {
                 }
             )
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     // MARK: - Authentication API Tests
-    
+
     func testCreateMobileSession_Success() throws {
         // Given: Mock successful session response
         let mockSession = MobileSessionResponse(
@@ -169,7 +169,7 @@ class APIServiceTests: XCTestCase {
             user: createMockUser(),
             deviceInfo: DeviceInfo(deviceId: "test_device", registeredAt: Date())
         )
-        
+
         let mockData = try JSONEncoder().encode(mockSession)
         mockURLSession.data = mockData
         mockURLSession.response = HTTPURLResponse(
@@ -178,9 +178,9 @@ class APIServiceTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-        
+
         let expectation = XCTestExpectation(description: "Create session succeeds")
-        
+
         // When: Creating mobile session
         apiService.createMobileSession(
             email: "test@fair-edge.com",
@@ -201,15 +201,15 @@ class APIServiceTests: XCTestCase {
             }
         )
         .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testRefreshToken_Success() throws {
         // Given: Mock successful refresh response
         let mockUser = createMockUser()
         let mockData = try JSONEncoder().encode(mockUser)
-        
+
         mockURLSession.data = mockData
         mockURLSession.response = HTTPURLResponse(
             url: URL(string: "https://api.fair-edge.com/mobile/session/refresh")!,
@@ -217,9 +217,9 @@ class APIServiceTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-        
+
         let expectation = XCTestExpectation(description: "Token refresh succeeds")
-        
+
         // When: Refreshing token
         apiService.refreshToken()
             .sink(
@@ -234,12 +234,12 @@ class APIServiceTests: XCTestCase {
                 }
             )
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     // MARK: - Apple IAP API Tests
-    
+
     func testValidateReceipt_Success() throws {
         // Given: Mock successful validation response
         let mockResponse = ReceiptValidationResponse(
@@ -249,7 +249,7 @@ class APIServiceTests: XCTestCase {
             expiresDate: Date().addingTimeInterval(2592000), // 30 days
             isActive: true
         )
-        
+
         let mockData = try JSONEncoder().encode(mockResponse)
         mockURLSession.data = mockData
         mockURLSession.response = HTTPURLResponse(
@@ -258,9 +258,9 @@ class APIServiceTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-        
+
         let expectation = XCTestExpectation(description: "Receipt validation succeeds")
-        
+
         // When: Validating receipt
         apiService.validateReceipt(receiptData: "mock_receipt_data")
             .sink(
@@ -277,10 +277,10 @@ class APIServiceTests: XCTestCase {
                 }
             )
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testGetSubscriptionStatus_Success() throws {
         // Given: Mock subscription status response
         let mockStatus = SubscriptionStatusResponse(
@@ -290,7 +290,7 @@ class APIServiceTests: XCTestCase {
             hasAppleSubscription: true,
             isSubscriber: true
         )
-        
+
         let mockData = try JSONEncoder().encode(mockStatus)
         mockURLSession.data = mockData
         mockURLSession.response = HTTPURLResponse(
@@ -299,9 +299,9 @@ class APIServiceTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-        
+
         let expectation = XCTestExpectation(description: "Subscription status fetch succeeds")
-        
+
         // When: Getting subscription status
         apiService.getSubscriptionStatus()
             .sink(
@@ -318,46 +318,46 @@ class APIServiceTests: XCTestCase {
                 }
             )
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     // MARK: - Request Building Tests
-    
+
     func testRequestBuilding_IncludesAuthHeaders() throws {
         // Given: API service with stored token
         KeychainService.shared.save("test_token", for: "access_token")
-        
+
         // When: Building authenticated request
         var request = URLRequest(url: URL(string: "https://api.fair-edge.com/test")!)
         apiService.addAuthenticationHeaders(to: &request)
-        
+
         // Then: Should include auth header
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test_token")
-        
+
         // Cleanup
         KeychainService.shared.delete(for: "access_token")
     }
-    
+
     func testRequestBuilding_IncludesDeviceHeaders() throws {
         // When: Building request with device info
         var request = URLRequest(url: URL(string: "https://api.fair-edge.com/test")!)
         apiService.addDeviceHeaders(to: &request)
-        
+
         // Then: Should include device headers
         XCTAssertNotNil(request.value(forHTTPHeaderField: "X-Device-ID"))
         XCTAssertNotNil(request.value(forHTTPHeaderField: "X-App-Version"))
         XCTAssertEqual(request.value(forHTTPHeaderField: "X-Platform"), "iOS")
     }
-    
+
     // MARK: - Error Handling Tests
-    
+
     func testErrorHandling_Timeout() throws {
         // Given: Timeout error
         mockURLSession.error = URLError(.timedOut)
-        
+
         let expectation = XCTestExpectation(description: "Timeout handled")
-        
+
         // When: Making request
         apiService.fetchOpportunities()
             .sink(
@@ -372,10 +372,10 @@ class APIServiceTests: XCTestCase {
                 }
             )
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testErrorHandling_ServerError() throws {
         // Given: 500 server error
         mockURLSession.response = HTTPURLResponse(
@@ -384,9 +384,9 @@ class APIServiceTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-        
+
         let expectation = XCTestExpectation(description: "Server error handled")
-        
+
         // When: Making request
         apiService.fetchOpportunities()
             .sink(
@@ -403,12 +403,12 @@ class APIServiceTests: XCTestCase {
                 }
             )
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     // MARK: - Performance Tests
-    
+
     func testAPIPerformance_OpportunitiesRequest() throws {
         // Given: Large mock response
         let opportunities = Array(0..<100).map { _ in createMockOpportunity() }
@@ -417,7 +417,7 @@ class APIServiceTests: XCTestCase {
             totalCount: 100,
             filtersApplied: FiltersApplied(userRole: "premium")
         )
-        
+
         let mockData = try JSONEncoder().encode(response)
         mockURLSession.data = mockData
         mockURLSession.response = HTTPURLResponse(
@@ -426,11 +426,11 @@ class APIServiceTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-        
+
         // When: Measuring performance
         measure {
             let expectation = XCTestExpectation(description: "Performance test")
-            
+
             apiService.fetchOpportunities()
                 .sink(
                     receiveCompletion: { _ in },
@@ -439,7 +439,7 @@ class APIServiceTests: XCTestCase {
                     }
                 )
                 .store(in: &cancellables)
-            
+
             wait(for: [expectation], timeout: 5.0)
         }
     }
@@ -448,7 +448,7 @@ class APIServiceTests: XCTestCase {
 // MARK: - Test Utilities
 
 extension APIServiceTests {
-    
+
     func createMockOpportunity() -> BettingOpportunity {
         return BettingOpportunity(
             id: "test_opp_123",
@@ -464,7 +464,7 @@ extension APIServiceTests {
             classification: .great
         )
     }
-    
+
     func createMockUser() -> User {
         return User(
             id: "test_user_123",
@@ -482,7 +482,7 @@ class MockURLSession: URLSessionProtocol {
     var data: Data?
     var response: URLResponse?
     var error: Error?
-    
+
     func dataTaskPublisher(for request: URLRequest) -> URLSession.DataTaskPublisher {
         // Create a mock publisher that returns our test data
         if let error = error {
@@ -493,10 +493,10 @@ class MockURLSession: URLSessionProtocol {
                 .setFailureType(to: URLError.self)
                 .eraseToAnyPublisher()
         }
-        
+
         let data = self.data ?? Data()
         let response = self.response ?? URLResponse()
-        
+
         return Just((data: data, response: response))
             .setFailureType(to: URLError.self)
             .eraseToAnyPublisher()

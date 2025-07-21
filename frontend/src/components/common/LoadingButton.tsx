@@ -10,7 +10,7 @@ interface LoadingButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 /**
  * LoadingButton Component
- * 
+ *
  * A button component with built-in loading state handling.
  * Automatically disables the button and shows a spinner when loading.
  */
@@ -25,14 +25,14 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
   ...props
 }) => {
   const baseClasses = 'btn d-flex align-items-center justify-content-center gap-2';
-  
+
   const variantClasses = {
     primary: 'btn-primary',
-    secondary: 'btn-secondary', 
+    secondary: 'btn-secondary',
     outline: 'btn-outline-primary',
     danger: 'btn-danger'
   };
-  
+
   const sizeClasses = {
     sm: 'btn-sm',
     md: '',

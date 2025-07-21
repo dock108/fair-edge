@@ -9,7 +9,7 @@ A professional sports betting analysis platform that identifies positive expecte
 ./scripts/setup-dev.sh              # One-time setup
 docker compose up -d                # Start services
 
-# Production  
+# Production
 ./scripts/setup-prod.sh             # One-time setup
 docker compose -f docker-compose.production.yml up -d
 ```

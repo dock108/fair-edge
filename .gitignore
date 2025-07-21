@@ -79,7 +79,7 @@ coverage.xml
 trace.zip
 *.har
 
-# Test artifacts  
+# Test artifacts
 stripe-webhook*.log
 webhook-test.log
 test-*.png
@@ -279,7 +279,7 @@ celerybeat-schedule.db
 celery-data/
 celerybeat-schedule
 
-# Byte-compiled / optimized / DLL files 
+# Byte-compiled / optimized / DLL files
 environments/*.env
 
 # Development documentation and task lists

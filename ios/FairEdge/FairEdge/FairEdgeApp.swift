@@ -15,14 +15,14 @@ struct FairEdgeApp: App {
     @StateObject private var pushNotificationService = PushNotificationService()
     @StateObject private var webSocketService: WebSocketService
     @StateObject private var analyticsService = AnalyticsService.shared
-    
+
     // App delegate for push notifications
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
+
     init() {
         let authService = AuthenticationService()
         let apiService = APIService()
-        
+
         _authenticationService = StateObject(wrappedValue: authService)
         _apiService = StateObject(wrappedValue: apiService)
         _storeKitService = StateObject(wrappedValue: StoreKitService())
@@ -32,7 +32,7 @@ struct FairEdgeApp: App {
             apiService: apiService
         ))
     }
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -45,37 +45,37 @@ struct FairEdgeApp: App {
                 .onAppear {
                     // Configure app delegate dependencies
                     appDelegate.pushNotificationService = pushNotificationService
-                    
+
                     // Start WebSocket connection when user is authenticated
                     if authenticationService.isAuthenticated {
                         webSocketService.connect()
                     }
-                    
+
                     // Optimize initial performance
                     Task {
                         await optimizeAppStartup()
                     }
-                    
+
                     // Track app launch
                     analyticsService.trackEvent("app_launched")
                 }
         }
     }
-    
+
     // MARK: - Performance Optimization
-    
+
     private func optimizeAppStartup() async {
         // Preload StoreKit products
         await storeKitService.loadProducts()
-        
+
         // Pre-warm API connection for authenticated users
         if authenticationService.isAuthenticated {
             await authenticationService.preloadUserData()
         }
-        
+
         // Initialize push notification permissions
         await pushNotificationService.requestPermissions()
-        
+
         // Send pending crash reports
         await analyticsService.sendPendingCrashReports()
     }
@@ -85,21 +85,21 @@ struct FairEdgeApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     var pushNotificationService: PushNotificationService?
-    
+
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         return true
     }
-    
+
     func application(
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
         pushNotificationService?.didRegisterForRemoteNotifications(withDeviceToken: deviceToken)
     }
-    
+
     func application(
         _ application: UIApplication,
         didFailToRegisterForRemoteNotificationsWithError error: Error

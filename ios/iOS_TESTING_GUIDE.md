@@ -45,10 +45,10 @@ func testRegisterDeviceToken_Success() throws {
     // Given: Valid device token
     let deviceToken = Data([0x01, 0x02, 0x03, 0x04, 0x05])
     mockAPIService.shouldRegisterDeviceSucceed = true
-    
+
     // When: Registering device token
     pushService.didRegisterForRemoteNotifications(withDeviceToken: deviceToken)
-    
+
     // Then: Should register with API successfully
     XCTAssertEqual(pushService.deviceToken, deviceToken.hexString)
 }
@@ -84,7 +84,7 @@ func testRegisterDeviceToken_Success() throws {
 func testBettingOpportunityModel_Classifications() throws {
     // Given: Opportunity with high EV
     let opportunity = BettingOpportunity(evPercentage: 15.0, ...)
-    
+
     // When: Checking classification
     // Then: Should be classified as high value
     XCTAssertTrue(opportunity.isHighValue)
@@ -176,12 +176,12 @@ Coverage reports are uploaded to Codecov for tracking.
 
 ```swift
 class NewServiceTests: XCTestCase {
-    
+
     // MARK: - Properties
     var serviceUnderTest: NewService!
     var mockDependency: MockDependency!
     var cancellables: Set<AnyCancellable>!
-    
+
     // MARK: - Setup & Teardown
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -189,20 +189,20 @@ class NewServiceTests: XCTestCase {
         serviceUnderTest = NewService(dependency: mockDependency)
         cancellables = Set<AnyCancellable>()
     }
-    
+
     override func tearDownWithError() throws {
         serviceUnderTest = nil
         mockDependency = nil
         cancellables.removeAll()
         try super.tearDownWithError()
     }
-    
+
     // MARK: - Tests
     func testMethodName_Condition_ExpectedResult() throws {
         // Given: Setup test conditions
-        
+
         // When: Execute the action being tested
-        
+
         // Then: Assert expected outcomes
     }
 }
@@ -215,10 +215,10 @@ class MockAPIService {
     var shouldSucceed = true
     var mockResponse: APIResponse?
     var methodCallCount = 0
-    
+
     func performRequest() async throws -> APIResponse {
         methodCallCount += 1
-        
+
         if shouldSucceed {
             return mockResponse ?? APIResponse.default
         } else {
@@ -234,14 +234,14 @@ class MockAPIService {
 func testAsyncOperation() async throws {
     // Given: Async operation setup
     let expectation = XCTestExpectation(description: "Async operation completes")
-    
+
     // When: Performing async operation
     let result = await serviceUnderTest.performAsyncOperation()
-    
+
     // Then: Verify results
     XCTAssertNotNil(result)
     expectation.fulfill()
-    
+
     await fulfillment(of: [expectation], timeout: 5.0)
 }
 ```
@@ -260,7 +260,7 @@ extension XCTestCase {
             // ... other properties
         )
     }
-    
+
     func createMockUser() -> User {
         return User(
             id: "user_123",
@@ -280,7 +280,7 @@ class MockServiceFactory {
         service.shouldSucceed = true
         return service
     }
-    
+
     static func createMockAuthService() -> MockAuthenticationService {
         let service = MockAuthenticationService()
         service.isAuthenticated = true
@@ -297,12 +297,12 @@ class MockServiceFactory {
 func testPerformanceOfCriticalOperation() throws {
     // Given: Large dataset
     let opportunities = createLargeOpportunityDataset()
-    
+
     // When: Measuring performance
     measure {
         viewModel.filterOpportunities(opportunities)
     }
-    
+
     // Baseline: < 0.1 seconds for 1000 items
 }
 ```
@@ -327,10 +327,10 @@ func testMemoryUsage() throws {
 func testSensitiveDataHandling() throws {
     // Given: Sensitive user data
     let sensitiveData = "user_password_123"
-    
+
     // When: Storing data
     keychainService.store(sensitiveData, for: "password")
-    
+
     // Then: Should not be accessible without authentication
     XCTAssertNil(keychainService.getWithoutAuth(for: "password"))
 }
@@ -342,10 +342,10 @@ func testSensitiveDataHandling() throws {
 func testAPICallSecurity() throws {
     // Given: API request
     let request = APIRequest(endpoint: "/secure-data")
-    
+
     // When: Making request
     apiService.perform(request)
-    
+
     // Then: Should include security headers
     XCTAssertTrue(request.headers.contains("Authorization"))
     XCTAssertTrue(request.url.scheme == "https")
@@ -451,6 +451,6 @@ Certain code is excluded from coverage requirements:
 
 ---
 
-**Last Updated**: December 2024  
-**Version**: 1.0  
+**Last Updated**: December 2024
+**Version**: 1.0
 **Maintainers**: iOS Development Team

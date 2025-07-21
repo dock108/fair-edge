@@ -11,28 +11,28 @@ import AuthenticationServices
 
 /// Authentication service handling Sign in with Apple and mobile session management
 class AuthenticationService: NSObject, ObservableObject {
-    
+
     // MARK: - Published Properties
-    
+
     @Published var isAuthenticated = false
     @Published var currentUser: User?
     @Published var isLoading = false
     @Published var errorMessage: String?
-    
+
     // MARK: - Private Properties
-    
+
     private let apiService = APIService()
     private var cancellables = Set<AnyCancellable>()
-    
+
     // MARK: - Initialization
-    
+
     override init() {
         super.init()
         checkAuthenticationStatus()
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Check if user is currently authenticated
     func checkAuthenticationStatus() {
         guard KeychainService.shared.exists(for: "access_token") else {
@@ -40,7 +40,7 @@ class AuthenticationService: NSObject, ObservableObject {
             self.currentUser = nil
             return
         }
-        
+
         // Validate token by trying to refresh
         apiService.refreshToken()
             .receive(on: DispatchQueue.main)
@@ -57,26 +57,26 @@ class AuthenticationService: NSObject, ObservableObject {
             )
             .store(in: &cancellables)
     }
-    
+
     /// Sign in with Apple ID
     func signInWithApple() {
         isLoading = true
         errorMessage = nil
-        
+
         let request = ASAuthorizationAppleIDProvider().createRequest()
         request.requestedScopes = [.email, .fullName]
-        
+
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = self
         controller.presentationContextProvider = self
         controller.performRequests()
     }
-    
+
     /// Sign in with email and password (for testing/development)
     func signIn(email: String, password: String) {
         isLoading = true
         errorMessage = nil
-        
+
         let sessionRequest = MobileSessionRequest(
             email: email,
             password: password,
@@ -85,13 +85,13 @@ class AuthenticationService: NSObject, ObservableObject {
             appVersion: Bundle.main.appVersion,
             appleIdToken: nil
         )
-        
+
         apiService.createMobileSession(request: sessionRequest)
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { [weak self] completion in
                     self?.isLoading = false
-                    
+
                     switch completion {
                     case .finished:
                         break
@@ -105,14 +105,14 @@ class AuthenticationService: NSObject, ObservableObject {
             )
             .store(in: &cancellables)
     }
-    
+
     /// Sign out and clear stored credentials
     func signOut() {
         isLoading = true
-        
+
         // Clear keychain
         _ = KeychainService.shared.clearAll()
-        
+
         DispatchQueue.main.async {
             self.isAuthenticated = false
             self.currentUser = nil
@@ -120,13 +120,13 @@ class AuthenticationService: NSObject, ObservableObject {
             self.errorMessage = nil
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     /// Preload user data for performance optimization
     func preloadUserData() async {
         guard isAuthenticated else { return }
-        
+
         // Preload subscription status
         do {
             let _ = try await apiService.getSubscriptionStatus().values.first(where: { _ in true })
@@ -134,7 +134,7 @@ class AuthenticationService: NSObject, ObservableObject {
             print("Failed to preload subscription status: \(error)")
         }
     }
-    
+
     /// Handle successful authentication response
     private func handleSuccessfulAuthentication(_ response: MobileSessionResponse) {
         // Create user from session response
@@ -144,13 +144,13 @@ class AuthenticationService: NSObject, ObservableObject {
             role: UserRole(rawValue: response.userInfo.role) ?? .free,
             subscriptionStatus: SubscriptionStatus(rawValue: response.userInfo.subscriptionStatus) ?? .none
         )
-        
+
         self.currentUser = user
         self.isAuthenticated = true
         self.isLoading = false
         self.errorMessage = nil
     }
-    
+
     /// Handle Sign in with Apple credential
     private func handleAppleIDCredential(_ credential: ASAuthorizationAppleIDCredential) {
         guard let identityTokenData = credential.identityToken,
@@ -161,9 +161,9 @@ class AuthenticationService: NSObject, ObservableObject {
             }
             return
         }
-        
+
         let email = credential.email ?? "unknown@apple.com"
-        
+
         let sessionRequest = MobileSessionRequest(
             email: email,
             password: nil,
@@ -172,13 +172,13 @@ class AuthenticationService: NSObject, ObservableObject {
             appVersion: Bundle.main.appVersion,
             appleIdToken: identityToken
         )
-        
+
         apiService.createMobileSession(request: sessionRequest)
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { [weak self] completion in
                     self?.isLoading = false
-                    
+
                     switch completion {
                     case .finished:
                         break
@@ -197,7 +197,7 @@ class AuthenticationService: NSObject, ObservableObject {
 // MARK: - ASAuthorizationControllerDelegate
 
 extension AuthenticationService: ASAuthorizationControllerDelegate {
-    
+
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         switch authorization.credential {
         case let appleIDCredential as ASAuthorizationAppleIDCredential:
@@ -209,7 +209,7 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
             }
         }
     }
-    
+
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         DispatchQueue.main.async {
             self.errorMessage = error.localizedDescription
@@ -221,7 +221,7 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
 // MARK: - ASAuthorizationControllerPresentationContextProviding
 
 extension AuthenticationService: ASAuthorizationControllerPresentationContextProviding {
-    
+
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         // Return the key window
         return UIApplication.shared.connectedScenes

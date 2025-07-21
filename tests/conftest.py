@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from typing import AsyncGenerator, Dict, Any
+from typing import Any, AsyncGenerator, Dict
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -13,21 +13,23 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 # Set test environment variables BEFORE importing app
-os.environ.update({
-    "APP_ENV": "test",
-    "SUPABASE_URL": "https://test.supabase.co",
-    "SUPABASE_ANON_KEY": "test_anon_key",
-    "SUPABASE_SERVICE_ROLE_KEY": "test_service_role_key",
-    "SUPABASE_JWT_SECRET": "test_jwt_secret_that_is_long_enough_for_validation",
-    "DB_CONNECTION_STRING": "postgresql://test_user:test_password@localhost:5432/test_db",
-    "ODDS_API_KEY": "test_odds_api_key",
-    "TESTING": "true"
-})
+os.environ.update(
+    {
+        "APP_ENV": "test",
+        "SUPABASE_URL": "https://test.supabase.co",
+        "SUPABASE_ANON_KEY": "test_anon_key",
+        "SUPABASE_SERVICE_ROLE_KEY": "test_service_role_key",
+        "SUPABASE_JWT_SECRET": "test_jwt_secret_that_is_long_enough_for_validation",
+        "DB_CONNECTION_STRING": "postgresql://test_user:test_password@localhost:5432/test_db",
+        "ODDS_API_KEY": "test_odds_api_key",
+        "TESTING": "true",
+    }
+)
 
 # Import your app and database components AFTER setting env vars
 from app import app
-from db import get_db_session
 from core.settings import get_settings
+from db import get_db
 from models import Base
 
 
@@ -50,23 +52,20 @@ def test_settings():
         "SUPABASE_JWT_SECRET": "test_jwt_secret_that_is_long_enough_for_validation",
         "THE_ODDS_API_KEY": "test_odds_api_key",
         "DEBUG_MODE": True,
-        "APP_ENV": "test"
+        "APP_ENV": "test",
     }
 
 
 @pytest.fixture(scope="session")
 def test_engine(test_settings):
     """Create test database engine."""
-    engine = create_engine(
-        test_settings["DATABASE_URL"].replace("+asyncpg", ""),
-        echo=False
-    )
-    
+    engine = create_engine(test_settings["DATABASE_URL"].replace("+asyncpg", ""), echo=False)
+
     # Create all tables
     Base.metadata.create_all(bind=engine)
-    
+
     yield engine
-    
+
     # Drop all tables after tests
     Base.metadata.drop_all(bind=engine)
     engine.dispose()
@@ -75,23 +74,18 @@ def test_engine(test_settings):
 @pytest_asyncio.fixture(scope="session")
 async def async_test_engine(test_settings):
     """Create async test database engine."""
-    engine = create_async_engine(
-        test_settings["DATABASE_URL"],
-        echo=False
-    )
-    
+    engine = create_async_engine(test_settings["DATABASE_URL"], echo=False)
+
     yield engine
-    
+
     await engine.dispose()
 
 
 @pytest_asyncio.fixture
 async def db_session(async_test_engine) -> AsyncGenerator[AsyncSession, None]:
     """Create a test database session."""
-    async_session = sessionmaker(
-        async_test_engine, class_=AsyncSession, expire_on_commit=False
-    )
-    
+    async_session = sessionmaker(async_test_engine, class_=AsyncSession, expire_on_commit=False)
+
     async with async_session() as session:
         yield session
         await session.rollback()
@@ -100,14 +94,15 @@ async def db_session(async_test_engine) -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture
 def client(db_session):
     """Create a test client with database session override."""
+
     def override_get_db():
         return db_session
-    
-    app.dependency_overrides[get_db_session] = override_get_db
-    
+
+    app.dependency_overrides[get_db] = override_get_db
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     app.dependency_overrides.clear()
 
 
@@ -145,14 +140,14 @@ def mock_odds_api():
                                 "key": "h2h",
                                 "outcomes": [
                                     {"name": "New York Giants", "price": 2.50},
-                                    {"name": "Philadelphia Eagles", "price": 1.65}
-                                ]
+                                    {"name": "Philadelphia Eagles", "price": 1.65},
+                                ],
                             }
-                        ]
+                        ],
                     }
-                ]
+                ],
             }
-        ]
+        ],
     }
 
 
@@ -165,7 +160,7 @@ def sample_user_data():
         "role": "premium",
         "subscription_status": "active",
         "device_id": "test_device_123",
-        "apple_user_id": "test_apple_user"
+        "apple_user_id": "test_apple_user",
     }
 
 
@@ -183,7 +178,7 @@ def sample_opportunity_data():
         "fair_odds": "+120",
         "best_source": "DraftKings",
         "game_time": "2025-01-20 20:00:00",
-        "classification": "great"
+        "classification": "great",
     }
 
 
@@ -221,25 +216,15 @@ def mock_apple_receipt():
         "transaction_id": "test_transaction_123",
         "original_transaction_id": "test_original_123",
         "expires_date": "2025-02-20 12:00:00",
-        "auto_renew_status": "1"
+        "auto_renew_status": "1",
     }
 
 
 # Markers for different test types
 def pytest_configure(config):
     """Configure pytest markers."""
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "slow: mark test as slow running"
-    )
-    config.addinivalue_line(
-        "markers", "api: mark test as an API test"
-    )
-    config.addinivalue_line(
-        "markers", "database: mark test as requiring database"
-    )
+    config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
+    config.addinivalue_line("markers", "api: mark test as an API test")
+    config.addinivalue_line("markers", "database: mark test as requiring database")

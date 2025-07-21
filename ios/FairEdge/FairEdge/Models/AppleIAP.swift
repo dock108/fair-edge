@@ -14,10 +14,10 @@ struct ReceiptValidationRequest: Codable {
     let receiptData: String
     let productId: String
     let transactionId: String
-    
+
     enum CodingKeys: String, CodingKey {
         case receiptData = "receipt_data"
-        case productId = "product_id" 
+        case productId = "product_id"
         case transactionId = "transaction_id"
     }
 }
@@ -30,7 +30,7 @@ struct ReceiptValidationResponse: Codable {
     let expirationDate: String?
     let message: String?
     let validationDetails: ValidationDetails?
-    
+
     enum CodingKeys: String, CodingKey {
         case success
         case userRole = "user_role"
@@ -48,7 +48,7 @@ struct ValidationDetails: Codable {
     let productId: String
     let purchaseDate: String?
     let expiresDate: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case appleValidationStatus = "apple_validation_status"
         case isActive = "is_active"
@@ -70,7 +70,7 @@ struct SubscriptionStatusResponse: Codable {
     let features: [String]
     let canUpgrade: Bool
     let availableUpgrades: [String]
-    
+
     enum CodingKeys: String, CodingKey {
         case hasActiveSubscription = "has_active_subscription"
         case currentPlan = "current_plan"
@@ -91,7 +91,7 @@ struct RestorePurchasesResponse: Codable {
     let restoredPurchases: [RestoredPurchase]
     let currentSubscription: CurrentSubscription?
     let message: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case success
         case restoredPurchases = "restored_purchases"
@@ -106,7 +106,7 @@ struct RestoredPurchase: Codable {
     let purchaseDate: String
     let expirationDate: String?
     let isActive: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case productId = "product_id"
         case purchaseDate = "purchase_date"
@@ -123,7 +123,7 @@ struct CurrentSubscription: Codable {
     let purchaseDate: String
     let expirationDate: String?
     let autoRenewStatus: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case productId = "product_id"
         case plan
@@ -140,7 +140,7 @@ struct CurrentSubscription: Codable {
 struct AppleProductsResponse: Codable {
     let products: [AppleProduct]
     let subscriptionGroups: [SubscriptionGroup]
-    
+
     enum CodingKeys: String, CodingKey {
         case products
         case subscriptionGroups = "subscription_groups"
@@ -157,7 +157,7 @@ struct AppleProduct: Codable {
     let subscriptionPeriod: String?
     let subscriptionGroup: String?
     let features: [String]
-    
+
     enum CodingKeys: String, CodingKey {
         case productId = "product_id"
         case name
@@ -175,7 +175,7 @@ struct SubscriptionGroup: Codable {
     let groupId: String
     let name: String
     let products: [String]
-    
+
     enum CodingKeys: String, CodingKey {
         case groupId = "group_id"
         case name
@@ -193,14 +193,14 @@ struct AppStoreNotification: Codable {
     let data: NotificationData
     let version: String
     let signedDate: Int64
-    
+
     enum CodingKeys: String, CodingKey {
-        case notificationType = "notificationType"
+        case notificationType
         case subtype
-        case notificationUUID = "notificationUUID"
+        case notificationUUID
         case data
         case version
-        case signedDate = "signedDate"
+        case signedDate
     }
 }
 
@@ -212,14 +212,14 @@ struct NotificationData: Codable {
     let environment: String
     let signedTransactionInfo: String
     let signedRenewalInfo: String?
-    
+
     enum CodingKeys: String, CodingKey {
-        case appAppleId = "appAppleId"
-        case bundleId = "bundleId"
-        case bundleVersion = "bundleVersion"
+        case appAppleId
+        case bundleId
+        case bundleVersion
         case environment
-        case signedTransactionInfo = "signedTransactionInfo"
-        case signedRenewalInfo = "signedRenewalInfo"
+        case signedTransactionInfo
+        case signedRenewalInfo
     }
 }
 
@@ -235,7 +235,7 @@ enum AppleIAPError: Error, LocalizedError {
     case purchaseNotAllowed
     case restoreFailed
     case networkError
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidReceipt:
@@ -256,7 +256,7 @@ enum AppleIAPError: Error, LocalizedError {
             return "Network connection required"
         }
     }
-    
+
     var recoverySuggestion: String? {
         switch self {
         case .invalidReceipt, .validationFailed:

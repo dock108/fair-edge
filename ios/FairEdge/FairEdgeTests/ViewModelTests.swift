@@ -10,25 +10,25 @@ import Combine
 @testable import FairEdge
 
 class ViewModelTests: XCTestCase {
-    
+
     // MARK: - Properties
-    
+
     var cancellables: Set<AnyCancellable>!
     var mockAPIService: MockAPIService!
     var mockAuthService: MockAuthenticationService!
     var mockAnalyticsService: MockAnalyticsService!
-    
+
     // MARK: - Setup & Teardown
-    
+
     override func setUpWithError() throws {
         try super.setUpWithError()
-        
+
         cancellables = Set<AnyCancellable>()
         mockAPIService = MockAPIService()
         mockAuthService = MockAuthenticationService()
         mockAnalyticsService = MockAnalyticsService()
     }
-    
+
     override func tearDownWithError() throws {
         cancellables.removeAll()
         cancellables = nil
@@ -37,24 +37,24 @@ class ViewModelTests: XCTestCase {
         mockAnalyticsService = nil
         try super.tearDownWithError()
     }
-    
+
     // MARK: - OpportunityListViewModel Tests
-    
+
     func testOpportunityListViewModel_LoadOpportunities_Success() throws {
         // Given: ViewModel with mock service
         let viewModel = OpportunityListViewModel(
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         mockAPIService.shouldLoadOpportunitiesSucceed = true
         mockAPIService.mockOpportunities = createMockOpportunities()
-        
+
         let expectation = XCTestExpectation(description: "Opportunities loaded")
-        
+
         // When: Loading opportunities
         viewModel.loadOpportunities()
-        
+
         // Then: Should update opportunities list
         viewModel.$opportunities
             .dropFirst()
@@ -65,25 +65,25 @@ class ViewModelTests: XCTestCase {
                 expectation.fulfill()
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testOpportunityListViewModel_LoadOpportunities_Failure() throws {
         // Given: ViewModel with failing service
         let viewModel = OpportunityListViewModel(
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         mockAPIService.shouldLoadOpportunitiesSucceed = false
         mockAPIService.mockError = APIError.networkError
-        
+
         let expectation = XCTestExpectation(description: "Error handled")
-        
+
         // When: Loading opportunities fails
         viewModel.loadOpportunities()
-        
+
         // Then: Should handle error
         viewModel.$errorMessage
             .compactMap { $0 }
@@ -94,81 +94,81 @@ class ViewModelTests: XCTestCase {
                 expectation.fulfill()
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testOpportunityListViewModel_FilterOpportunities() throws {
         // Given: ViewModel with opportunities
         let viewModel = OpportunityListViewModel(
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         viewModel.opportunities = createMockOpportunities()
-        
+
         // When: Filtering by sport
         viewModel.selectedSport = "NBA"
         viewModel.applyFilters()
-        
+
         // Then: Should filter opportunities
         let filteredOpportunities = viewModel.filteredOpportunities
         XCTAssertEqual(filteredOpportunities.count, 2) // 2 NBA opportunities
         XCTAssertTrue(filteredOpportunities.allSatisfy { $0.sport == "NBA" })
     }
-    
+
     func testOpportunityListViewModel_SortOpportunities() throws {
         // Given: ViewModel with opportunities
         let viewModel = OpportunityListViewModel(
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         viewModel.opportunities = createMockOpportunities()
-        
+
         // When: Sorting by EV percentage
         viewModel.sortOption = .evPercentage
         viewModel.applySorting()
-        
+
         // Then: Should sort by EV descending
         let sortedOpportunities = viewModel.sortedOpportunities
         XCTAssertTrue(sortedOpportunities[0].evPercentage >= sortedOpportunities[1].evPercentage)
         XCTAssertTrue(sortedOpportunities[1].evPercentage >= sortedOpportunities[2].evPercentage)
     }
-    
+
     func testOpportunityListViewModel_SearchOpportunities() throws {
         // Given: ViewModel with opportunities
         let viewModel = OpportunityListViewModel(
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         viewModel.opportunities = createMockOpportunities()
-        
+
         // When: Searching for "Lakers"
         viewModel.searchText = "Lakers"
-        
+
         // Then: Should filter search results
         let searchResults = viewModel.searchResults
         XCTAssertEqual(searchResults.count, 2) // 2 Lakers opportunities
         XCTAssertTrue(searchResults.allSatisfy { $0.event.contains("Lakers") })
     }
-    
+
     func testOpportunityListViewModel_RefreshOpportunities() throws {
         // Given: ViewModel with existing opportunities
         let viewModel = OpportunityListViewModel(
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         viewModel.opportunities = createMockOpportunities()
         mockAPIService.shouldLoadOpportunitiesSucceed = true
-        
+
         let expectation = XCTestExpectation(description: "Opportunities refreshed")
-        
+
         // When: Refreshing opportunities
         viewModel.refreshOpportunities()
-        
+
         // Then: Should reload data
         viewModel.$isRefreshing
             .dropFirst()
@@ -179,26 +179,26 @@ class ViewModelTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     // MARK: - AuthenticationViewModel Tests
-    
+
     func testAuthenticationViewModel_SignInWithApple_Success() throws {
         // Given: Authentication ViewModel
         let viewModel = AuthenticationViewModel(
             authService: mockAuthService,
             analyticsService: mockAnalyticsService
         )
-        
+
         mockAuthService.shouldSignInSucceed = true
-        
+
         let expectation = XCTestExpectation(description: "Sign in successful")
-        
+
         // When: Signing in with Apple
         viewModel.signInWithApple()
-        
+
         // Then: Should authenticate successfully
         viewModel.$isAuthenticated
             .dropFirst()
@@ -211,25 +211,25 @@ class ViewModelTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testAuthenticationViewModel_SignInWithApple_Failure() throws {
         // Given: Authentication ViewModel with failing service
         let viewModel = AuthenticationViewModel(
             authService: mockAuthService,
             analyticsService: mockAnalyticsService
         )
-        
+
         mockAuthService.shouldSignInSucceed = false
         mockAuthService.mockError = AuthenticationError.signInFailed
-        
+
         let expectation = XCTestExpectation(description: "Sign in failed")
-        
+
         // When: Sign in fails
         viewModel.signInWithApple()
-        
+
         // Then: Should handle error
         viewModel.$errorMessage
             .compactMap { $0 }
@@ -240,25 +240,25 @@ class ViewModelTests: XCTestCase {
                 expectation.fulfill()
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testAuthenticationViewModel_SignOut() throws {
         // Given: Authenticated user
         let viewModel = AuthenticationViewModel(
             authService: mockAuthService,
             analyticsService: mockAnalyticsService
         )
-        
+
         viewModel.isAuthenticated = true
         mockAuthService.shouldSignOutSucceed = true
-        
+
         let expectation = XCTestExpectation(description: "Sign out successful")
-        
+
         // When: Signing out
         viewModel.signOut()
-        
+
         // Then: Should sign out successfully
         viewModel.$isAuthenticated
             .dropFirst()
@@ -270,35 +270,35 @@ class ViewModelTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testAuthenticationViewModel_ValidateForm() throws {
         // Given: Authentication ViewModel
         let viewModel = AuthenticationViewModel(
             authService: mockAuthService,
             analyticsService: mockAnalyticsService
         )
-        
+
         // When: Validating empty form
         let emptyFormValid = viewModel.isFormValid()
-        
+
         // Then: Should be invalid
         XCTAssertFalse(emptyFormValid)
-        
+
         // When: Setting valid email
         viewModel.email = "test@example.com"
         viewModel.password = "ValidPass123!"
-        
+
         let validFormValid = viewModel.isFormValid()
-        
+
         // Then: Should be valid
         XCTAssertTrue(validFormValid)
     }
-    
+
     // MARK: - UserProfileViewModel Tests
-    
+
     func testUserProfileViewModel_LoadProfile_Success() throws {
         // Given: User profile ViewModel
         let viewModel = UserProfileViewModel(
@@ -306,15 +306,15 @@ class ViewModelTests: XCTestCase {
             authService: mockAuthService,
             analyticsService: mockAnalyticsService
         )
-        
+
         mockAPIService.shouldLoadUserProfileSucceed = true
         mockAPIService.mockUserProfile = createMockUserProfile()
-        
+
         let expectation = XCTestExpectation(description: "Profile loaded")
-        
+
         // When: Loading user profile
         viewModel.loadProfile()
-        
+
         // Then: Should load profile
         viewModel.$userProfile
             .compactMap { $0 }
@@ -325,10 +325,10 @@ class ViewModelTests: XCTestCase {
                 expectation.fulfill()
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testUserProfileViewModel_UpdateProfile_Success() throws {
         // Given: User profile ViewModel with loaded profile
         let viewModel = UserProfileViewModel(
@@ -336,15 +336,15 @@ class ViewModelTests: XCTestCase {
             authService: mockAuthService,
             analyticsService: mockAnalyticsService
         )
-        
+
         viewModel.userProfile = createMockUserProfile()
         mockAPIService.shouldUpdateUserProfileSucceed = true
-        
+
         let expectation = XCTestExpectation(description: "Profile updated")
-        
+
         // When: Updating profile
         viewModel.updateProfile()
-        
+
         // Then: Should update successfully
         viewModel.$profileUpdateSuccess
             .dropFirst()
@@ -356,10 +356,10 @@ class ViewModelTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testUserProfileViewModel_DeleteAccount() throws {
         // Given: User profile ViewModel
         let viewModel = UserProfileViewModel(
@@ -367,14 +367,14 @@ class ViewModelTests: XCTestCase {
             authService: mockAuthService,
             analyticsService: mockAnalyticsService
         )
-        
+
         mockAPIService.shouldDeleteAccountSucceed = true
-        
+
         let expectation = XCTestExpectation(description: "Account deleted")
-        
+
         // When: Deleting account
         viewModel.deleteAccount()
-        
+
         // Then: Should delete account and sign out
         viewModel.$accountDeleted
             .dropFirst()
@@ -386,12 +386,12 @@ class ViewModelTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     // MARK: - SubscriptionViewModel Tests
-    
+
     func testSubscriptionViewModel_LoadProducts_Success() throws {
         // Given: Subscription ViewModel
         let viewModel = SubscriptionViewModel(
@@ -399,15 +399,15 @@ class ViewModelTests: XCTestCase {
             iapService: MockIAPService(),
             analyticsService: mockAnalyticsService
         )
-        
+
         let mockProducts = createMockIAPProducts()
         (viewModel.iapService as! MockIAPService).mockProducts = mockProducts
-        
+
         let expectation = XCTestExpectation(description: "Products loaded")
-        
+
         // When: Loading IAP products
         viewModel.loadProducts()
-        
+
         // Then: Should load products
         viewModel.$availableProducts
             .dropFirst()
@@ -417,10 +417,10 @@ class ViewModelTests: XCTestCase {
                 expectation.fulfill()
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testSubscriptionViewModel_PurchaseProduct_Success() throws {
         // Given: Subscription ViewModel with products
         let viewModel = SubscriptionViewModel(
@@ -428,18 +428,18 @@ class ViewModelTests: XCTestCase {
             iapService: MockIAPService(),
             analyticsService: mockAnalyticsService
         )
-        
+
         viewModel.availableProducts = createMockIAPProducts()
         let product = viewModel.availableProducts.first!
-        
+
         (viewModel.iapService as! MockIAPService).shouldPurchaseSucceed = true
         mockAPIService.shouldValidateReceiptSucceed = true
-        
+
         let expectation = XCTestExpectation(description: "Purchase successful")
-        
+
         // When: Purchasing product
         viewModel.purchaseProduct(product)
-        
+
         // Then: Should complete purchase
         viewModel.$purchaseSuccess
             .dropFirst()
@@ -452,10 +452,10 @@ class ViewModelTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testSubscriptionViewModel_RestorePurchases() throws {
         // Given: Subscription ViewModel
         let viewModel = SubscriptionViewModel(
@@ -463,14 +463,14 @@ class ViewModelTests: XCTestCase {
             iapService: MockIAPService(),
             analyticsService: mockAnalyticsService
         )
-        
+
         (viewModel.iapService as! MockIAPService).shouldRestoreSucceed = true
-        
+
         let expectation = XCTestExpectation(description: "Purchases restored")
-        
+
         // When: Restoring purchases
         viewModel.restorePurchases()
-        
+
         // Then: Should restore successfully
         viewModel.$restoreSuccess
             .dropFirst()
@@ -481,45 +481,45 @@ class ViewModelTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     // MARK: - SettingsViewModel Tests
-    
+
     func testSettingsViewModel_LoadSettings() throws {
         // Given: Settings ViewModel
         let viewModel = SettingsViewModel(
             analyticsService: mockAnalyticsService
         )
-        
+
         // When: Loading settings
         viewModel.loadSettings()
-        
+
         // Then: Should load default settings
         XCTAssertNotNil(viewModel.notificationSettings)
         XCTAssertNotNil(viewModel.appSettings)
         XCTAssertFalse(viewModel.isLoading)
     }
-    
+
     func testSettingsViewModel_UpdateNotificationSettings() throws {
         // Given: Settings ViewModel
         let viewModel = SettingsViewModel(
             analyticsService: mockAnalyticsService
         )
-        
+
         let newSettings = NotificationSettings(
             enabled: true,
             evThreshold: 8.0,
             enabledSports: ["NFL", "NBA"],
             quietHoursEnabled: true
         )
-        
+
         let expectation = XCTestExpectation(description: "Settings updated")
-        
+
         // When: Updating notification settings
         viewModel.updateNotificationSettings(newSettings)
-        
+
         // Then: Should update settings
         viewModel.$notificationSettings
             .dropFirst()
@@ -530,32 +530,32 @@ class ViewModelTests: XCTestCase {
                 expectation.fulfill()
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testSettingsViewModel_ToggleAnalytics() throws {
         // Given: Settings ViewModel with analytics enabled
         let viewModel = SettingsViewModel(
             analyticsService: mockAnalyticsService
         )
-        
+
         viewModel.appSettings = AppSettings(
             analyticsEnabled: true,
             crashReportingEnabled: true,
             theme: .system
         )
-        
+
         // When: Toggling analytics
         viewModel.toggleAnalytics()
-        
+
         // Then: Should disable analytics
         XCTAssertFalse(viewModel.appSettings?.analyticsEnabled ?? true)
         XCTAssertTrue(mockAnalyticsService.setAnalyticsEnabledCalled)
     }
-    
+
     // MARK: - OpportunityDetailViewModel Tests
-    
+
     func testOpportunityDetailViewModel_LoadOpportunityDetail() throws {
         // Given: Opportunity detail ViewModel
         let opportunity = createMockOpportunities().first!
@@ -564,15 +564,15 @@ class ViewModelTests: XCTestCase {
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         mockAPIService.shouldLoadOpportunityDetailSucceed = true
         mockAPIService.mockOpportunityDetail = createMockOpportunityDetail()
-        
+
         let expectation = XCTestExpectation(description: "Detail loaded")
-        
+
         // When: Loading opportunity detail
         viewModel.loadOpportunityDetail()
-        
+
         // Then: Should load additional details
         viewModel.$opportunityDetail
             .compactMap { $0 }
@@ -583,10 +583,10 @@ class ViewModelTests: XCTestCase {
                 expectation.fulfill()
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testOpportunityDetailViewModel_AddToFavorites() throws {
         // Given: Opportunity detail ViewModel
         let opportunity = createMockOpportunities().first!
@@ -595,14 +595,14 @@ class ViewModelTests: XCTestCase {
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         mockAPIService.shouldAddToFavoritesSucceed = true
-        
+
         let expectation = XCTestExpectation(description: "Added to favorites")
-        
+
         // When: Adding to favorites
         viewModel.addToFavorites()
-        
+
         // Then: Should add successfully
         viewModel.$isFavorite
             .dropFirst()
@@ -614,10 +614,10 @@ class ViewModelTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
-    
+
     func testOpportunityDetailViewModel_ShareOpportunity() throws {
         // Given: Opportunity detail ViewModel
         let opportunity = createMockOpportunities().first!
@@ -626,10 +626,10 @@ class ViewModelTests: XCTestCase {
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         // When: Sharing opportunity
         let shareData = viewModel.getShareData()
-        
+
         // Then: Should generate share content
         XCTAssertNotNil(shareData.title)
         XCTAssertNotNil(shareData.text)
@@ -637,16 +637,16 @@ class ViewModelTests: XCTestCase {
         XCTAssertTrue(shareData.text.contains("\(opportunity.evPercentage)%"))
         XCTAssertTrue(mockAnalyticsService.trackEventCalled)
     }
-    
+
     // MARK: - Performance Tests
-    
+
     func testViewModelPerformance_OpportunityListFiltering() throws {
         // Given: ViewModel with large number of opportunities
         let viewModel = OpportunityListViewModel(
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         let largeOpportunityList = Array(0..<1000).map { index in
             BettingOpportunity(
                 id: "opp_\(index)",
@@ -662,9 +662,9 @@ class ViewModelTests: XCTestCase {
                 classification: .great
             )
         }
-        
+
         viewModel.opportunities = largeOpportunityList
-        
+
         // When: Filtering opportunities
         measure {
             viewModel.selectedSport = "NFL"
@@ -672,14 +672,14 @@ class ViewModelTests: XCTestCase {
             _ = viewModel.filteredOpportunities
         }
     }
-    
+
     func testViewModelPerformance_OpportunityListSorting() throws {
         // Given: ViewModel with large number of opportunities
         let viewModel = OpportunityListViewModel(
             apiService: mockAPIService,
             analyticsService: mockAnalyticsService
         )
-        
+
         let largeOpportunityList = Array(0..<1000).map { index in
             BettingOpportunity(
                 id: "opp_\(index)",
@@ -695,9 +695,9 @@ class ViewModelTests: XCTestCase {
                 classification: .great
             )
         }
-        
+
         viewModel.opportunities = largeOpportunityList
-        
+
         // When: Sorting opportunities
         measure {
             viewModel.sortOption = .evPercentage
@@ -710,7 +710,7 @@ class ViewModelTests: XCTestCase {
 // MARK: - Test Utilities
 
 extension ViewModelTests {
-    
+
     func createMockOpportunities() -> [BettingOpportunity] {
         return [
             BettingOpportunity(
@@ -754,7 +754,7 @@ extension ViewModelTests {
             )
         ]
     }
-    
+
     func createMockUserProfile() -> UserProfile {
         return UserProfile(
             id: "user_123",
@@ -771,7 +771,7 @@ extension ViewModelTests {
             )
         )
     }
-    
+
     func createMockIAPProducts() -> [IAPProduct] {
         return [
             IAPProduct(
@@ -790,7 +790,7 @@ extension ViewModelTests {
             )
         ]
     }
-    
+
     func createMockOpportunityDetail() -> OpportunityDetail {
         return OpportunityDetail(
             opportunity: createMockOpportunities().first!,
@@ -814,11 +814,11 @@ extension ViewModelTests {
 class MockAnalyticsService {
     var trackEventCalled = false
     var setAnalyticsEnabledCalled = false
-    
+
     func trackEvent(_ name: String, properties: [String: Any]? = nil) {
         trackEventCalled = true
     }
-    
+
     func setAnalyticsEnabled(_ enabled: Bool) {
         setAnalyticsEnabledCalled = true
     }
@@ -829,11 +829,11 @@ class MockIAPService {
     var shouldPurchaseSucceed = true
     var shouldRestoreSucceed = true
     var restorePurchasesCalled = false
-    
+
     func loadProducts() async -> [IAPProduct] {
         return mockProducts
     }
-    
+
     func purchaseProduct(_ product: IAPProduct) async throws -> PurchaseResult {
         if shouldPurchaseSucceed {
             return PurchaseResult(success: true, transactionId: "txn_123", receipt: "receipt_data")
@@ -841,7 +841,7 @@ class MockIAPService {
             throw IAPError.purchaseFailed
         }
     }
-    
+
     func restorePurchases() async throws {
         restorePurchasesCalled = true
         if !shouldRestoreSucceed {
@@ -962,19 +962,19 @@ class OpportunityListViewModel: ObservableObject {
     @Published var sortOption: SortOption = .gameTime {
         didSet { applySorting() }
     }
-    
+
     private let apiService: MockAPIService
     private let analyticsService: MockAnalyticsService
-    
+
     init(apiService: MockAPIService, analyticsService: MockAnalyticsService) {
         self.apiService = apiService
         self.analyticsService = analyticsService
     }
-    
+
     func loadOpportunities() {
         isLoading = true
         errorMessage = nil
-        
+
         Task {
             do {
                 let opportunities = try await apiService.loadOpportunities()
@@ -992,13 +992,13 @@ class OpportunityListViewModel: ObservableObject {
             }
         }
     }
-    
+
     func refreshOpportunities() {
         isRefreshing = true
         loadOpportunities()
         isRefreshing = false
     }
-    
+
     func applyFilters() {
         if let selectedSport = selectedSport {
             filteredOpportunities = opportunities.filter { $0.sport == selectedSport }
@@ -1006,7 +1006,7 @@ class OpportunityListViewModel: ObservableObject {
             filteredOpportunities = opportunities
         }
     }
-    
+
     func applySorting() {
         switch sortOption {
         case .evPercentage:
@@ -1015,7 +1015,7 @@ class OpportunityListViewModel: ObservableObject {
             sortedOpportunities = filteredOpportunities.sorted { $0.gameTime < $1.gameTime }
         }
     }
-    
+
     private func updateSearchResults() {
         if searchText.isEmpty {
             searchResults = opportunities
@@ -1035,19 +1035,19 @@ class AuthenticationViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var email = ""
     @Published var password = ""
-    
+
     private let authService: MockAuthenticationService
     private let analyticsService: MockAnalyticsService
-    
+
     init(authService: MockAuthenticationService, analyticsService: MockAnalyticsService) {
         self.authService = authService
         self.analyticsService = analyticsService
     }
-    
+
     func signInWithApple() {
         isLoading = true
         errorMessage = nil
-        
+
         Task {
             do {
                 try await authService.signInWithApple()
@@ -1064,7 +1064,7 @@ class AuthenticationViewModel: ObservableObject {
             }
         }
     }
-    
+
     func signOut() {
         Task {
             do {
@@ -1078,7 +1078,7 @@ class AuthenticationViewModel: ObservableObject {
             }
         }
     }
-    
+
     func isFormValid() -> Bool {
         return email.isValidEmail && password.count >= 8
     }
@@ -1090,20 +1090,20 @@ class UserProfileViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var profileUpdateSuccess = false
     @Published var accountDeleted = false
-    
+
     private let apiService: MockAPIService
     private let authService: MockAuthenticationService
     private let analyticsService: MockAnalyticsService
-    
+
     init(apiService: MockAPIService, authService: MockAuthenticationService, analyticsService: MockAnalyticsService) {
         self.apiService = apiService
         self.authService = authService
         self.analyticsService = analyticsService
     }
-    
+
     func loadProfile() {
         isLoading = true
-        
+
         Task {
             do {
                 let profile = try await apiService.loadUserProfile()
@@ -1119,10 +1119,10 @@ class UserProfileViewModel: ObservableObject {
             }
         }
     }
-    
+
     func updateProfile() {
         guard let profile = userProfile else { return }
-        
+
         Task {
             do {
                 try await apiService.updateUserProfile(profile)
@@ -1136,7 +1136,7 @@ class UserProfileViewModel: ObservableObject {
             }
         }
     }
-    
+
     func deleteAccount() {
         Task {
             do {
@@ -1161,20 +1161,20 @@ class SubscriptionViewModel: ObservableObject {
     @Published var purchaseSuccess = false
     @Published var restoreSuccess = false
     @Published var errorMessage: String?
-    
+
     let iapService: MockIAPService
     private let apiService: MockAPIService
     private let analyticsService: MockAnalyticsService
-    
+
     init(apiService: MockAPIService, iapService: MockIAPService, analyticsService: MockAnalyticsService) {
         self.apiService = apiService
         self.iapService = iapService
         self.analyticsService = analyticsService
     }
-    
+
     func loadProducts() {
         isLoading = true
-        
+
         Task {
             let products = await iapService.loadProducts()
             await MainActor.run {
@@ -1183,10 +1183,10 @@ class SubscriptionViewModel: ObservableObject {
             }
         }
     }
-    
+
     func purchaseProduct(_ product: IAPProduct) {
         isPurchasing = true
-        
+
         Task {
             do {
                 let result = try await iapService.purchaseProduct(product)
@@ -1206,7 +1206,7 @@ class SubscriptionViewModel: ObservableObject {
             }
         }
     }
-    
+
     func restorePurchases() {
         Task {
             do {
@@ -1227,16 +1227,16 @@ class SettingsViewModel: ObservableObject {
     @Published var notificationSettings: NotificationSettings?
     @Published var appSettings: AppSettings?
     @Published var isLoading = false
-    
+
     private let analyticsService: MockAnalyticsService
-    
+
     init(analyticsService: MockAnalyticsService) {
         self.analyticsService = analyticsService
     }
-    
+
     func loadSettings() {
         isLoading = true
-        
+
         // Load default settings
         notificationSettings = NotificationSettings(
             enabled: true,
@@ -1244,30 +1244,30 @@ class SettingsViewModel: ObservableObject {
             enabledSports: ["NFL", "NBA"],
             quietHoursEnabled: false
         )
-        
+
         appSettings = AppSettings(
             analyticsEnabled: true,
             crashReportingEnabled: true,
             theme: .system
         )
-        
+
         isLoading = false
     }
-    
+
     func updateNotificationSettings(_ settings: NotificationSettings) {
         notificationSettings = settings
         analyticsService.trackEvent("notification_settings_updated")
     }
-    
+
     func toggleAnalytics() {
         guard let settings = appSettings else { return }
-        
+
         appSettings = AppSettings(
             analyticsEnabled: !settings.analyticsEnabled,
             crashReportingEnabled: settings.crashReportingEnabled,
             theme: settings.theme
         )
-        
+
         analyticsService.setAnalyticsEnabled(appSettings!.analyticsEnabled)
     }
 }
@@ -1277,20 +1277,20 @@ class OpportunityDetailViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isFavorite = false
     @Published var errorMessage: String?
-    
+
     let opportunity: BettingOpportunity
     private let apiService: MockAPIService
     private let analyticsService: MockAnalyticsService
-    
+
     init(opportunity: BettingOpportunity, apiService: MockAPIService, analyticsService: MockAnalyticsService) {
         self.opportunity = opportunity
         self.apiService = apiService
         self.analyticsService = analyticsService
     }
-    
+
     func loadOpportunityDetail() {
         isLoading = true
-        
+
         Task {
             do {
                 let detail = try await apiService.loadOpportunityDetail(opportunity.id)
@@ -1306,7 +1306,7 @@ class OpportunityDetailViewModel: ObservableObject {
             }
         }
     }
-    
+
     func addToFavorites() {
         Task {
             do {
@@ -1322,10 +1322,10 @@ class OpportunityDetailViewModel: ObservableObject {
             }
         }
     }
-    
+
     func getShareData() -> ShareData {
         analyticsService.trackEvent("opportunity_shared")
-        
+
         return ShareData(
             title: "Fair-Edge Betting Opportunity",
             text: "\(opportunity.event) - \(opportunity.betDescription) (\(opportunity.bestOdds), \(opportunity.evPercentage)% EV)",

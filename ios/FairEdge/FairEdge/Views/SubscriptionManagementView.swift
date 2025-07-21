@@ -13,26 +13,26 @@ struct SubscriptionManagementView: View {
     @StateObject private var storeKitService = StoreKitService()
     @EnvironmentObject var authenticationService: AuthenticationService
     @Environment(\.presentationMode) var presentationMode
-    
+
     @State private var subscriptionStatus: SubscriptionStatusResponse?
     @State private var showingCancellationConfirmation = false
     @State private var showingUpgradeOptions = false
-    
+
     var body: some View {
         NavigationView {
             List {
                 // Current subscription section
                 currentSubscriptionSection
-                
+
                 // Usage and features section
                 usageFeaturesSection
-                
+
                 // Manage subscription section
                 manageSubscriptionSection
-                
+
                 // Billing information section
                 billingInformationSection
-                
+
                 // Support section
                 supportSection
             }
@@ -61,34 +61,34 @@ struct SubscriptionManagementView: View {
             }
         }
     }
-    
+
     // MARK: - Current Subscription Section
-    
+
     private var currentSubscriptionSection: some View {
         Section("Current Plan") {
             if let status = subscriptionStatus {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         subscriptionBadge(for: status.currentPlan ?? "Free")
-                        
+
                         Spacer()
-                        
+
                         if status.hasActiveSubscription {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(.green)
                         }
                     }
-                    
+
                     if let plan = status.currentPlan {
                         Text(planDisplayName(for: plan))
                             .font(.headline)
                             .fontWeight(.semibold)
                     }
-                    
+
                     Text(subscriptionStatusText(status))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    
+
                     if let expirationDate = status.expirationDate {
                         HStack {
                             Image(systemName: "calendar")
@@ -97,7 +97,7 @@ struct SubscriptionManagementView: View {
                                 .font(.subheadline)
                         }
                     }
-                    
+
                     if let nextBillingDate = status.nextBillingDate {
                         HStack {
                             Image(systemName: "creditcard")
@@ -119,9 +119,9 @@ struct SubscriptionManagementView: View {
             }
         }
     }
-    
+
     // MARK: - Usage and Features Section
-    
+
     private var usageFeaturesSection: some View {
         Section("Available Features") {
             if let status = subscriptionStatus {
@@ -133,7 +133,7 @@ struct SubscriptionManagementView: View {
                         Spacer()
                     }
                 }
-                
+
                 if status.canUpgrade && !status.availableUpgrades.isEmpty {
                     Button(action: {
                         showingUpgradeOptions = true
@@ -152,9 +152,9 @@ struct SubscriptionManagementView: View {
             }
         }
     }
-    
+
     // MARK: - Manage Subscription Section
-    
+
     private var manageSubscriptionSection: some View {
         Section("Manage Subscription") {
             Button(action: {
@@ -179,7 +179,7 @@ struct SubscriptionManagementView: View {
                 }
             }
             .disabled(storeKitService.isLoading)
-            
+
             Button(action: {
                 openManageSubscriptions()
             }) {
@@ -193,7 +193,7 @@ struct SubscriptionManagementView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             if subscriptionStatus?.hasActiveSubscription == true {
                 Button(action: {
                     showingCancellationConfirmation = true
@@ -209,9 +209,9 @@ struct SubscriptionManagementView: View {
             }
         }
     }
-    
+
     // MARK: - Billing Information Section
-    
+
     private var billingInformationSection: some View {
         Section("Billing Information") {
             Button(action: {
@@ -229,7 +229,7 @@ struct SubscriptionManagementView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Button(action: {
                 openPurchaseHistory()
             }) {
@@ -245,9 +245,9 @@ struct SubscriptionManagementView: View {
             }
         }
     }
-    
+
     // MARK: - Support Section
-    
+
     private var supportSection: some View {
         Section("Support") {
             Button(action: {
@@ -263,7 +263,7 @@ struct SubscriptionManagementView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Button(action: {
                 sendSupportEmail()
             }) {
@@ -279,9 +279,9 @@ struct SubscriptionManagementView: View {
             }
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func loadSubscriptionStatus() {
         Task {
             do {
@@ -289,7 +289,7 @@ struct SubscriptionManagementView: View {
                 let status = try await apiService.getSubscriptionStatus()
                     .values
                     .first(where: { _ in true })
-                
+
                 await MainActor.run {
                     self.subscriptionStatus = status
                 }
@@ -298,7 +298,7 @@ struct SubscriptionManagementView: View {
             }
         }
     }
-    
+
     private func subscriptionBadge(for plan: String) -> some View {
         Text(plan.capitalized)
             .font(.caption)
@@ -309,7 +309,7 @@ struct SubscriptionManagementView: View {
             .background(badgeBackgroundColor(for: plan))
             .cornerRadius(4)
     }
-    
+
     private func badgeTextColor(for plan: String) -> Color {
         switch plan.lowercased() {
         case "free":
@@ -322,7 +322,7 @@ struct SubscriptionManagementView: View {
             return .gray
         }
     }
-    
+
     private func badgeBackgroundColor(for plan: String) -> Color {
         switch plan.lowercased() {
         case "free":
@@ -335,7 +335,7 @@ struct SubscriptionManagementView: View {
             return .gray.opacity(0.1)
         }
     }
-    
+
     private func planDisplayName(for plan: String) -> String {
         switch plan.lowercased() {
         case "basic_monthly":
@@ -348,7 +348,7 @@ struct SubscriptionManagementView: View {
             return plan.capitalized
         }
     }
-    
+
     private func subscriptionStatusText(_ status: SubscriptionStatusResponse) -> String {
         if status.hasActiveSubscription {
             return "Active subscription with auto-renewal"
@@ -365,37 +365,37 @@ struct SubscriptionManagementView: View {
             }
         }
     }
-    
+
     private func formatDate(_ dateString: String) -> String {
         let formatter = ISO8601DateFormatter()
         guard let date = formatter.date(from: dateString) else {
             return dateString
         }
-        
+
         let displayFormatter = DateFormatter()
         displayFormatter.dateStyle = .medium
         displayFormatter.timeStyle = .none
         return displayFormatter.string(from: date)
     }
-    
+
     private func openManageSubscriptions() {
         if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
             UIApplication.shared.open(url)
         }
     }
-    
+
     private func openPurchaseHistory() {
         if let url = URL(string: "https://reportaproblem.apple.com/") {
             UIApplication.shared.open(url)
         }
     }
-    
+
     private func openSupportPage() {
         if let url = URL(string: "https://fair-edge.com/support/subscriptions") {
             UIApplication.shared.open(url)
         }
     }
-    
+
     private func sendSupportEmail() {
         if let url = URL(string: "mailto:support@fair-edge.com?subject=Subscription Support") {
             UIApplication.shared.open(url)

@@ -12,30 +12,30 @@ import UserNotifications
 struct NotificationSettingsView: View {
     @EnvironmentObject var pushNotificationService: PushNotificationService
     @Environment(\.presentationMode) var presentationMode
-    
+
     @State private var evThreshold: Double = UserDefaults.standard.notificationEVThreshold
     @State private var enabledSports: Set<String> = Set(UserDefaults.standard.notificationEnabledSports)
     @State private var quietHoursEnabled: Bool = UserDefaults.standard.notificationQuietHoursEnabled
     @State private var quietHoursStart: Int = UserDefaults.standard.notificationQuietHoursStart
     @State private var quietHoursEnd: Int = UserDefaults.standard.notificationQuietHoursEnd
-    
+
     private let availableSports = ["NFL", "NBA", "MLB", "NHL", "Soccer"]
-    
+
     var body: some View {
         NavigationView {
             List {
                 // Permission status section
                 permissionStatusSection
-                
+
                 // EV threshold section
                 evThresholdSection
-                
+
                 // Sports selection section
                 sportsSelectionSection
-                
+
                 // Quiet hours section
                 quietHoursSection
-                
+
                 // Test notification section
                 testNotificationSection
             }
@@ -51,9 +51,9 @@ struct NotificationSettingsView: View {
             )
         }
     }
-    
+
     // MARK: - Permission Status Section
-    
+
     private var permissionStatusSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 12) {
@@ -61,7 +61,7 @@ struct NotificationSettingsView: View {
                     Image(systemName: notificationStatusIcon)
                         .foregroundColor(notificationStatusColor)
                         .font(.title2)
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Notification Status")
                             .font(.headline)
@@ -69,10 +69,10 @@ struct NotificationSettingsView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
                 }
-                
+
                 if pushNotificationService.authorizationStatus == .denied {
                     Button("Open Settings") {
                         pushNotificationService.openNotificationSettings()
@@ -90,9 +90,9 @@ struct NotificationSettingsView: View {
             .padding(.vertical, 4)
         }
     }
-    
+
     // MARK: - EV Threshold Section
-    
+
     private var evThresholdSection: some View {
         Section("Opportunity Alerts") {
             VStack(alignment: .leading, spacing: 12) {
@@ -103,10 +103,10 @@ struct NotificationSettingsView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.blue)
                 }
-                
+
                 Slider(value: $evThreshold, in: 1...20, step: 0.5)
                     .accentColor(.blue)
-                
+
                 HStack {
                     Text("1%")
                         .font(.caption)
@@ -116,7 +116,7 @@ struct NotificationSettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Text("You'll receive notifications for opportunities with EV above this threshold")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -124,16 +124,16 @@ struct NotificationSettingsView: View {
             .padding(.vertical, 4)
         }
     }
-    
+
     // MARK: - Sports Selection Section
-    
+
     private var sportsSelectionSection: some View {
         Section("Sports") {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Receive notifications for:")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                
+
                 ForEach(availableSports, id: \.self) { sport in
                     HStack {
                         Button(action: {
@@ -142,14 +142,14 @@ struct NotificationSettingsView: View {
                             } else {
                                 enabledSports.insert(sport)
                             }
-                        }) {
+                        }, label: {
                             HStack {
                                 Image(systemName: enabledSports.contains(sport) ? "checkmark.square.fill" : "square")
                                     .foregroundColor(enabledSports.contains(sport) ? .blue : .gray)
-                                
+
                                 Text(sport)
                                     .foregroundColor(.primary)
-                                
+
                                 Spacer()
                             }
                         }
@@ -160,13 +160,13 @@ struct NotificationSettingsView: View {
             .padding(.vertical, 4)
         }
     }
-    
+
     // MARK: - Quiet Hours Section
-    
+
     private var quietHoursSection: some View {
         Section("Quiet Hours") {
             Toggle("Enable Quiet Hours", isOn: $quietHoursEnabled)
-            
+
             if quietHoursEnabled {
                 VStack(spacing: 12) {
                     HStack {
@@ -179,7 +179,7 @@ struct NotificationSettingsView: View {
                         }
                         .pickerStyle(MenuPickerStyle())
                     }
-                    
+
                     HStack {
                         Text("End Time:")
                         Spacer()
@@ -190,7 +190,7 @@ struct NotificationSettingsView: View {
                         }
                         .pickerStyle(MenuPickerStyle())
                     }
-                    
+
                     Text("No notifications will be sent during quiet hours")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -199,24 +199,24 @@ struct NotificationSettingsView: View {
             }
         }
     }
-    
+
     // MARK: - Test Notification Section
-    
+
     private var testNotificationSection: some View {
         Section("Test") {
             Button("Send Test Notification") {
                 sendTestNotification()
             }
             .disabled(pushNotificationService.authorizationStatus != .authorized)
-            
+
             Text("Send a test notification to verify your settings")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     // MARK: - Helper Properties
-    
+
     private var notificationStatusIcon: String {
         switch pushNotificationService.authorizationStatus {
         case .authorized:
@@ -233,7 +233,7 @@ struct NotificationSettingsView: View {
             return "questionmark.circle.fill"
         }
     }
-    
+
     private var notificationStatusColor: Color {
         switch pushNotificationService.authorizationStatus {
         case .authorized:
@@ -250,7 +250,7 @@ struct NotificationSettingsView: View {
             return .gray
         }
     }
-    
+
     private var notificationStatusText: String {
         switch pushNotificationService.authorizationStatus {
         case .authorized:
@@ -267,19 +267,19 @@ struct NotificationSettingsView: View {
             return "Unknown notification status"
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func formatHour(_ hour: Int) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
-        
+
         let calendar = Calendar.current
         let date = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
-        
+
         return formatter.string(from: date)
     }
-    
+
     private func saveSettings() {
         UserDefaults.standard.notificationEVThreshold = evThreshold
         UserDefaults.standard.notificationEnabledSports = Array(enabledSports)
@@ -287,7 +287,7 @@ struct NotificationSettingsView: View {
         UserDefaults.standard.notificationQuietHoursStart = quietHoursStart
         UserDefaults.standard.notificationQuietHoursEnd = quietHoursEnd
     }
-    
+
     private func sendTestNotification() {
         let testOpportunity = BettingOpportunity(
             id: "test_notification",
@@ -302,7 +302,7 @@ struct NotificationSettingsView: View {
             sport: "Test Sport",
             actionUrl: nil
         )
-        
+
         pushNotificationService.scheduleOpportunityAlert(for: testOpportunity)
     }
 }

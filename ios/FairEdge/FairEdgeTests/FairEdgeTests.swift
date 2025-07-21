@@ -10,57 +10,57 @@ import Combine
 @testable import FairEdge
 
 class FairEdgeTests: XCTestCase {
-    
+
     // MARK: - Properties
-    
+
     var cancellables: Set<AnyCancellable>!
-    
+
     // MARK: - Setup & Teardown
-    
+
     override func setUpWithError() throws {
         try super.setUpWithError()
         cancellables = Set<AnyCancellable>()
     }
-    
+
     override func tearDownWithError() throws {
         cancellables.removeAll()
         cancellables = nil
         try super.tearDownWithError()
     }
-    
+
     // MARK: - App Lifecycle Tests
-    
+
     func testAppInitialization() throws {
         // Test that the app initializes without crashing
         let app = FairEdgeApp()
         XCTAssertNotNil(app)
     }
-    
+
     func testAppDelegateInitialization() throws {
         // Test AppDelegate initialization
         let appDelegate = AppDelegate()
         XCTAssertNotNil(appDelegate)
         XCTAssertNil(appDelegate.pushNotificationService)
     }
-    
+
     // MARK: - Performance Tests
-    
+
     func testAppStartupPerformance() throws {
         // Measure app startup time
         measure {
             _ = FairEdgeApp()
         }
     }
-    
+
     func testMemoryUsage() throws {
         // Test that app doesn't leak memory during initialization
         weak var weakApp: FairEdgeApp?
-        
+
         autoreleasepool {
             let app = FairEdgeApp()
             weakApp = app
         }
-        
+
         // App should be deallocated
         XCTAssertNil(weakApp, "FairEdgeApp should be deallocated")
     }
@@ -69,7 +69,7 @@ class FairEdgeTests: XCTestCase {
 // MARK: - Test Utilities
 
 extension FairEdgeTests {
-    
+
     /// Create a mock user for testing
     func createMockUser() -> User {
         return User(
@@ -80,7 +80,7 @@ extension FairEdgeTests {
             deviceId: "test_device_123"
         )
     }
-    
+
     /// Create mock betting opportunity
     func createMockOpportunity() -> BettingOpportunity {
         return BettingOpportunity(
@@ -97,7 +97,7 @@ extension FairEdgeTests {
             classification: .great
         )
     }
-    
+
     /// Wait for async expectation with timeout
     func waitForExpectation(_ expectation: XCTestExpectation, timeout: TimeInterval = 5.0) {
         wait(for: [expectation], timeout: timeout)

@@ -19,7 +19,7 @@ export interface BettingOpportunity {
   event: string;
   bet_description: string;
   bet_type: string; // Processed market display name
-  ev_percentage: number; // Already converted to percentage 
+  ev_percentage: number; // Already converted to percentage
   ev_classification: 'high' | 'positive' | 'neutral';
   available_odds: OddsComparison[]; // Parsed and sorted odds
   fair_odds?: string;
@@ -72,4 +72,4 @@ export interface UseOpportunitiesReturn {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   refreshOpportunities: () => Promise<void>;
-} 
+}

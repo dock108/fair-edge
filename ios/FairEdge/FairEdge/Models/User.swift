@@ -13,19 +13,19 @@ struct User: Codable, Identifiable {
     let email: String
     let role: UserRole
     let subscriptionStatus: SubscriptionStatus
-    
+
     var displayName: String {
         return email.components(separatedBy: "@").first ?? "User"
     }
-    
+
     var isPremiumUser: Bool {
         return role == .premium || role == .admin
     }
-    
+
     var hasBasicAccess: Bool {
         return role != .free
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case email
@@ -36,11 +36,11 @@ struct User: Codable, Identifiable {
 
 /// User role matching backend enum
 enum UserRole: String, Codable, CaseIterable {
-    case free = "free"
-    case basic = "basic"
-    case premium = "premium"
-    case admin = "admin"
-    
+    case free
+    case basic
+    case premium
+    case admin
+
     var displayName: String {
         switch self {
         case .free:
@@ -53,7 +53,7 @@ enum UserRole: String, Codable, CaseIterable {
             return "Admin"
         }
     }
-    
+
     var features: [String] {
         switch self {
         case .free:
@@ -70,12 +70,12 @@ enum UserRole: String, Codable, CaseIterable {
 
 /// Subscription status for Apple IAP integration
 enum SubscriptionStatus: String, Codable, CaseIterable {
-    case none = "none"
-    case active = "active"
-    case expired = "expired"
-    case cancelled = "cancelled"
-    case pending = "pending"
-    
+    case none
+    case active
+    case expired
+    case cancelled
+    case pending
+
     var displayName: String {
         switch self {
         case .none:
@@ -90,7 +90,7 @@ enum SubscriptionStatus: String, Codable, CaseIterable {
             return "Pending"
         }
     }
-    
+
     var isActive: Bool {
         return self == .active
     }

@@ -14,21 +14,21 @@ struct OpportunitiesListView: View {
     @EnvironmentObject var storeKitService: StoreKitService
     @EnvironmentObject var pushNotificationService: PushNotificationService
     @EnvironmentObject var webSocketService: WebSocketService
-    
+
     @State private var showingFilters = false
     @State private var showingProfile = false
     @State private var showingPaywall = false
     @State private var showingRealtimeSettings = false
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Real-time connection status bar
                 realtimeStatusBar
-                
+
                 // Status bar
                 statusBar
-                
+
                 // Opportunities list with live updates
                 opportunitiesList
             }
@@ -53,13 +53,13 @@ struct OpportunitiesListView: View {
             }
             .onAppear {
                 viewModel.loadOpportunities()
-                
+
                 // Request notification permissions for authenticated users
                 if authenticationService.isAuthenticated {
                     Task {
                         await pushNotificationService.requestNotificationPermissions()
                     }
-                    
+
                     // Start WebSocket connection for real-time updates
                     webSocketService.connect()
                 }
@@ -79,30 +79,30 @@ struct OpportunitiesListView: View {
             }
         }
     }
-    
+
     // MARK: - Real-Time Status Bar
-    
+
     private var realtimeStatusBar: some View {
         HStack {
             HStack(spacing: 6) {
                 Circle()
                     .fill(webSocketService.connectionStatus.color)
                     .frame(width: 8, height: 8)
-                
+
                 Text(webSocketService.connectionStatus.displayText)
                     .font(.caption2)
                     .fontWeight(.medium)
                     .foregroundColor(webSocketService.connectionStatus.color)
             }
-            
+
             Spacer()
-            
+
             if webSocketService.connectionStatus == .connected && webSocketService.lastUpdateTime != nil {
                 Text(timeAgoText(from: webSocketService.lastUpdateTime!))
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
-            
+
             Button(action: { showingRealtimeSettings = true }) {
                 Image(systemName: "gear")
                     .font(.caption2)
@@ -118,21 +118,21 @@ struct OpportunitiesListView: View {
         .opacity(authenticationService.isAuthenticated ? 1.0 : 0.0)
         .animation(.easeInOut(duration: 0.3), value: authenticationService.isAuthenticated)
     }
-    
+
     // MARK: - Status Bar
-    
+
     private var statusBar: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(viewModel.statusText)
                     .font(.caption)
                     .foregroundColor(.primary)
-                
+
                 HStack(spacing: 8) {
                     Text(viewModel.cacheStatusText)
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    
+
                     if !viewModel.performanceText.isEmpty {
                         Text(viewModel.performanceText)
                             .font(.caption2)
@@ -140,9 +140,9 @@ struct OpportunitiesListView: View {
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 2) {
                 if viewModel.filteredOpportunities.count > 0 {
                     Text("Avg EV: \(viewModel.averageEV.asPercentage())")
@@ -150,7 +150,7 @@ struct OpportunitiesListView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.blue)
                 }
-                
+
                 Text("Updated \(viewModel.lastUpdateText)")
                     .font(.caption2)
                     .foregroundColor(.secondary)
@@ -160,9 +160,9 @@ struct OpportunitiesListView: View {
         .padding(.vertical, 8)
         .background(Color(.systemGray6))
     }
-    
+
     // MARK: - Opportunities List
-    
+
     private var opportunitiesList: some View {
         Group {
             if viewModel.isLoading && viewModel.opportunities.isEmpty {
@@ -170,8 +170,8 @@ struct OpportunitiesListView: View {
             } else if viewModel.filteredOpportunities.isEmpty {
                 EmptyStateView(
                     title: "No Opportunities",
-                    message: viewModel.searchText.isEmpty ? 
-                        "Check back soon for new betting opportunities" : 
+                    message: viewModel.searchText.isEmpty ?
+                        "Check back soon for new betting opportunities" :
                         "No opportunities match your search",
                     systemImage: "magnifyingglass"
                 )
@@ -182,7 +182,7 @@ struct OpportunitiesListView: View {
                         OpportunityRowView(opportunity: opportunity)
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     }
-                    
+
                     // Show upgrade prompt for free users
                     if shouldShowUpgradePrompt {
                         upgradePromptRow
@@ -195,9 +195,9 @@ struct OpportunitiesListView: View {
             }
         }
     }
-    
+
     // MARK: - Navigation Bar Items
-    
+
     private var profileButton: some View {
         Button(action: { showingProfile = true }) {
             Image(systemName: "person.circle")
@@ -206,7 +206,7 @@ struct OpportunitiesListView: View {
         .accessibilityLabel("Profile")
         .accessibilityHint("Opens your profile and account settings")
     }
-    
+
     private var filterButton: some View {
         Button(action: { showingFilters = true }) {
             Image(systemName: hasActiveFilters ? "line.horizontal.3.decrease.circle.fill" : "line.horizontal.3.decrease.circle")
@@ -216,7 +216,7 @@ struct OpportunitiesListView: View {
         .accessibilityLabel(hasActiveFilters ? "Filters active" : "Filters")
         .accessibilityHint("Opens filtering options for opportunities")
     }
-    
+
     private var realtimeToggleButton: some View {
         Button(action: { webSocketService.toggleRealtimeUpdates() }) {
             Image(systemName: webSocketService.isRealtimeEnabled ? "wifi" : "wifi.slash")
@@ -228,7 +228,7 @@ struct OpportunitiesListView: View {
         .accessibilityLabel(webSocketService.isRealtimeEnabled ? "Real-time updates enabled" : "Real-time updates disabled")
         .accessibilityHint("Toggles real-time opportunity updates")
     }
-    
+
     private var refreshButton: some View {
         Button(action: { viewModel.refreshOpportunities() }) {
             Image(systemName: "arrow.clockwise")
@@ -240,23 +240,23 @@ struct OpportunitiesListView: View {
         .accessibilityLabel(viewModel.isRefreshing ? "Refreshing opportunities" : "Refresh opportunities")
         .accessibilityHint("Reloads the latest betting opportunities")
     }
-    
+
     // MARK: - Helper Properties
-    
+
     private var hasActiveFilters: Bool {
         return !viewModel.searchText.isEmpty ||
                viewModel.selectedSport != "All" ||
                viewModel.minimumEV > 0 ||
                viewModel.selectedClassification != nil
     }
-    
+
     private var userRole: UserRole {
         return authenticationService.currentUser?.role ?? .free
     }
-    
+
     private var limitedOpportunities: [BettingOpportunity] {
         let opportunities = viewModel.filteredOpportunities
-        
+
         switch userRole {
         case .free:
             // Free users: Limited to 10 opportunities, main lines only
@@ -266,30 +266,30 @@ struct OpportunitiesListView: View {
             return opportunities
         }
     }
-    
+
     private var shouldShowUpgradePrompt: Bool {
         return userRole == .free && viewModel.filteredOpportunities.count > 10
     }
-    
+
     // MARK: - Upgrade Prompt Row
-    
+
     private var upgradePromptRow: some View {
         VStack(spacing: 16) {
             Image(systemName: "star.circle.fill")
                 .font(.system(size: 40))
                 .foregroundColor(.blue)
-            
+
             VStack(spacing: 8) {
                 Text("Unlock All Opportunities")
                     .font(.headline)
                     .fontWeight(.semibold)
-                
+
                 Text("You're seeing \(limitedOpportunities.count) of \(viewModel.filteredOpportunities.count) opportunities. Upgrade to access all betting lines and advanced features.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
-            
+
             Button(action: {
                 showingPaywall = true
             }) {
@@ -301,7 +301,7 @@ struct OpportunitiesListView: View {
                     .background(Color.blue)
                     .cornerRadius(12)
             }
-            
+
             Text("Starting at $3.99/month")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -311,12 +311,12 @@ struct OpportunitiesListView: View {
         .cornerRadius(12)
         .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func timeAgoText(from date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        
+
         if interval < 60 {
             return "Just now"
         } else if interval < 3600 {
@@ -334,7 +334,7 @@ struct OpportunitiesListView: View {
 struct RealtimeSettingsView: View {
     @EnvironmentObject var webSocketService: WebSocketService
     @Environment(\.presentationMode) var presentationMode
-    
+
     var body: some View {
         NavigationView {
             List {
@@ -343,7 +343,7 @@ struct RealtimeSettingsView: View {
                         Circle()
                             .fill(webSocketService.connectionStatus.color)
                             .frame(width: 12, height: 12)
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(webSocketService.connectionStatus.displayText)
                                 .font(.headline)
@@ -351,12 +351,12 @@ struct RealtimeSettingsView: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         Spacer()
                     }
                     .padding(.vertical, 4)
                 }
-                
+
                 Section("Settings") {
                     HStack {
                         Text("Real-time Updates")
@@ -371,7 +371,7 @@ struct RealtimeSettingsView: View {
                             }
                     }
                 }
-                
+
                 if webSocketService.connectionStatus == .connected {
                     Section("Live Updates") {
                         HStack {
@@ -380,7 +380,7 @@ struct RealtimeSettingsView: View {
                             Text("Active")
                                 .foregroundColor(.green)
                         }
-                        
+
                         if let lastUpdate = webSocketService.lastUpdateTime {
                             HStack {
                                 Text("Last Update")
@@ -389,7 +389,7 @@ struct RealtimeSettingsView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
-                        
+
                         HStack {
                             Text("Live Opportunities")
                             Spacer()
@@ -398,7 +398,7 @@ struct RealtimeSettingsView: View {
                         }
                     }
                 }
-                
+
                 Section("Actions") {
                     Button("Reconnect") {
                         webSocketService.reconnect()
@@ -414,10 +414,10 @@ struct RealtimeSettingsView: View {
             )
         }
     }
-    
+
     private func timeAgoText(from date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        
+
         if interval < 60 {
             return "Just now"
         } else if interval < 3600 {
@@ -434,7 +434,7 @@ struct RealtimeSettingsView: View {
 
 struct OpportunityRowView: View {
     let opportunity: BettingOpportunity
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Header with event and EV
@@ -443,7 +443,7 @@ struct OpportunityRowView: View {
                     Text(opportunity.displayEvent)
                         .font(.headline)
                         .lineLimit(2)
-                    
+
                     if let sport = opportunity.sport {
                         Text(sport.uppercased())
                             .font(.caption)
@@ -454,15 +454,15 @@ struct OpportunityRowView: View {
                             .cornerRadius(4)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(opportunity.formattedEVPercentage)
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(evColor)
-                    
+
                     Text(opportunity.evClass.displayName)
                         .font(.caption)
                         .padding(.horizontal, 6)
@@ -472,13 +472,13 @@ struct OpportunityRowView: View {
                         .cornerRadius(3)
                 }
             }
-            
+
             // Bet description
             Text(opportunity.displayBetDescription)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
-            
+
             // Odds information
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
@@ -489,9 +489,9 @@ struct OpportunityRowView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Fair Odds")
                         .font(.caption)
@@ -500,9 +500,9 @@ struct OpportunityRowView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Source")
                         .font(.caption)
@@ -526,7 +526,7 @@ struct OpportunityRowView: View {
         .accessibilityHint("Double tap to open betting opportunity")
         .accessibilityAddTraits(.isButton)
     }
-    
+
     private var evColor: Color {
         switch opportunity.evClass {
         case .great:
@@ -548,7 +548,7 @@ struct LoadingView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
-            
+
             Text("Loading opportunities...")
                 .font(.headline)
                 .foregroundColor(.secondary)
@@ -563,17 +563,17 @@ struct EmptyStateView: View {
     let title: String
     let message: String
     let systemImage: String
-    
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: systemImage)
                 .font(.system(size: 48))
                 .foregroundColor(.gray)
-            
+
             Text(title)
                 .font(.title2)
                 .fontWeight(.semibold)
-            
+
             Text(message)
                 .font(.body)
                 .foregroundColor(.secondary)

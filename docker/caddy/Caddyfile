@@ -21,25 +21,25 @@ http://dock108.ai {
     handle /health {
         reverse_proxy api:8000
     }
-    
-    # API routes 
+
+    # API routes
     handle /api/* {
         reverse_proxy api:8000
     }
-    
+
     # API docs
     handle /docs {
         reverse_proxy api:8000
     }
-    
+
     handle /redoc {
         reverse_proxy api:8000
     }
-    
+
     handle /openapi.json {
         reverse_proxy api:8000
     }
-    
+
     # Static assets with caching
     handle /assets/* {
         root * /srv
@@ -48,26 +48,26 @@ http://dock108.ai {
         }
         header Cache-Control "public, max-age=31536000, immutable"
     }
-    
+
     # Static files (favicon, manifest, etc.)
     handle /favicon.ico {
         root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
-    
+
     handle /manifest.json {
         root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
-    
+
     handle /browserconfig.xml {
         root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
-    
+
     # React SPA - catch-all for client-side routing
     handle {
         root * /srv
@@ -75,10 +75,10 @@ http://dock108.ai {
         file_server
         header Cache-Control "public, max-age=0, must-revalidate"
     }
-    
+
     # Enable compression
     encode gzip
-    
+
     # Logging
     log {
         output file /var/log/caddy/access.log
@@ -101,25 +101,25 @@ dock108.ai {
     handle /health {
         reverse_proxy api:8000
     }
-    
-    # API routes 
+
+    # API routes
     handle /api/* {
         reverse_proxy api:8000
     }
-    
+
     # API docs
     handle /docs {
         reverse_proxy api:8000
     }
-    
+
     handle /redoc {
         reverse_proxy api:8000
     }
-    
+
     handle /openapi.json {
         reverse_proxy api:8000
     }
-    
+
     # Static assets with caching
     handle /assets/* {
         root * /srv
@@ -128,26 +128,26 @@ dock108.ai {
         }
         header Cache-Control "public, max-age=31536000, immutable"
     }
-    
+
     # Static files (favicon, manifest, etc.)
     handle /favicon.ico {
         root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
-    
+
     handle /manifest.json {
         root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
-    
+
     handle /browserconfig.xml {
         root * /srv
         file_server
         header Cache-Control "public, max-age=86400"
     }
-    
+
     # React SPA - catch-all for client-side routing
     handle {
         root * /srv
@@ -155,10 +155,10 @@ dock108.ai {
         file_server
         header Cache-Control "public, max-age=0, must-revalidate"
     }
-    
+
     # Enable compression
     encode gzip
-    
+
     # Logging
     log {
         output file /var/log/caddy/dock108_access.log

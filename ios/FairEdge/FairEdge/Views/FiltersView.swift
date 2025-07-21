@@ -11,19 +11,19 @@ import SwiftUI
 struct FiltersView: View {
     @ObservedObject var viewModel: OpportunitiesViewModel
     @Environment(\.presentationMode) var presentationMode
-    
+
     var body: some View {
         NavigationView {
             Form {
                 // Sport selection
                 sportSection
-                
+
                 // EV threshold
                 evThresholdSection
-                
+
                 // Classification filter
                 classificationSection
-                
+
                 // Summary
                 summarySection
             }
@@ -38,9 +38,9 @@ struct FiltersView: View {
             )
         }
     }
-    
+
     // MARK: - Sport Section
-    
+
     private var sportSection: some View {
         Section("Sport") {
             Picker("Sport", selection: $viewModel.selectedSport) {
@@ -51,9 +51,9 @@ struct FiltersView: View {
             .pickerStyle(SegmentedPickerStyle())
         }
     }
-    
+
     // MARK: - EV Threshold Section
-    
+
     private var evThresholdSection: some View {
         Section("Minimum Expected Value") {
             VStack(alignment: .leading, spacing: 8) {
@@ -64,10 +64,10 @@ struct FiltersView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.blue)
                 }
-                
+
                 Slider(value: $viewModel.minimumEV, in: 0...20, step: 0.5)
                     .accentColor(.blue)
-                
+
                 HStack {
                     Text("0%")
                         .font(.caption)
@@ -81,9 +81,9 @@ struct FiltersView: View {
             .padding(.vertical, 4)
         }
     }
-    
+
     // MARK: - Classification Section
-    
+
     private var classificationSection: some View {
         Section("EV Classification") {
             VStack(spacing: 8) {
@@ -95,16 +95,18 @@ struct FiltersView: View {
                             } else {
                                 viewModel.selectedClassification = classification
                             }
-                        }) {
+                        }, label: {
                             HStack {
-                                Image(systemName: viewModel.selectedClassification == classification ? "checkmark.circle.fill" : "circle")
-                                    .foregroundColor(viewModel.selectedClassification == classification ? .blue : .gray)
-                                
+                                Image(systemName: viewModel.selectedClassification == classification ?
+                                    "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(viewModel.selectedClassification == classification ?
+                                        .blue : .gray)
+
                                 Text(classification.displayName)
                                     .foregroundColor(.primary)
-                                
+
                                 Spacer()
-                                
+
                                 Text("\(viewModel.count(for: classification))")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -120,9 +122,9 @@ struct FiltersView: View {
             }
         }
     }
-    
+
     // MARK: - Summary Section
-    
+
     private var summarySection: some View {
         Section("Filter Summary") {
             VStack(alignment: .leading, spacing: 8) {
@@ -132,7 +134,7 @@ struct FiltersView: View {
                     Text("\(viewModel.opportunities.count)")
                         .fontWeight(.medium)
                 }
-                
+
                 HStack {
                     Text("Filtered Results:")
                     Spacer()
@@ -140,7 +142,7 @@ struct FiltersView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.blue)
                 }
-                
+
                 if viewModel.filteredOpportunities.count > 0 {
                     HStack {
                         Text("Average EV:")

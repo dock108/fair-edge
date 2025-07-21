@@ -5,30 +5,30 @@ export const permissions = {
   // Check if user can access premium features (props, alt lines, etc.)
   canAccessPremiumFeatures(user: User | null): boolean {
     if (!user) return false;
-    
+
     // Admin users have access to everything
     if (user.user_metadata?.role === 'admin') return true;
-    
+
     // Premium subscribers have access to all features
     if (user.user_metadata?.role === 'premium' || user.user_metadata?.role === 'subscriber') {
       return true;
     }
-    
+
     return false;
   },
 
   // Check if user can access basic features (positive EV main lines)
   canAccessBasicFeatures(user: User | null): boolean {
     if (!user) return false;
-    
+
     // Admin users have access to everything
     if (user.user_metadata?.role === 'admin') return true;
-    
+
     // Basic and premium subscribers have access to positive EV
     if (user.user_metadata?.role === 'basic' || user.user_metadata?.role === 'premium' || user.user_metadata?.role === 'subscriber') {
       return true;
     }
-    
+
     return false;
   },
 
@@ -47,7 +47,7 @@ export const permissions = {
   // Get user role display name
   getUserRoleDisplay(user: User | null): string {
     if (!user) return 'Free';
-    
+
     const role = user.user_metadata?.role;
     switch (role) {
       case 'admin':
@@ -67,20 +67,20 @@ export const permissions = {
   canSeeBetType(user: User | null, betType: string): boolean {
     // Free users can only see main lines
     const mainLines = ['moneyline', 'spread', 'total', 'over', 'under'];
-    
+
     if (this.isFreeTier(user)) {
-      return mainLines.some(mainLine => 
+      return mainLines.some(mainLine =>
         betType.toLowerCase().includes(mainLine)
       );
     }
-    
+
     // Basic users can see all main lines
     if (user?.user_metadata?.role === 'basic') {
-      return mainLines.some(mainLine => 
+      return mainLines.some(mainLine =>
         betType.toLowerCase().includes(mainLine)
       );
     }
-    
+
     // Premium and admin users can see everything
     return this.canAccessPremiumFeatures(user);
   },
@@ -96,12 +96,10 @@ export const permissions = {
     if (this.isFreeTier(user)) {
       return -2.0;
     }
-    
+
     // Paid users see all EV values
     return -Infinity;
   }
 };
 
-export default permissions; 
- 
- 
+export default permissions;

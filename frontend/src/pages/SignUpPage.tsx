@@ -46,7 +46,7 @@ const SignUpPage: React.FC = () => {
         first_name: formData.firstName,
         last_name: formData.lastName
       });
-      
+
       // Redirect to dashboard on successful signup
       navigate('/');
     } catch (error: any) {
@@ -69,11 +69,11 @@ const SignUpPage: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="auth-form">
               {error && (
-                <div className="error-message" style={{ 
-                  backgroundColor: 'var(--error-50)', 
-                  color: 'var(--error-700)', 
-                  padding: 'var(--space-3)', 
-                  borderRadius: 'var(--radius-md)', 
+                <div className="error-message" style={{
+                  backgroundColor: 'var(--error-50)',
+                  color: 'var(--error-700)',
+                  padding: 'var(--space-3)',
+                  borderRadius: 'var(--radius-md)',
                   marginBottom: 'var(--space-4)',
                   border: '1px solid var(--error-200)'
                 }}>
@@ -164,8 +164,8 @@ const SignUpPage: React.FC = () => {
                 </label>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="btn btn-primary auth-button"
                 disabled={loading}
               >
@@ -190,4 +190,4 @@ const SignUpPage: React.FC = () => {
   );
 };
 
-export default SignUpPage; 
+export default SignUpPage;

@@ -33,4 +33,4 @@ exec celery -A services.celery_app.celery_app worker \
     --soft-time-limit=240 \
     --without-gossip \
     --without-mingle \
-    --without-heartbeat 
+    --without-heartbeat

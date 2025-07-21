@@ -21,12 +21,12 @@ struct BettingOpportunity: Codable, Identifiable, Hashable {
     let fairOdds: String
     let sport: String?
     let actionUrl: String?     // Mobile-optimized field name (was action_link)
-    
+
     // Computed properties for UI display
     var formattedEVPercentage: String {
         return String(format: "%.1f%%", evPct)
     }
-    
+
     var evColor: String {
         switch evClass {
         case .great:
@@ -39,15 +39,15 @@ struct BettingOpportunity: Codable, Identifiable, Hashable {
             return "red"
         }
     }
-    
+
     var displayEvent: String {
         return event.isEmpty ? "Unknown Event" : event
     }
-    
+
     var displayBetDescription: String {
         return betDesc.isEmpty ? "No description" : betDesc
     }
-    
+
     // Custom coding keys to match mobile API response
     enum CodingKeys: String, CodingKey {
         case id
@@ -66,11 +66,11 @@ struct BettingOpportunity: Codable, Identifiable, Hashable {
 
 /// EV Classification matching backend enum
 enum EVClassification: String, Codable, CaseIterable {
-    case great = "great"
-    case good = "good"
-    case neutral = "neutral"
-    case poor = "poor"
-    
+    case great
+    case good
+    case neutral
+    case poor
+
     var displayName: String {
         switch self {
         case .great:
@@ -83,7 +83,7 @@ enum EVClassification: String, Codable, CaseIterable {
             return "Poor"
         }
     }
-    
+
     var sortOrder: Int {
         switch self {
         case .great:
@@ -113,7 +113,7 @@ struct MobileMetadata: Codable {
     let nextUpdate: String
     let mobileOptimized: Bool
     let payloadReduction: String
-    
+
     enum CodingKeys: String, CodingKey {
         case totalCount = "total_count"
         case cacheStatus = "cache_status"

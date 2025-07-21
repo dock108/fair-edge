@@ -1,9 +1,10 @@
-from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-from alembic import context
 import os
 import sys
+from logging.config import fileConfig
+
+from sqlalchemy import engine_from_config, pool
+
+from alembic import context
 
 # Add the project root to sys.path so we can import our modules
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,11 +14,13 @@ sys.path.insert(0, project_root)
 # access to the values within the .ini file in use.
 config = context.config
 
-# Import models and configuration
-from models import Base  # noqa: E402
 from core.settings import settings  # noqa: E402
 
-# Set the database URL from our settings (convert from async to sync for Alembic)
+# Import models and configuration
+from models import Base  # noqa: E402
+
+# Set the database URL from our settings
+# (convert from async to sync for Alembic)
 db_url = settings.db_connection_string
 # Convert asyncpg URL to psycopg2 URL for synchronous operation
 if "postgresql+asyncpg://" in db_url:
@@ -79,9 +82,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

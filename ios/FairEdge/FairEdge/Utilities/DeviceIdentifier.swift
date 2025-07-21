@@ -10,32 +10,32 @@ import UIKit
 
 /// Device identifier utility for consistent device tracking
 class DeviceIdentifier {
-    
+
     static let shared = DeviceIdentifier()
-    
+
     private let keychainKey = "device_identifier"
-    
+
     private init() {}
-    
+
     /// Get or create a persistent device identifier
     var deviceId: String? {
         // Try to get existing identifier from keychain
         if let existingId = KeychainService.shared.retrieve(for: keychainKey) {
             return existingId
         }
-        
+
         // Create new identifier
         let newId = UUID().uuidString
-        
+
         // Store in keychain for persistence
         if KeychainService.shared.store(token: newId, for: keychainKey) {
             return newId
         }
-        
+
         // Fallback to vendor identifier if keychain fails
         return UIDevice.current.identifierForVendor?.uuidString
     }
-    
+
     /// Get device type information
     var deviceType: String {
         switch UIDevice.current.userInterfaceIdiom {
@@ -55,7 +55,7 @@ class DeviceIdentifier {
             return "Unknown"
         }
     }
-    
+
     /// Get device model information
     var deviceModel: String {
         var systemInfo = utsname()
@@ -67,12 +67,12 @@ class DeviceIdentifier {
         }
         return identifier.isEmpty ? "Unknown" : identifier
     }
-    
+
     /// Get iOS version
     var systemVersion: String {
         return UIDevice.current.systemVersion
     }
-    
+
     /// Get comprehensive device info for API requests
     var deviceInfo: [String: String] {
         return [

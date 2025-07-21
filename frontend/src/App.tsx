@@ -26,38 +26,38 @@ function App() {
       <Router>
         <div className="App">
           <Header />
-          
+
           <main className="main-content">
             <Routes>
               {/* Public Dashboard - Shows free tier for unauthenticated, full data for authenticated */}
               <Route path="/" element={<DashboardPage />} />
-              
+
               {/* Protected Routes - Require Authentication */}
-              
+
               <Route path="/upgrade/success" element={
                 <PrivateRoute>
                   <UpgradeSuccessPage />
                 </PrivateRoute>
               } />
-              
+
               {/* Public Routes - Accessible to Everyone */}
               <Route path="/education" element={<EducationPage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/disclaimer" element={<DisclaimerPage />} />
-              
+
               {/* Public-Only Routes - Redirect Authenticated Users */}
               <Route path="/login" element={
                 <PublicRoute>
                   <LoginPage />
                 </PublicRoute>
               } />
-              
+
               <Route path="/signup" element={
                 <PublicRoute>
                   <SignUpPage />
                 </PublicRoute>
               } />
-              
+
               {/* 404 Handler */}
               <Route path="*" element={
                 <div className="container mt-4">
@@ -69,7 +69,7 @@ function App() {
               } />
             </Routes>
           </main>
-          
+
           <Footer />
         </div>
       </Router>

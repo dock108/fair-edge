@@ -28,4 +28,4 @@ echo "Starting Celery beat scheduler..."
 exec celery -A services.celery_app.celery_app beat \
     --loglevel="$CELERY_LOGLEVEL" \
     --schedule=/app/celery-data/beat.db \
-    --pidfile=/app/celery-data/beat.pid 
+    --pidfile=/app/celery-data/beat.pid

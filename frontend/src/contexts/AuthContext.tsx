@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (lastActiveStr) {
       const lastActive = parseInt(lastActiveStr, 10);
       const timeSinceLastActive = Date.now() - lastActive;
-      
+
       if (timeSinceLastActive >= INACTIVITY_TIMEOUT) {
         console.log('Session expired due to inactivity, logging out...');
         await auth.signOut();
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('No access token available');
         return supabaseUser as UserWithRole;
       }
-      
+
       console.log('Fetching user role from backend...');
       const url = '/api/user-info'; // Proxy will route this to the backend
       console.log('🔗 Making request to:', url);
@@ -94,17 +94,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           'Authorization': `Bearer ${session.access_token}`
         }
       });
-      
+
       if (response.ok) {
         const userInfo = await response.json();
         console.log('✅ User role fetched from backend:', userInfo);
-        
+
         // Enhanced validation of backend response
         if (!userInfo.role || userInfo.role === 'anonymous') {
           console.warn('⚠️ Backend returned invalid role:', userInfo.role);
           console.warn('⚠️ This might indicate the user is not found in backend database');
         }
-        
+
         const userWithRole = {
           ...supabaseUser,
           user_metadata: {
@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error fetching user role:', error);
     }
-    
+
     // Fallback to original user if API call fails
     console.log('⚠️ Falling back to original user (no role fetched)');
     const fallbackUser = supabaseUser as UserWithRole;
@@ -155,7 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const session = await auth.getSession();
         setSession(session);
         setAccessToken(session?.access_token || null);
-        
+
         if (session?.user) {
           const userWithRole = await fetchUserRole(session.user);
           setUser(userWithRole);
@@ -177,7 +177,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('Auth state changed:', event, session?.user?.email);
       setSession(session);
       setAccessToken(session?.access_token || null);
-      
+
       if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
         const userWithRole = await fetchUserRole(session.user);
         setUser(userWithRole);
@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { session, user } = await auth.signIn(email, password);
       setSession(session);
-      
+
       if (user) {
         const userWithRole = await fetchUserRole(user);
         setUser(userWithRole);
@@ -250,7 +250,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { session, user } = await auth.signUp(email, password, metadata);
       setSession(session);
-      
+
       if (user) {
         const userWithRole = await fetchUserRole(user);
         setUser(userWithRole);
@@ -291,4 +291,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}; 
+};
