@@ -154,9 +154,7 @@ class PersistenceMonitor:
                 "status": (
                     "healthy"
                     if recent_success_rate >= 95
-                    else "warning"
-                    if recent_success_rate >= 85
-                    else "error"
+                    else "warning" if recent_success_rate >= 85 else "error"
                 ),
             }
 
@@ -183,9 +181,7 @@ class PersistenceMonitor:
                     "status": (
                         "healthy"
                         if avg_duration < 5000
-                        else "warning"
-                        if avg_duration < 10000
-                        else "error"
+                        else "warning" if avg_duration < 10000 else "error"
                     ),
                 }
 

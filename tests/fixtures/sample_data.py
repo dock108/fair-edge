@@ -40,11 +40,7 @@ class BettingOpportunityFactory(factory.Factory):
         lambda obj: (
             "great"
             if obj.ev_pct >= 15
-            else "good"
-            if obj.ev_pct >= 10
-            else "fair"
-            if obj.ev_pct >= 5
-            else "poor"
+            else "good" if obj.ev_pct >= 10 else "fair" if obj.ev_pct >= 5 else "poor"
         )
     )
 
