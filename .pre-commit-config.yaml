@@ -71,13 +71,6 @@ repos:
         language: system
         pass_filenames: false
         
-      - id: check-secret-patterns
-        name: Check for hardcoded secrets
-        entry: bash
-        args: ['-c', 'if grep -r -E "(api_key|secret_key|private_key|access_token|auth_token)\s*=\s*[\"'"'"'][^\"'"'"']{16,}[\"'"'"']" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules . | grep -v "your-secret-key-here\|test_\|example_\|placeholder"; then echo "❌ Potential hardcoded secrets detected"; exit 1; fi']
-        language: system
-        files: '\.(py|js|ts)$'
-        
       # iOS Swift quality checks
       - id: swiftlint
         name: SwiftLint

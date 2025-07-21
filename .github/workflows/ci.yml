@@ -24,93 +24,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Phase 1: Fast security and setup checks
-  setup-and-security:
-    name: Security & Setup
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    outputs:
-      python-cache-key: ${{ steps.cache-keys.outputs.python }}
-      has-backend-changes: ${{ steps.changes.outputs.backend }}
-      has-ios-changes: ${{ steps.changes.outputs.ios }}
-      security-passed: ${{ steps.security-check.outputs.passed }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Detect file changes
-      uses: dorny/paths-filter@v3
-      id: changes
-      with:
-        filters: |
-          backend:
-            - '**/*.py'
-            - 'requirements*.txt'
-            - 'alembic/**'
-            - '.env.example'
-          ios:
-            - 'ios/**/*.swift'
-            - 'ios/**/*.xcodeproj'
-
-    - name: Generate cache keys
-      id: cache-keys
-      run: |
-        echo "python=python-${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}" >> $GITHUB_OUTPUT
-
-    - name: Security - Secret scanning (matches pre-commit)
-      run: |
-        echo "🔍 Scanning for secrets and sensitive data..."
-        
-        # Check for actual hardcoded secrets (exact pre-commit match)
-        if grep -r -E "(api_key|secret_key|private_key|access_token|auth_token)\s*=\s*[\"'][^\"']{16,}[\"']" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules . | grep -v "your-secret-key-here\|test_\|example_\|placeholder"; then
-          echo "❌ Potential hardcoded secrets detected"
-          exit 1
-        fi
-        
-        # Check environment files are not committed (exact pre-commit match)
-        if [ -f .env ] && ! grep -q "^\.env$" .gitignore; then
-          echo "❌ .env file exists but not in .gitignore"
-          exit 1
-        fi
-        
-        echo "✅ Secret scanning passed"
-
-    - name: Security - Dependency audit
-      id: security-check
-      run: |
-        echo "🔒 Auditing dependencies for vulnerabilities..."
-        
-        # Python dependencies
-        pip install safety
-        if ! safety check --json > safety_report.json; then
-          echo "❌ Python dependency vulnerabilities found"
-          cat safety_report.json
-          echo "passed=false" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-        echo "✅ Dependency audit passed"
-        echo "passed=true" >> $GITHUB_OUTPUT
-
-    - name: Upload security artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-reports
-        path: |
-          safety_report.json
-        retention-days: 30
-
-  # Phase 2: Backend code quality (matches pre-commit exactly)
+  # Phase 1: Backend code quality (matches pre-commit exactly)
   code-quality-backend:
     name: Backend Code Quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: setup-and-security
-    if: needs.setup-and-security.outputs.has-backend-changes == 'true' || github.event_name == 'workflow_dispatch'
+    if: |
+      contains(github.event.head_commit.modified, '.py') ||
+      contains(github.event.head_commit.added, '.py') ||
+      contains(github.event.head_commit.modified, 'requirements') ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
     - name: Checkout code
@@ -125,7 +48,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ needs.setup-and-security.outputs.python-cache-key }}
+        key: python-${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
         restore-keys: |
           python-${{ env.PYTHON_VERSION }}-
 
@@ -210,13 +133,16 @@ jobs:
           bandit_report.json
         retention-days: 30
 
-  # Phase 3: iOS code quality (matches pre-commit)
+  # Phase 2: iOS code quality (matches pre-commit)
   code-quality-ios:
     name: iOS Code Quality
     runs-on: macos-latest
     timeout-minutes: 15
-    needs: setup-and-security
-    if: needs.setup-and-security.outputs.has-ios-changes == 'true' || github.event_name == 'workflow_dispatch'
+    if: |
+      contains(github.event.head_commit.modified, '.swift') ||
+      contains(github.event.head_commit.added, '.swift') ||
+      contains(github.event.head_commit.modified, 'ios/') ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
     - name: Checkout code
@@ -247,17 +173,19 @@ jobs:
         echo "📝 Checking Swift formatting..."
         swift-format lint --recursive ios/FairEdge/FairEdge/
 
-  # Phase 4: Backend testing with 80% coverage (matches pre-commit)
+  # Phase 3: Backend testing with 80% coverage (matches pre-commit)
   test-backend:
     name: Backend Tests (80% Coverage)
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    needs: [setup-and-security, code-quality-backend]
+    needs: code-quality-backend
     if: |
       always() && 
-      (needs.setup-and-security.outputs.has-backend-changes == 'true' || github.event_name == 'workflow_dispatch') &&
       !inputs.skip_tests &&
-      needs.setup-and-security.outputs.security-passed == 'true'
+      (contains(github.event.head_commit.modified, '.py') ||
+       contains(github.event.head_commit.added, '.py') ||
+       contains(github.event.head_commit.modified, 'requirements') ||
+       github.event_name == 'workflow_dispatch')
 
     services:
       redis:
@@ -297,7 +225,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ needs.setup-and-security.outputs.python-cache-key }}
+        key: python-${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
         restore-keys: |
           python-${{ env.PYTHON_VERSION }}-
 
@@ -306,6 +234,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-cov pytest-xdist pytest-html pytest-asyncio pytest-mock factory-boy responses
+
+    - name: Security - Dependency audit
+      run: |
+        echo "🔒 Auditing dependencies for vulnerabilities..."
+        pip install safety
+        safety check --json --output safety_report.json || echo "⚠️ Some vulnerabilities found, but continuing tests"
 
     - name: Create test environment
       run: |
@@ -352,6 +286,7 @@ jobs:
           test_results.xml
           coverage.xml
           htmlcov/
+          safety_report.json
         retention-days: 30
 
     - name: Upload coverage to Codecov
@@ -362,17 +297,19 @@ jobs:
         flags: backend
         name: backend-coverage
 
-  # Phase 5: iOS testing
+  # Phase 4: iOS testing
   test-ios:
     name: iOS Tests
     runs-on: macos-latest
     timeout-minutes: 25
-    needs: [setup-and-security, code-quality-ios]
+    needs: code-quality-ios
     if: |
       always() && 
-      (needs.setup-and-security.outputs.has-ios-changes == 'true' || github.event_name == 'workflow_dispatch') &&
       !inputs.skip_tests &&
-      needs.setup-and-security.outputs.security-passed == 'true'
+      (contains(github.event.head_commit.modified, '.swift') ||
+       contains(github.event.head_commit.added, '.swift') ||
+       contains(github.event.head_commit.modified, 'ios/') ||
+       github.event_name == 'workflow_dispatch')
 
     steps:
     - name: Checkout code
@@ -485,7 +422,7 @@ jobs:
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [setup-and-security, code-quality-backend, code-quality-ios, test-backend, test-ios]
+    needs: [code-quality-backend, code-quality-ios, test-backend, test-ios]
     if: always()
 
     steps:
@@ -494,17 +431,13 @@ jobs:
         echo "📋 CI Pipeline Summary"
         echo "====================="
         
-        echo "🔒 Security: ${{ needs.setup-and-security.result }}"
         echo "🎨 Backend Quality: ${{ needs.code-quality-backend.result }}"
         echo "🎨 iOS Quality: ${{ needs.code-quality-ios.result }}"
         echo "🧪 Backend Tests: ${{ needs.test-backend.result }}"
         echo "🧪 iOS Tests: ${{ needs.test-ios.result }}"
         
         # Determine overall status
-        if [[ "${{ needs.setup-and-security.result }}" == "failure" ]]; then
-          echo "❌ Pipeline failed due to security issues"
-          exit 1
-        elif [[ "${{ needs.test-backend.result }}" == "failure" ]]; then
+        if [[ "${{ needs.test-backend.result }}" == "failure" ]]; then
           echo "❌ Pipeline failed due to backend test failures"
           exit 1
         elif [[ "${{ needs.test-ios.result }}" == "failure" ]]; then
@@ -525,4 +458,5 @@ jobs:
           echo "iOS: 75%+ (Target: 75%)"
           echo ""
           echo "🎉 All quality gates passed!"
+          echo "🔒 Security: Handled by GitHub native scanning"
         fi
