@@ -350,9 +350,9 @@ class DashboardActivityTracker:
 
             if last_refresh:
                 stats["last_refresh_iso"] = datetime.fromtimestamp(last_refresh).isoformat()
-                stats[
-                    "time_since_last_refresh_human"
-                ] = f"{(current_time - last_refresh) / 60:.1f} minutes"
+                stats["time_since_last_refresh_human"] = (
+                    f"{(current_time - last_refresh) / 60:.1f} minutes"
+                )
 
             return stats
 
