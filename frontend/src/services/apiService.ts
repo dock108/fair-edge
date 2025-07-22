@@ -24,7 +24,7 @@ class ApiService {
     this.api.interceptors.request.use(
       async (config) => {
         console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`);
-        
+
         // Add authentication token if available
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -34,7 +34,7 @@ class ApiService {
         } catch (error) {
           console.warn('Failed to get auth session for API request:', error);
         }
-        
+
         return config;
       },
       (error) => {
@@ -51,7 +51,7 @@ class ApiService {
       },
       (error: AxiosError) => {
         console.error(`❌ API Error: ${error.response?.status} ${error.config?.url}`, error.response?.data);
-        
+
         // Handle specific error cases
         if (error.response?.status === 401) {
           console.warn('🔒 Unauthorized request - user may need to login');
@@ -60,7 +60,7 @@ class ApiService {
         } else if (error.response?.status && error.response.status >= 500) {
           console.error('🔥 Server error - backend may be down');
         }
-        
+
         return Promise.reject(error);
       }
     );
@@ -145,17 +145,17 @@ class ApiService {
   private handleError(error: any): Error {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<ApiResponse>;
-      
+
       // Extract error message from response
-      const message = 
+      const message =
         axiosError.response?.data?.error ||
         axiosError.response?.data?.message ||
         axiosError.message ||
         'An unexpected error occurred';
-      
+
       return new Error(message);
     }
-    
+
     return error instanceof Error ? error : new Error('Unknown error occurred');
   }
 
@@ -171,4 +171,4 @@ class ApiService {
 }
 
 // Export singleton instance
-export const apiService = new ApiService(); 
+export const apiService = new ApiService();

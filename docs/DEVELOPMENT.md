@@ -131,7 +131,7 @@ npx playwright show-report
 
 **Test Users (pre-confirmed in Supabase):**
 - Free: `test-free@fairedge.com` / `TestPassword123!`
-- Basic: `test-basic@fairedge.com` / `TestPassword123!`  
+- Basic: `test-basic@fairedge.com` / `TestPassword123!`
 - Premium: `test-premium@fairedge.com` / `TestPassword123!`
 
 ### Stripe Testing
@@ -356,7 +356,7 @@ docker compose restart
 # Format: <type>(<scope>): <subject>
 
 feat(billing): add subscription upgrade flow
-fix(auth): resolve token refresh race condition  
+fix(auth): resolve token refresh race condition
 docs(api): update billing endpoint documentation
 test(e2e): add subscription cancellation test
 refactor(auth): optimize Supabase client usage
@@ -366,7 +366,7 @@ refactor(auth): optimize Supabase client usage
 
 - [API Reference](API.md) - Complete endpoint documentation
 - [Deployment Guide](DEPLOYMENT.md) - Production deployment
-- [Operations Guide](OPERATIONS.md) - Monitoring and maintenance  
+- [Operations Guide](OPERATIONS.md) - Monitoring and maintenance
 - [Claude Instructions](CLAUDE.md) - AI assistant integration
 - [Phase 3 Testing](PHASE3_MANUAL_TESTING_CHECKLIST.md) - Manual test procedures
 

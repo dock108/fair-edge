@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Fair-Edge</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.fairedge.app</string>
+	<key>CFBundleName</key>
+	<string>FairEdge</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.0</string>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+			<key>127.0.0.1</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.0</string>
+			</dict>
+		</dict>
+	</dict>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string></string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIUserInterfaceStyle</key>
+	<string>Automatic</string>
+
+	<!-- Privacy Usage Descriptions for App Store Compliance -->
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Fair-Edge sends push notifications to alert you about high-value betting opportunities and subscription updates. You can customize notification preferences in Settings.</string>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Fair-Edge may use your location to provide region-specific betting opportunities and comply with local regulations.</string>
+
+	<key>NSCameraUsageDescription</key>
+	<string>Fair-Edge may access your camera to scan QR codes for quick account setup or promotional features.</string>
+
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Fair-Edge may access your microphone for voice commands and accessibility features.</string>
+
+	<key>NSContactsUsageDescription</key>
+	<string>Fair-Edge may access your contacts to help you share betting opportunities with friends.</string>
+
+	<key>NSCalendarsUsageDescription</key>
+	<string>Fair-Edge may add betting events to your calendar to help you track important games and opportunities.</string>
+
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fair-Edge may access your photo library to save screenshots of betting opportunities or share content.</string>
+
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Fair-Edge may use Bluetooth to connect with compatible devices and accessories for enhanced betting analysis.</string>
+
+	<key>NSMotionUsageDescription</key>
+	<string>Fair-Edge may access motion data to detect device orientation and provide optimal viewing experiences.</string>
+
+	<key>NSHealthShareUsageDescription</key>
+	<string>Fair-Edge may access health data to promote responsible gambling habits and wellness monitoring.</string>
+
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Fair-Edge may update health data to track gambling activity and promote responsible betting behavior.</string>
+
+	<key>NSFaceIDUsageDescription</key>
+	<string>Fair-Edge uses Face ID to securely authenticate your identity and protect your account and betting information.</string>
+
+	<!-- App Store Connect and Subscription Information -->
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2025 Fair-Edge. All rights reserved.</string>
+
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+	</array>
+
+	<!-- StoreKit Configuration -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
+
+	<!-- Background Modes for Real-time Updates and Push Notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>background-app-refresh</string>
+		<string>remote-notification</string>
+		<string>background-processing</string>
+	</array>
+
+	<!-- App Category for App Store -->
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.sports</string>
+
+	<!-- Minimum iOS Version Support -->
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+
+	<!-- Accessibility Features -->
+	<key>UIAccessibilityReduceMotionAutoplay</key>
+	<true/>
+	<key>UIAccessibilityIncreaseButtonLegibility</key>
+	<true/>
+
+	<!-- iPad Support Configuration -->
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+
+	<!-- App Store Age Rating Information -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+	<!-- Privacy Information -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinkedToUser</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeUsedForTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeCustomerSupport</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinkedToUser</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeUsedForTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUsageData</string>
+			<key>NSPrivacyCollectedDataTypeLinkedToUser</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeUsedForTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeProductPersonalization</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- App Transport Security Exception for Development -->
+	<key>NSAllowsLocalNetworking</key>
+	<true/>
+
+</dict>
+</plist>

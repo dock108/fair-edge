@@ -2,11 +2,14 @@
 Stripe integration utilities for bet-intel
 Handles subscription management and payment processing
 """
-import stripe
+
 import logging
 from typing import Optional
-from core.settings import settings
+
+import stripe
+
 from core.auth import UserCtx
+from core.settings import settings
 
 # Configure Stripe with secret key if available
 if settings.stripe_secret_key:
@@ -29,40 +32,34 @@ def _check_stripe_config():
 def create_checkout_session(user: UserCtx, price_id: str) -> str:
     """
     Create a Stripe Checkout session for subscription upgrade.
-    
+
     Args:
         user: UserCtx object containing user information
         price_id: Stripe price ID for the subscription
-        
+
     Returns:
         str: Checkout session URL for redirecting user to Stripe
-        
+
     Raises:
         stripe.error.StripeError: If session creation fails
         ValueError: If Stripe is not configured
     """
     _check_stripe_config()
-    
+
     try:
         session = stripe.checkout.Session.create(
             mode="subscription",
             payment_method_types=["card"],
             customer_email=user.email,
-            line_items=[{
-                "price": price_id,
-                "quantity": 1
-            }],
+            line_items=[{"price": price_id, "quantity": 1}],
             success_url=f"{settings.checkout_success_url}?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=settings.checkout_cancel_url,
-            metadata={
-                "user_id": user.id,
-                "user_email": user.email
-            }
+            metadata={"user_id": user.id, "user_email": user.email},
         )
-        
+
         logger.info(f"Created Stripe checkout session {session.id} for user {user.id}")
         return session.url
-        
+
     except stripe.error.StripeError as e:
         logger.error(f"Failed to create Stripe checkout session for user {user.id}: {e}")
         raise
@@ -71,15 +68,15 @@ def create_checkout_session(user: UserCtx, price_id: str) -> str:
 def retrieve_checkout_session(session_id: str) -> Optional[stripe.checkout.Session]:
     """
     Retrieve a Stripe checkout session by ID.
-    
+
     Args:
         session_id: Stripe checkout session ID
-        
+
     Returns:
         stripe.checkout.Session or None if not found
     """
     _check_stripe_config()
-    
+
     try:
         session = stripe.checkout.Session.retrieve(session_id)
         return session
@@ -91,22 +88,20 @@ def retrieve_checkout_session(session_id: str) -> Optional[stripe.checkout.Sessi
 def construct_webhook_event(payload: bytes, signature: str) -> Optional[stripe.Event]:
     """
     Verify and construct a Stripe webhook event.
-    
+
     Args:
         payload: Raw request body
         signature: Stripe-Signature header value
-        
+
     Returns:
         stripe.Event or None if verification fails
     """
     if not settings.stripe_webhook_secret:
         logger.error("Stripe webhook secret not configured")
         return None
-    
+
     try:
-        event = stripe.Webhook.construct_event(
-            payload, signature, settings.stripe_webhook_secret
-        )
+        event = stripe.Webhook.construct_event(payload, signature, settings.stripe_webhook_secret)
         return event
     except (stripe.error.SignatureVerificationError, ValueError) as e:
         logger.error(f"Failed to verify webhook signature: {e}")
@@ -116,20 +111,17 @@ def construct_webhook_event(payload: bytes, signature: str) -> Optional[stripe.E
 def get_customer_subscriptions(customer_id: str) -> list:
     """
     Get all subscriptions for a Stripe customer.
-    
+
     Args:
         customer_id: Stripe customer ID
-        
+
     Returns:
         list: List of active subscriptions
     """
     _check_stripe_config()
-    
+
     try:
-        subscriptions = stripe.Subscription.list(
-            customer=customer_id,
-            status="active"
-        )
+        subscriptions = stripe.Subscription.list(customer=customer_id, status="active")
         return subscriptions.data
     except stripe.error.StripeError as e:
         logger.error(f"Failed to retrieve subscriptions for customer {customer_id}: {e}")
@@ -139,19 +131,19 @@ def get_customer_subscriptions(customer_id: str) -> list:
 def cancel_subscription(subscription_id: str) -> bool:
     """
     Cancel a Stripe subscription.
-    
+
     Args:
         subscription_id: Stripe subscription ID
-        
+
     Returns:
         bool: True if successfully cancelled
     """
     _check_stripe_config()
-    
+
     try:
         stripe.Subscription.delete(subscription_id)
         logger.info(f"Successfully cancelled subscription {subscription_id}")
         return True
     except stripe.error.StripeError as e:
         logger.error(f"Failed to cancel subscription {subscription_id}: {e}")
-        return False 
+        return False

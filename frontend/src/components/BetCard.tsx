@@ -19,11 +19,11 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
   // Calculate fee-adjusted odds for P2P platforms (2% fee)
   const calculateFeeAdjustedOdds = (odds: string): string => {
     if (!odds) return odds;
-    
+
     const isNegative = odds.startsWith('-');
     const isPositive = odds.startsWith('+');
     const oddsNumber = parseInt(odds.replace(/[+-]/, ''));
-    
+
     if (isNegative) {
       // For negative odds, add 2% to the absolute value (making it worse)
       const adjustedOdds = Math.round(oddsNumber * 1.02);
@@ -33,32 +33,32 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
       const adjustedOdds = Math.round(oddsNumber * 0.98);
       return `+${adjustedOdds}`;
     }
-    
+
     return odds;
   };
 
   // Get recommended P2P platform based on best available odds
   const getRecommendedP2P = () => {
     if (!opportunity.available_odds) return 'Novig';
-    
+
     const novigOdds = opportunity.available_odds.find(o => o.bookmaker.toLowerCase() === 'novig');
     const prophetxOdds = opportunity.available_odds.find(o => o.bookmaker.toLowerCase() === 'prophetx');
-    
+
     if (!novigOdds && !prophetxOdds) return 'Novig';
     if (!prophetxOdds) return 'Novig';
     if (!novigOdds) return 'ProphetX';
-    
+
     // Compare which is closer to the recommended posting odds
     const recOdds = opportunity.recommended_posting_odds;
     if (!recOdds) return 'Novig';
-    
+
     const recNumber = parseInt(recOdds.replace(/[+-]/, ''));
     const novigNumber = parseInt(novigOdds.odds.replace(/[+-]/, ''));
     const prophetxNumber = parseInt(prophetxOdds.odds.replace(/[+-]/, ''));
-    
+
     const novigDiff = Math.abs(novigNumber - recNumber);
     const prophetxDiff = Math.abs(prophetxNumber - recNumber);
-    
+
     return novigDiff <= prophetxDiff ? 'Novig' : 'ProphetX';
   };
 
@@ -68,7 +68,7 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
     const bIsNegative = b.odds.startsWith('-');
     const aNumber = parseInt(a.odds.replace(/[+-]/, ''));
     const bNumber = parseInt(b.odds.replace(/[+-]/, ''));
-    
+
     // For negative odds, smaller absolute value is better
     if (aIsNegative && bIsNegative) {
       return aNumber - bNumber;
@@ -80,7 +80,7 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
     // Positive odds are generally better than negative
     if (!aIsNegative && bIsNegative) return -1;
     if (aIsNegative && !bIsNegative) return 1;
-    
+
     return 0;
   }) : [];
 
@@ -92,7 +92,7 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
   // Extract and clean up event title and game date/time
   const getCleanEventAndDateTime = () => {
     const event = opportunity.event || '';
-    
+
     // Check for patterns like "Today 08:10PM EST" or "Tomorrow 07:46PM EST"
     const dateMatch = event.match(/(Today|Tomorrow|\d{1,2}\/\d{1,2})\s+(\d{1,2}:\d{2}[AP]M)\s+(EST|PST|CST|MST)/i);
     if (dateMatch) {
@@ -102,7 +102,7 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
       const dateTime = `${dateMatch[1]} ${dateMatch[2]} ${dateMatch[3]}`;
       return { cleanEvent, dateTime };
     }
-    
+
     // Check for just time patterns
     const timeMatch = event.match(/(\d{1,2}:\d{2}[AP]M\s+[A-Z]{3})/i);
     if (timeMatch) {
@@ -112,7 +112,7 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
       const dateTime = timeMatch[1];
       return { cleanEvent, dateTime };
     }
-    
+
     // Remove trailing dot and bullet points from event even if no date/time pattern
     const cleanEvent = event.replace(/[\.\•]$/, '');
     return { cleanEvent, dateTime: null };
@@ -122,13 +122,13 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
   const { cleanEvent, dateTime } = getCleanEventAndDateTime();
 
   const recommendedP2P = getRecommendedP2P();
-  const p2pPostLink = recommendedP2P === 'ProphetX' 
-    ? 'https://app.prophetx.co/E5Yi?af_js_web=true&af_ss_ver=2_9_3&pid=ProphetX&c=RAF&af_channel=ProphetX&deep_link_value=referral&deep_link_sub1=NC3JLP' 
+  const p2pPostLink = recommendedP2P === 'ProphetX'
+    ? 'https://app.prophetx.co/E5Yi?af_js_web=true&af_ss_ver=2_9_3&pid=ProphetX&c=RAF&af_channel=ProphetX&deep_link_value=referral&deep_link_sub1=NC3JLP'
     : 'https://novig.onelink.me/JHQQ/k695ugsr';
 
   return (
-    <div 
-      className="odds-card" 
+    <div
+      className="odds-card"
       style={{'--ev-color': `var(--ev-${evClass})`} as React.CSSProperties}
       id={`card-${index}`}
     >
@@ -189,10 +189,10 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
               </span>
             </div>
             <div className="odds-card__action">
-              <a 
+              <a
                 href={p2pPostLink}
                 target="_blank"
-                rel="noopener noreferrer" 
+                rel="noopener noreferrer"
                 className="btn btn-primary"
               >
                 Post Bet
@@ -205,7 +205,7 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
       {/* Collapsible Odds Comparison */}
       {sortedOdds.length > 0 && (
         <div className="odds-comparison">
-          <button 
+          <button
             className="btn btn-link p-0 comparison-title-button"
             onClick={() => setShowOdds(!showOdds)}
             type="button"
@@ -215,7 +215,7 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
               <i className={`fas fa-chevron-${showOdds ? 'up' : 'down'} ms-2`}></i>
             </h4>
           </button>
-          
+
           {showOdds && (
             <div className="comparison-list mt-2">
               {sortedOdds.map((bookmaker, idx) => {
@@ -225,7 +225,7 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
                 const displayOdds = isP2P && !alreadyAdjusted
                   ? `${bookmaker.odds} (${calculateFeeAdjustedOdds(bookmaker.odds)})`
                   : bookmaker.odds;
-                
+
                 return (
                   <div key={idx} className="comparison-item">
                     <span className="sportsbook-name">{bookmaker.bookmaker}</span>
@@ -239,4 +239,4 @@ export const BetCard = ({ opportunity, index }: BetCardProps) => {
       )}
     </div>
   );
-}; 
+};

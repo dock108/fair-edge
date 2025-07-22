@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
               Advanced sports betting analytics for profitable decision-making.
             </p>
           </div>
-          
+
           <div className="footer-section">
             <h4 className="footer-title">Quick Links</h4>
             <ul className="footer-links">
@@ -24,7 +24,7 @@ export const Footer: React.FC = () => {
               <li><a href="/disclaimer">Disclaimer</a></li>
             </ul>
           </div>
-          
+
           <div className="footer-section">
             <h4 className="footer-title">Support</h4>
             <div className="support-info">
@@ -54,7 +54,7 @@ export const Footer: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="footer-bottom">
           <div className="footer-legal">
             <p>&copy; 2024 FairEdge. All rights reserved.</p>
@@ -69,4 +69,4 @@ export const Footer: React.FC = () => {
       </div>
     </footer>
   );
-}; 
+};

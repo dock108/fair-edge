@@ -6,7 +6,7 @@ import path from 'path'
 export default defineConfig(({ mode }) => {
   // Load env file from parent directory (monorepo root)
   const env = loadEnv(mode, path.resolve(process.cwd(), '..'), ['VITE_'])
-  
+
   const config: any = {
     plugins: [react()],
     envDir: '../', // Look for env files in parent directory
@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
       }
     }
   }
-  
+
   // Production build optimizations
   if (mode === 'production') {
     config.build = {
@@ -42,6 +42,6 @@ export default defineConfig(({ mode }) => {
       }
     }
   }
-  
+
   return config
 })

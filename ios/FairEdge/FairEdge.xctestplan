@@ -1,0 +1,82 @@
+{
+  "configurations" : [
+    {
+      "id" : "F5B8C4A7-1A2B-4C3D-8E9F-1234567890AB",
+      "name" : "Test Scheme Action",
+      "options" : {
+        "codeCoverage" : {
+          "targets" : [
+            {
+              "containerPath" : "container:FairEdge.xcodeproj",
+              "identifier" : "FairEdge",
+              "name" : "FairEdge"
+            }
+          ]
+        },
+        "commandLineArgumentEntries" : [
+          {
+            "argument" : "--uitesting"
+          }
+        ],
+        "environmentVariableEntries" : [
+          {
+            "key" : "ENABLE_TESTING",
+            "value" : "1"
+          },
+          {
+            "key" : "MOCK_DATA",
+            "value" : "1"
+          }
+        ],
+        "language" : "en",
+        "region" : "US",
+        "targetForVariableExpansion" : {
+          "containerPath" : "container:FairEdge.xcodeproj",
+          "identifier" : "FairEdge",
+          "name" : "FairEdge"
+        }
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+        {
+          "containerPath" : "container:FairEdge.xcodeproj",
+          "identifier" : "FairEdge",
+          "name" : "FairEdge"
+        }
+      ]
+    },
+    "commandLineArgumentEntries" : [
+
+    ],
+    "environmentVariableEntries" : [
+
+    ],
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:FairEdge.xcodeproj",
+      "identifier" : "FairEdge",
+      "name" : "FairEdge"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:FairEdge.xcodeproj",
+        "identifier" : "FairEdgeTests",
+        "name" : "FairEdgeTests"
+      }
+    },
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:FairEdge.xcodeproj",
+        "identifier" : "FairEdgeUITests",
+        "name" : "FairEdgeUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

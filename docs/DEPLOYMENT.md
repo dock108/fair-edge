@@ -34,7 +34,7 @@ Create `.env.production` with:
 # Supabase Configuration (Required)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-key  
+SUPABASE_SERVICE_ROLE_KEY=your-service-key
 SUPABASE_JWT_SECRET=your-jwt-secret
 
 # Stripe Configuration (Required)

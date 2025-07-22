@@ -11,7 +11,7 @@ interface SkeletonLoaderProps {
 
 /**
  * SkeletonLoader Component
- * 
+ *
  * Provides skeleton loading states that match the shape of content being loaded.
  * Creates a better perceived performance experience.
  */
@@ -24,7 +24,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   animate = true
 }) => {
   const baseClasses = `bg-gray-200 ${animate ? 'animate-pulse' : ''}`;
-  
+
   const getVariantClasses = () => {
     switch (variant) {
       case 'text':
@@ -84,7 +84,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
 
 /**
  * OpportunityCardSkeleton Component
- * 
+ *
  * Skeleton specifically designed for betting opportunity cards
  */
 export const OpportunityCardSkeleton: React.FC = () => {
@@ -97,7 +97,7 @@ export const OpportunityCardSkeleton: React.FC = () => {
         </div>
         <SkeletonLoader variant="rectangular" width="4rem" height="2rem" />
       </div>
-      
+
       <div className="grid grid-cols-3 gap-4 mb-3">
         <div>
           <SkeletonLoader variant="text" width="100%" height="0.75rem" className="mb-1" />
@@ -112,7 +112,7 @@ export const OpportunityCardSkeleton: React.FC = () => {
           <SkeletonLoader variant="text" width="80%" height="1rem" />
         </div>
       </div>
-      
+
       <SkeletonLoader variant="text" width="40%" height="0.875rem" />
     </div>
   );
@@ -120,7 +120,7 @@ export const OpportunityCardSkeleton: React.FC = () => {
 
 /**
  * DashboardSkeleton Component
- * 
+ *
  * Comprehensive skeleton for the main dashboard loading state
  */
 export const DashboardSkeleton: React.FC = () => {

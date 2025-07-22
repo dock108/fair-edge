@@ -53,7 +53,7 @@ cd frontend && npm run test:e2e     # Playwright E2E tests
 # Supabase (Required)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-key  
+SUPABASE_SERVICE_ROLE_KEY=your-service-key
 SUPABASE_JWT_SECRET=your-jwt-secret
 
 # Stripe (Required for billing)
@@ -66,7 +66,7 @@ STRIPE_PREMIUM_PRICE=price_...
 # External APIs
 ODDS_API_KEY=your-odds-api-key
 
-# Infrastructure  
+# Infrastructure
 REDIS_URL=redis://redis:6379/0
 
 # Frontend (VITE_* prefix)
@@ -108,7 +108,7 @@ result = supabase.table('profiles').select('*').eq('id', user_id).execute()
 **User Roles:**
 - `free` - Limited access, can see unprofitable bets only
 - `basic` - All main betting lines, unlimited EV access
-- `subscriber` - Premium features, all markets, advanced analytics  
+- `subscriber` - Premium features, all markets, advanced analytics
 - `admin` - Full platform access including debug endpoints
 
 ## Stripe Integration

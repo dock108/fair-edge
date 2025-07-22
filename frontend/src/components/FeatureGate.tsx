@@ -12,7 +12,7 @@ interface FeatureGateProps {
 
 /**
  * FeatureGate component for role-based access control
- * 
+ *
  * Renders children only if the user has the required feature access.
  * Shows upgrade prompt or custom fallback for unauthorized users.
  */

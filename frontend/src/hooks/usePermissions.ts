@@ -16,13 +16,13 @@ interface PermissionHook {
 
 /**
  * Custom hook for role-based access control
- * 
+ *
  * Provides utilities for checking user permissions and feature access
  * based on their subscription tier and authentication status.
  */
 export const usePermissions = (): PermissionHook => {
   const { user, isAuthenticated } = useAuth();
-  
+
   const userRole: UserRole = (user?.user_metadata?.role as UserRole) || 'free';
   const subscriptionStatus = user?.user_metadata?.subscription_status || 'none';
   const isSubscriptionActive = subscriptionStatus === 'active' || userRole === 'admin';
@@ -45,17 +45,17 @@ export const usePermissions = (): PermissionHook => {
    */
   const hasRole = (requiredRole: UserRole): boolean => {
     if (!isAuthenticated) return requiredRole === 'free';
-    
+
     const roleHierarchy: Record<UserRole, number> = {
       free: 0,
       basic: 1,
       premium: 2,
       admin: 3
     };
-    
+
     const userLevel = roleHierarchy[userRole] || 0;
     const requiredLevel = roleHierarchy[requiredRole] || 0;
-    
+
     return userLevel >= requiredLevel;
   };
 

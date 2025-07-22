@@ -41,11 +41,11 @@ export const useOpportunities = (): UseOpportunitiesReturn => {
 
       const queryString = params.toString();
       const url = queryString ? `/api/opportunities?${queryString}` : '/api/opportunities';
-      
+
       const response = await apiService.get<OpportunitiesResponse>(url);
-      
+
       setOpportunities(response.opportunities || []);
-      
+
     } catch (err) {
       console.error('Error fetching opportunities:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch opportunities');
@@ -62,10 +62,10 @@ export const useOpportunities = (): UseOpportunitiesReturn => {
   // Initial fetch and auto-refresh setup
   useEffect(() => {
     fetchOpportunities();
-    
+
     // Set up auto-refresh every 30 seconds
     const interval = setInterval(fetchOpportunities, 30000);
-    
+
     return () => clearInterval(interval);
   }, [fetchOpportunities]);
 
@@ -77,4 +77,4 @@ export const useOpportunities = (): UseOpportunitiesReturn => {
     setSearchTerm,
     refreshOpportunities,
   };
-}; 
+};

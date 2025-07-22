@@ -44,7 +44,7 @@
   color-scheme: light;
   background: var(--surface-secondary);
   color: var(--text-secondary);
-  
+
   /* Font smoothing for better text rendering */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -143,5 +143,3 @@ p {
 .border-accent { border-color: var(--color-accent); }
 .border-brand { border-color: var(--color-primary); }
 .border-teal { border-color: var(--color-accent-2); }
- 
- 

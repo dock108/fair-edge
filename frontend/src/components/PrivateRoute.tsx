@@ -11,7 +11,7 @@ interface PrivateRouteProps {
 
 /**
  * PrivateRoute component for protecting authenticated pages
- * 
+ *
  * Features:
  * - Redirects unauthenticated users to login page
  * - Preserves intended destination for post-login redirect
@@ -19,10 +19,10 @@ interface PrivateRouteProps {
  * - Shows loading spinner during authentication checks
  * - Graceful handling of authentication states
  */
-export const PrivateRoute: React.FC<PrivateRouteProps> = ({ 
-  children, 
+export const PrivateRoute: React.FC<PrivateRouteProps> = ({
+  children,
   requireRole,
-  redirectTo = '/login' 
+  redirectTo = '/login'
 }) => {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -39,10 +39,10 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({
   // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
     return (
-      <Navigate 
-        to={redirectTo} 
-        state={{ from: location.pathname }} 
-        replace 
+      <Navigate
+        to={redirectTo}
+        state={{ from: location.pathname }}
+        replace
       />
     );
   }
@@ -53,7 +53,7 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({
     const subscriptionStatus = user.user_metadata?.subscription_status;
 
     // Check if user has required role and active subscription
-    const hasRequiredRole = userRole === requireRole || 
+    const hasRequiredRole = userRole === requireRole ||
                            (requireRole === 'basic' && userRole === 'premium') || // Premium includes basic
                            userRole === 'admin'; // Admin has access to everything
 
@@ -78,9 +78,9 @@ interface PublicRouteProps {
   redirectTo?: string;
 }
 
-export const PublicRoute: React.FC<PublicRouteProps> = ({ 
-  children, 
-  redirectTo = '/' 
+export const PublicRoute: React.FC<PublicRouteProps> = ({
+  children,
+  redirectTo = '/'
 }) => {
   const { isAuthenticated, loading } = useAuth();
 

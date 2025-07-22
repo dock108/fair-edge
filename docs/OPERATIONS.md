@@ -374,7 +374,7 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-  
+
   celery_worker:
     deploy:
       resources:

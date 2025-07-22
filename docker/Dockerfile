@@ -65,7 +65,7 @@ RUN npm ci  # Install all dependencies including dev dependencies for build
 COPY frontend/ .
 RUN npm run build
 
-# Frontend development stage  
+# Frontend development stage
 FROM node:18-alpine as frontend-dev
 WORKDIR /app
 

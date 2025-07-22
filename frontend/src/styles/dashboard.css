@@ -244,15 +244,15 @@
         padding: 0 var(--space-3);
         min-height: 56px;
     }
-    
+
     .header-nav {
         display: none; /* Hide nav on mobile - could add hamburger menu later */
     }
-    
+
     .brand-link {
         font-size: var(--text-base);
     }
-    
+
     .header-actions .btn {
         font-size: var(--text-xs);
         padding: var(--space-1) var(--space-3);
@@ -500,7 +500,7 @@
 .detail-row:last-child {
         margin-bottom: 0;
     }
-    
+
 .detail-label {
     font-weight: 500;
     color: var(--text-muted);
@@ -651,33 +651,33 @@
         margin-bottom: 1rem;
         border-radius: 16px;
     }
-    
+
     .odds-card__header {
         padding: 0.9rem 0.9rem 0 0.9rem;
     }
-    
+
     .odds-card__event {
         font-size: 1rem;
     }
-    
+
     .card-brand-logo {
         height: 20px;  /* Slightly bigger logo on mobile */
     }
-    
+
     .odds-card__recommended {
         margin: 0 0.9rem 0.9rem 0.9rem;
         padding: 0.7rem 0.7rem 0.5rem 0.7rem;
     }
-     
+
     .odds-card__details {
         padding: 0 0.9rem 0.9rem 0.9rem;
     }
-     
+
     .odds-comparison {
         padding: 0 0.9rem 0.9rem 0.9rem;
         margin-top: 0;
     }
-    
+
     .comparison-item {
         padding: 0.6rem 0.7rem;
     }
@@ -688,34 +688,34 @@
     .odds-card {
         margin-bottom: 2rem;
     }
-    
+
     .odds-card__recommended {
         padding: 1.5rem 1.5rem 1.25rem 1.5rem;
         margin: 0 2rem 1.75rem 2rem;
     }
-    
+
     .odds-card__details {
         padding: 0 2rem 1.75rem 2rem;
     }
-    
+
     .odds-comparison {
         padding: 0 2rem 1.75rem 2rem;
         margin-top: 0;
     }
-    
+
     .detail-row {
         padding: 1rem 1.25rem;
         margin-bottom: 0.75rem;
     }
-    
+
     .recommended-title {
         margin-bottom: 1.25rem;
     }
-    
+
     .recommended-row {
         padding: 0.25rem 0;
     }
-    
+
     .comparison-item {
         padding: 1rem 1.25rem;
     }
@@ -736,7 +736,7 @@
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     border-radius: 20px;
-    box-shadow: 
+    box-shadow:
         0 20px 40px rgba(0, 0, 0, 0.1),
         0 1px 0 rgba(255, 255, 255, 0.3) inset;
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1161,13 +1161,13 @@
         grid-template-columns: 1fr;
         gap: var(--space-6);
     }
-    
+
     .footer-bottom {
         flex-direction: column;
         align-items: flex-start;
         gap: var(--space-3);
     }
-    
+
     .footer-container {
         padding: var(--space-6) var(--space-3) var(--space-4);
     }
@@ -1239,7 +1239,7 @@
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     border-radius: 20px;
-    box-shadow: 
+    box-shadow:
         0 10px 30px rgba(0, 0, 0, 0.08),
         0 1px 0 rgba(255, 255, 255, 0.4) inset;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -1250,7 +1250,7 @@
 
 .pricing-card:hover {
     transform: translateY(-8px);
-    box-shadow: 
+    box-shadow:
         0 20px 40px rgba(0, 0, 0, 0.12),
         0 1px 0 rgba(255, 255, 255, 0.5) inset;
 }
@@ -1262,7 +1262,7 @@
 
 .pricing-card.premium:hover {
     border-color: var(--color-accent-2);  /* Teal border on hover */
-    box-shadow: 
+    box-shadow:
         0 20px 40px rgba(111, 207, 0, 0.2),
         0 1px 0 rgba(255, 255, 255, 0.5) inset;
 }
@@ -1427,7 +1427,7 @@
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     border-radius: 20px;
-    box-shadow: 
+    box-shadow:
         0 10px 30px rgba(0, 0, 0, 0.08),
         0 1px 0 rgba(255, 255, 255, 0.4) inset;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -1553,7 +1553,7 @@
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     border-radius: 20px;
-    box-shadow: 
+    box-shadow:
         0 20px 40px rgba(0, 0, 0, 0.1),
         0 1px 0 rgba(255, 255, 255, 0.3) inset;
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1752,64 +1752,64 @@
    =========================== */
 
 @media (max-width: 768px) {
-    .education-page .education-title, 
-    .pricing-page .pricing-title, 
+    .education-page .education-title,
+    .pricing-page .pricing-title,
     .disclaimer-page .disclaimer-title {
         font-size: 2rem;
     }
-    
-    .education-page .education-container, 
-    .pricing-page .pricing-container, 
+
+    .education-page .education-container,
+    .pricing-page .pricing-container,
     .disclaimer-page .disclaimer-container {
         margin: 0 1rem;
     }
-    
-    .education-page .education-section, 
-    .pricing-page .pricing-card, 
+
+    .education-page .education-section,
+    .pricing-page .pricing-card,
     .disclaimer-page .disclaimer-section {
         padding: 1.5rem;
     }
-    
+
     .pricing-page .pricing-cards {
         grid-template-columns: 1fr;
         gap: 1.5rem;
     }
-    
+
     .pricing-page .pricing-card {
         margin: 0;
     }
-    
-    .education-page .strategy-box, 
-    .education-page .example-box, 
-    .education-page .math-box, 
-    .education-page .concept-list, 
+
+    .education-page .strategy-box,
+    .education-page .example-box,
+    .education-page .math-box,
+    .education-page .concept-list,
     .education-page .warning-note,
-    .disclaimer-page .warning-box, 
-    .disclaimer-page .risk-list, 
-    .disclaimer-page .legal-text, 
+    .disclaimer-page .warning-box,
+    .disclaimer-page .risk-list,
+    .disclaimer-page .legal-text,
     .disclaimer-page .contact-info {
         padding: 1rem;
         margin: 1rem 0;
     }
-    
+
     .education-page .navigation-links,
     .disclaimer-page .disclaimer-footer {
         padding: 1.5rem;
         flex-direction: column;
         gap: 0.75rem;
     }
-    
-    .education-page .nav-link, 
+
+    .education-page .nav-link,
     .disclaimer-page .back-link {
     text-align: center;
         justify-content: center;
     }
-    
+
     .pricing-page .comparison-table-container {
         padding: 1rem;
         overflow-x: auto;
     }
-    
+
     .pricing-page .comparison-table th,
     .pricing-page .comparison-table td {
         padding: 0.75rem 0.5rem;
@@ -2016,12 +2016,12 @@
     .auth-card {
         padding: var(--space-8);
     }
-    
+
     .form-row {
         grid-template-columns: 1fr;
         gap: 0;
     }
-    
+
     .form-options {
         flex-direction: column;
         align-items: flex-start;

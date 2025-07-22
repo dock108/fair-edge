@@ -1,16 +1,16 @@
 // Loading and Skeleton Components
 export { LoadingSpinner } from './LoadingSpinner';
 export { LoadingButton } from './LoadingButton';
-export { 
-  SkeletonLoader, 
-  OpportunityCardSkeleton, 
-  DashboardSkeleton 
+export {
+  SkeletonLoader,
+  OpportunityCardSkeleton,
+  DashboardSkeleton
 } from './SkeletonLoader';
-export { 
-  ShimmerEffect, 
-  TableLoadingSkeleton, 
-  CardGridSkeleton, 
-  InlineLoader 
+export {
+  ShimmerEffect,
+  TableLoadingSkeleton,
+  CardGridSkeleton,
+  InlineLoader
 } from './ShimmerEffect';
 
 // UI Components

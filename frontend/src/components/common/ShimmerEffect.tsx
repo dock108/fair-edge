@@ -7,7 +7,7 @@ interface ShimmerEffectProps {
 
 /**
  * ShimmerEffect Component
- * 
+ *
  * Provides a shimmer/wave effect that can be applied to any container.
  * Creates a more engaging loading experience with a moving gradient.
  */
@@ -25,7 +25,7 @@ export const ShimmerEffect: React.FC<ShimmerEffectProps> = ({
 
 /**
  * TableLoadingSkeleton Component
- * 
+ *
  * Skeleton specifically for table/list loading states
  */
 export const TableLoadingSkeleton: React.FC<{ rows?: number }> = ({ rows = 5 }) => {
@@ -49,13 +49,13 @@ export const TableLoadingSkeleton: React.FC<{ rows?: number }> = ({ rows = 5 }) 
 
 /**
  * CardGridSkeleton Component
- * 
+ *
  * Skeleton for grid-based card layouts
  */
-export const CardGridSkeleton: React.FC<{ 
+export const CardGridSkeleton: React.FC<{
   cards?: number;
   columns?: 1 | 2 | 3 | 4;
-}> = ({ 
+}> = ({
   cards = 6,
   columns = 3
 }) => {
@@ -87,7 +87,7 @@ export const CardGridSkeleton: React.FC<{
 
 /**
  * InlineLoader Component
- * 
+ *
  * Small loading indicator for inline use (buttons, form fields, etc.)
  */
 export const InlineLoader: React.FC<{

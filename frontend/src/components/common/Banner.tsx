@@ -20,7 +20,7 @@ interface BannerProps {
 
 /**
  * Banner Component
- * 
+ *
  * A unified component for displaying various types of messages and notifications
  * across the application with consistent styling and behavior.
  */
@@ -96,13 +96,13 @@ export const Banner: React.FC<BannerProps> = ({
 
   const getActionButtonStyle = () => {
     if (!action) return {};
-    
+
     const actionVariant = action.variant || 'primary';
     const variantStyles = getVariantStyles();
-    
+
     if (actionVariant === 'primary') {
       return {
-        background: variant === 'premium' || variant === 'upgrade' 
+        background: variant === 'premium' || variant === 'upgrade'
           ? 'linear-gradient(135deg, #3b82f6 0%, #10b981 100%)'
           : variantStyles.iconColor,
         color: 'white',
@@ -115,7 +115,7 @@ export const Banner: React.FC<BannerProps> = ({
         border: `1px solid ${variantStyles.titleColor}`
       };
     }
-    
+
     return {
       background: 'rgba(255, 255, 255, 0.9)',
       color: variantStyles.titleColor,
@@ -127,7 +127,7 @@ export const Banner: React.FC<BannerProps> = ({
   const iconClass = icon || getDefaultIcon();
 
   return (
-    <div 
+    <div
       className={`rounded-md p-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2 ${className}`}
       style={{
         background: variantStyles.background,
@@ -138,22 +138,22 @@ export const Banner: React.FC<BannerProps> = ({
     >
       <div className="d-flex align-items-start gap-3 flex-1" style={{ minWidth: '300px' }}>
         {iconClass && (
-          <i 
-            className={iconClass} 
-            style={{ 
+          <i
+            className={iconClass}
+            style={{
               color: variantStyles.iconColor,
               fontSize: '1.1rem',
               marginTop: '2px',
               flexShrink: 0
-            }} 
+            }}
           />
         )}
-        
+
         <div className="flex-1">
           {title && (
-            <div 
+            <div
               className="fw-bold mb-1"
-              style={{ 
+              style={{
                 color: variantStyles.titleColor,
                 fontSize: '0.95rem'
               }}
@@ -161,9 +161,9 @@ export const Banner: React.FC<BannerProps> = ({
               {title}
             </div>
           )}
-          
-          <div 
-            style={{ 
+
+          <div
+            style={{
               color: variantStyles.textColor,
               fontSize: title ? '0.85rem' : '0.95rem',
               lineHeight: '1.4'

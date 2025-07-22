@@ -50,7 +50,7 @@ COMMANDS:
     ci-simulation   Simulate full CI pipeline locally
     cleanup         Clean up test resources and containers
     install-deps    Install test dependencies
-    
+
 OPTIONS:
     --verbose, -v   Enable verbose output
     --help, -h      Show this help message
@@ -108,36 +108,36 @@ fi
 # Utility functions
 check_dependencies() {
     log_info "Checking dependencies..."
-    
+
     local missing_deps=()
-    
+
     if ! command -v python3 &> /dev/null; then
         missing_deps+=("python3")
     fi
-    
+
     if ! command -v pip &> /dev/null; then
         missing_deps+=("pip")
     fi
-    
+
     if ! command -v docker &> /dev/null; then
         missing_deps+=("docker")
     fi
-    
+
     if ! command -v docker-compose &> /dev/null; then
         missing_deps+=("docker-compose")
     fi
-    
+
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
         log_error "Missing dependencies: ${missing_deps[*]}"
         exit 1
     fi
-    
+
     log_success "All dependencies available"
 }
 
 setup_test_env() {
     log_info "Setting up test environment..."
-    
+
     # Create test environment file
     cat > .env.test << EOF
 DEBUG_MODE=true
@@ -150,10 +150,10 @@ THE_ODDS_API_KEY=test_api_key
 WEB_CONCURRENCY=2
 TEST_BASE_URL=http://localhost:8000
 EOF
-    
+
     # Create test results directory
     mkdir -p test-results
-    
+
     log_success "Test environment ready"
 }
 
@@ -166,46 +166,46 @@ install_deps() {
 
 start_background_services() {
     log_info "Starting background services..."
-    
+
     # Start Redis for testing
     if ! pgrep redis-server > /dev/null; then
         log_info "Starting Redis..."
         redis-server --daemonize yes --port 6379 --loglevel warning
         sleep 2
     fi
-    
+
     # Wait for Redis
     timeout 30 bash -c 'until redis-cli ping > /dev/null 2>&1; do sleep 1; done' || {
         log_error "Redis failed to start"
         exit 1
     }
-    
+
     log_success "Background services started"
 }
 
 stop_background_services() {
     log_info "Stopping background services..."
-    
+
     # Stop Redis if we started it
     if pgrep redis-server > /dev/null; then
         pkill redis-server || true
     fi
-    
+
     log_success "Background services stopped"
 }
 
 run_smoke_tests() {
     log_info "Running smoke tests..."
-    
+
     setup_test_env
     start_background_services
-    
+
     # Start application in background
     export $(cat .env.test | xargs)
     python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
     APP_PID=$!
     echo $APP_PID > app.pid
-    
+
     # Wait for app to start
     log_info "Waiting for application to start..."
     timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null; do sleep 2; done' || {
@@ -214,7 +214,7 @@ run_smoke_tests() {
         stop_background_services
         exit 1
     }
-    
+
     # Run smoke tests
     log_info "Executing smoke tests..."
     if [[ "$VERBOSE" == "true" ]]; then
@@ -222,14 +222,14 @@ run_smoke_tests() {
     else
         pytest tests/test_smoke_ci.py -v --tb=short
     fi
-    
+
     SMOKE_EXIT_CODE=$?
-    
+
     # Cleanup
     kill $APP_PID 2>/dev/null || true
     rm -f app.pid
     stop_background_services
-    
+
     if [[ $SMOKE_EXIT_CODE -eq 0 ]]; then
         log_success "Smoke tests passed"
     else
@@ -240,16 +240,16 @@ run_smoke_tests() {
 
 run_load_tests() {
     log_info "Running load tests..."
-    
+
     setup_test_env
     start_background_services
-    
+
     # Start application in background
     export $(cat .env.test | xargs)
     python -m uvicorn app:app --host 0.0.0.0 --port 8000 --workers 2 &
     APP_PID=$!
     echo $APP_PID > app.pid
-    
+
     # Wait for app to start
     log_info "Waiting for application to start..."
     timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null; do sleep 2; done' || {
@@ -258,7 +258,7 @@ run_load_tests() {
         stop_background_services
         exit 1
     }
-    
+
     # Run load tests
     log_info "Executing load tests with $LOAD_TEST_USERS users for $LOAD_TEST_TIME..."
     python -m locust \
@@ -270,22 +270,22 @@ run_load_tests() {
         --headless \
         --html test-results/load_test_report.html \
         --csv test-results/load_test_results
-    
+
     LOAD_EXIT_CODE=$?
-    
+
     # Analyze results
     if [[ -f test-results/load_test_results_stats.csv ]]; then
         log_info "Load test results:"
         cat test-results/load_test_results_stats.csv
-        
+
         # Check failure rate
         total_requests=$(tail -n 1 test-results/load_test_results_stats.csv | cut -d',' -f3)
         total_failures=$(tail -n 1 test-results/load_test_results_stats.csv | cut -d',' -f4)
-        
+
         if [[ "$total_requests" -gt 0 ]]; then
             error_rate=$(( total_failures * 100 / total_requests ))
             log_info "Error rate: ${error_rate}%"
-            
+
             if [[ "$error_rate" -gt 5 ]]; then
                 log_error "Error rate too high: ${error_rate}%"
                 LOAD_EXIT_CODE=1
@@ -294,12 +294,12 @@ run_load_tests() {
             fi
         fi
     fi
-    
+
     # Cleanup
     kill $APP_PID 2>/dev/null || true
     rm -f app.pid
     stop_background_services
-    
+
     if [[ $LOAD_EXIT_CODE -eq 0 ]]; then
         log_success "Load tests passed"
         log_info "Report available at: test-results/load_test_report.html"
@@ -311,23 +311,23 @@ run_load_tests() {
 
 run_integration_tests() {
     log_info "Running integration tests..."
-    
+
     setup_test_env
     start_background_services
-    
+
     # Run existing test suite
     export $(cat .env.test | xargs)
-    
+
     if [[ "$VERBOSE" == "true" ]]; then
         pytest tests/ -v --tb=short --ignore=tests/test_smoke_ci.py --maxfail=5 --durations=10
     else
         pytest tests/ -v --tb=short --ignore=tests/test_smoke_ci.py --maxfail=5
     fi
-    
+
     INTEGRATION_EXIT_CODE=$?
-    
+
     stop_background_services
-    
+
     if [[ $INTEGRATION_EXIT_CODE -eq 0 ]]; then
         log_success "Integration tests passed"
     else
@@ -338,16 +338,16 @@ run_integration_tests() {
 
 run_sprint6_tests() {
     log_info "Running Sprint 6 feature tests..."
-    
+
     setup_test_env
     start_background_services
-    
+
     # Start application in background
     export $(cat .env.test | xargs)
     python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
     APP_PID=$!
     echo $APP_PID > app.pid
-    
+
     # Wait for app to start
     log_info "Waiting for application to start..."
     timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null; do sleep 2; done' || {
@@ -356,7 +356,7 @@ run_sprint6_tests() {
         stop_background_services
         exit 1
     }
-    
+
     # Run Sprint 6 specific tests
     log_info "Executing Sprint 6 feature tests..."
     if [[ "$VERBOSE" == "true" ]]; then
@@ -364,14 +364,14 @@ run_sprint6_tests() {
     else
         pytest tests/test_stripe_webhooks.py tests/test_route_protection.py tests/test_sprint6_integration.py -v --tb=short
     fi
-    
+
     SPRINT6_EXIT_CODE=$?
-    
+
     # Cleanup
     kill $APP_PID 2>/dev/null || true
     rm -f app.pid
     stop_background_services
-    
+
     if [[ $SPRINT6_EXIT_CODE -eq 0 ]]; then
         log_success "Sprint 6 tests passed"
     else
@@ -382,17 +382,17 @@ run_sprint6_tests() {
 
 run_docker_smoke() {
     log_info "Running smoke tests in Docker..."
-    
+
     # Clean up any existing containers
     docker-compose -f docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
-    
+
     # Run smoke tests in Docker
     docker-compose --profile test --profile smoke-test -f docker-compose.test.yml up --build --abort-on-container-exit
     DOCKER_EXIT_CODE=$?
-    
+
     # Cleanup
     docker-compose -f docker-compose.test.yml down -v --remove-orphans
-    
+
     if [[ $DOCKER_EXIT_CODE -eq 0 ]]; then
         log_success "Docker smoke tests passed"
     else
@@ -403,20 +403,20 @@ run_docker_smoke() {
 
 run_docker_load() {
     log_info "Running load tests in Docker..."
-    
+
     # Clean up any existing containers
     docker-compose -f docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
-    
+
     # Create test results directory
     mkdir -p test-results
-    
+
     # Run load tests in Docker
     docker-compose --profile test --profile load-test -f docker-compose.test.yml up --build --abort-on-container-exit
     DOCKER_EXIT_CODE=$?
-    
+
     # Cleanup
     docker-compose -f docker-compose.test.yml down -v --remove-orphans
-    
+
     if [[ $DOCKER_EXIT_CODE -eq 0 ]]; then
         log_success "Docker load tests passed"
         log_info "Results should be in test-results/"
@@ -428,43 +428,43 @@ run_docker_load() {
 
 run_ci_simulation() {
     log_info "Running full CI simulation..."
-    
+
     log_info "Step 1: Smoke tests"
     run_smoke_tests
-    
+
     log_info "Step 2: Sprint 6 feature tests"
     run_sprint6_tests
-    
+
     log_info "Step 3: Load tests"
     run_load_tests
-    
+
     log_info "Step 4: Integration tests"
     run_integration_tests
-    
+
     log_info "Step 5: Docker smoke tests"
     run_docker_smoke
-    
+
     log_success "🎉 Full CI simulation completed successfully!"
 }
 
 cleanup() {
     log_info "Cleaning up test resources..."
-    
+
     # Kill any running app processes
     if [[ -f app.pid ]]; then
         kill $(cat app.pid) 2>/dev/null || true
         rm -f app.pid
     fi
-    
+
     # Stop background services
     stop_background_services
-    
+
     # Clean up Docker resources
     docker-compose -f docker-compose.test.yml down -v --remove-orphans 2>/dev/null || true
-    
+
     # Clean up test files
     rm -f .env.test
-    
+
     log_success "Cleanup completed"
 }
 
@@ -509,4 +509,4 @@ case $COMMAND in
         show_help
         exit 1
         ;;
-esac 
+esac

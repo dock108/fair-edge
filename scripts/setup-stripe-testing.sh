@@ -29,7 +29,7 @@ echo "✅ Stripe CLI authenticated"
 ENV_FILE="../environments/development.env"
 if [[ -f "$ENV_FILE" ]]; then
     echo "✅ Development environment file found"
-    
+
     # Check for required Stripe variables
     if grep -q "STRIPE_SECRET_KEY=sk_test_" "$ENV_FILE" && \
        grep -q "STRIPE_PUBLISHABLE_KEY=pk_test_" "$ENV_FILE" && \

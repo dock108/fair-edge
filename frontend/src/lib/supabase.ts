@@ -37,7 +37,7 @@ export const auth = {
       email,
       password,
     });
-    
+
     if (error) throw error;
     return data;
   },
@@ -51,7 +51,7 @@ export const auth = {
         data: metadata
       }
     });
-    
+
     if (error) throw error;
     return data;
   },
@@ -80,4 +80,4 @@ export const auth = {
   onAuthStateChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);
   }
-}; 
+};

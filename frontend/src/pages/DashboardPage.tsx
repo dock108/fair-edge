@@ -15,7 +15,7 @@ export const DashboardPage = () => {
     setSearchTerm,
     refreshOpportunities
   } = useOpportunities();
-  
+
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { userRole, isSubscriptionActive } = usePermissions();
 
@@ -75,7 +75,7 @@ export const DashboardPage = () => {
         <div className="alert alert-danger" role="alert">
           <h4 className="alert-heading">Error Loading Data</h4>
           <p>{error}</p>
-          <button 
+          <button
             className="btn btn-outline-danger"
             onClick={() => refreshOpportunities()}
           >
@@ -93,7 +93,7 @@ export const DashboardPage = () => {
       <div className="dashboard-header">
         {/* User Role Badge - Positioned Absolutely */}
         {isAuthenticated && (
-          <div style={{ 
+          <div style={{
             position: 'absolute',
             top: '0',
             right: '0',
@@ -113,13 +113,13 @@ export const DashboardPage = () => {
               userRole === 'admin' ? 'fas fa-crown' :
               userRole === 'premium' ? 'fas fa-star' :
               userRole === 'basic' ? 'fas fa-check-circle' : 'fas fa-user'
-            } style={{ 
+            } style={{
               color: userRole === 'admin' ? 'var(--success-600)' :
                      userRole === 'premium' ? 'var(--primary-600)' :
                      userRole === 'basic' ? 'var(--info-600)' : 'var(--gray-600)'
             }}></i>
-            <span style={{ 
-              fontWeight: '500', 
+            <span style={{
+              fontWeight: '500',
               color: userRole === 'admin' ? 'var(--success-700)' :
                      userRole === 'premium' ? 'var(--primary-700)' :
                      userRole === 'basic' ? 'var(--info-700)' : 'var(--gray-700)',
@@ -132,7 +132,7 @@ export const DashboardPage = () => {
             </span>
           </div>
         )}
-        
+
         {/* Centered Title and Subtitle */}
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
           <h1 className="dashboard-title">
@@ -143,7 +143,7 @@ export const DashboardPage = () => {
             Real-time +EV analysis across multiple sportsbooks
           </p>
         </div>
-        
+
         {/* Centered Optimization Info */}
         <div style={{ textAlign: 'center' }}>
           <div className="optimization-info">
@@ -151,7 +151,7 @@ export const DashboardPage = () => {
             <span>All P2P posting recommendations are optimized for 2.5% target EV after exchange fees</span>
           </div>
         </div>
-        
+
         {/* Unauthenticated Preview Banner */}
         {!isAuthenticated && (
           <div style={{ marginTop: 'var(--space-4)' }}>
@@ -214,7 +214,7 @@ export const DashboardPage = () => {
               Get player props, alternate lines & complete market coverage (+$6/month)
             </div>
           </div>
-          <a href="/pricing" className="btn btn-sm" style={{ 
+          <a href="/pricing" className="btn btn-sm" style={{
             background: 'linear-gradient(135deg, #3b82f6 0%, #10b981 100%)',
             color: 'white',
             textDecoration: 'none',
@@ -265,7 +265,7 @@ export const DashboardPage = () => {
           <i className="fas fa-search fa-3x text-muted mb-3"></i>
           <h4>No Opportunities Found</h4>
           <p className="text-muted">
-            {searchTerm 
+            {searchTerm
               ? `No results found for "${searchTerm}". Try a different search term.`
               : "No betting opportunities are currently available. Check back soon!"
             }
@@ -278,7 +278,7 @@ export const DashboardPage = () => {
               <BetCard key={index} opportunity={opportunity} index={index} />
             ))}
           </div>
-          
+
           {/* Unauthenticated Users Upsell */}
           {!isAuthenticated && (
             <PremiumPrompt featureName="profitable betting opportunities">
@@ -287,7 +287,7 @@ export const DashboardPage = () => {
               Sign up for Basic ($3.99) to see profitable main lines, or Premium ($9.99) for complete market coverage including player props and alternate lines.
             </PremiumPrompt>
           )}
-          
+
           {/* Free Tier "Losing Bets" Warning */}
           {shouldShowFreeTierBanners() && opportunities.length > 0 && (
             <div style={{
@@ -305,15 +305,15 @@ export const DashboardPage = () => {
               <p style={{ color: '#92400e', marginBottom: 'var(--space-4)' }}>
                 These 10 opportunities have <strong>-2% EV or worse</strong> - they're designed to lose money. Upgrade to see profitable opportunities:
               </p>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                 gap: 'var(--space-4)',
                 marginBottom: 'var(--space-4)'
               }}>
-                <div style={{ 
-                  background: 'rgba(59, 130, 246, 0.1)', 
-                  padding: 'var(--space-3)', 
+                <div style={{
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  padding: 'var(--space-3)',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid rgba(59, 130, 246, 0.2)'
                 }}>
@@ -325,9 +325,9 @@ export const DashboardPage = () => {
                     Unlock <strong>positive EV main lines</strong> and start making profitable bets
                   </p>
                 </div>
-                <div style={{ 
-                  background: 'rgba(245, 158, 11, 0.1)', 
-                  padding: 'var(--space-3)', 
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  padding: 'var(--space-3)',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid rgba(245, 158, 11, 0.2)'
                 }}>
@@ -364,18 +364,18 @@ export const DashboardPage = () => {
               <p style={{ color: '#374151', marginBottom: 'var(--space-4)', fontSize: '0.95rem' }}>
                 Get <strong>player props & alternate lines</strong> for 5x more profitable opportunities daily
               </p>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                 gap: 'var(--space-4)',
                 marginBottom: 'var(--space-4)',
                 maxWidth: '600px',
                 margin: '0 auto var(--space-4)'
               }}>
-                <div style={{ 
-                  background: 'rgba(59, 130, 246, 0.1)', 
-                  padding: 'var(--space-3)', 
+                <div style={{
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  padding: 'var(--space-3)',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid rgba(59, 130, 246, 0.2)'
                 }}>
@@ -389,9 +389,9 @@ export const DashboardPage = () => {
                     ✓ Search & filter tools
                   </p>
                 </div>
-                <div style={{ 
-                  background: 'rgba(245, 158, 11, 0.1)', 
-                  padding: 'var(--space-3)', 
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  padding: 'var(--space-3)',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid rgba(245, 158, 11, 0.2)'
                 }}>
@@ -406,8 +406,8 @@ export const DashboardPage = () => {
                   </p>
                 </div>
               </div>
-              
-              <a href="/pricing" className="btn" style={{ 
+
+              <a href="/pricing" className="btn" style={{
                 background: 'linear-gradient(135deg, #3b82f6 0%, #10b981 100%)',
                 color: 'white',
                 textDecoration: 'none',
@@ -433,4 +433,4 @@ export const DashboardPage = () => {
       )}
     </div>
   );
-}; 
+};

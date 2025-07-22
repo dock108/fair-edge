@@ -23,7 +23,7 @@ const PricingPage: React.FC = () => {
 
     // Check current subscription status
     const userRole = user?.user_metadata?.role;
-    
+
     if (plan === 'basic') {
       if (userRole === 'basic') {
         alert('You already have Basic access!');
@@ -34,7 +34,7 @@ const PricingPage: React.FC = () => {
         return;
       }
     }
-    
+
     if (plan === 'premium') {
       if (userRole === 'premium' || userRole === 'subscriber') {
         alert('You already have Premium access!');
@@ -63,9 +63,9 @@ const PricingPage: React.FC = () => {
         <div className="pricing-header">
           <h1 className="pricing-title">Simple, Transparent Pricing</h1>
           <p className="pricing-subtitle">From browsing opportunities to maximizing profits - choose your level</p>
-          
+
           {/* Sports Coverage */}
-          <div style={{ 
+          <div style={{
             background: 'rgba(16, 185, 129, 0.1)',
             padding: '1rem 2rem',
             borderRadius: '12px',
@@ -79,7 +79,7 @@ const PricingPage: React.FC = () => {
             </p>
           </div>
 
-          <div style={{ 
+          <div style={{
             background: 'rgba(59, 130, 246, 0.1)',
             padding: '1rem 2rem',
             borderRadius: '12px',
@@ -178,7 +178,7 @@ const PricingPage: React.FC = () => {
             <div className="pricing-card-footer">
               {isBasicSubscriber ? (
                 <div style={{ textAlign: 'center' }}>
-                  <div className="btn btn-primary" style={{ 
+                  <div className="btn btn-primary" style={{
                     background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                     cursor: 'default',
                     position: 'relative'
@@ -190,8 +190,8 @@ const PricingPage: React.FC = () => {
                 </div>
               ) : isPremiumSubscriber ? (
                 <div style={{ textAlign: 'center' }}>
-                  <button 
-                    className="btn btn-outline" 
+                  <button
+                    className="btn btn-outline"
                     onClick={() => handleStartTrial('basic')}
                     disabled={loading}
                   >
@@ -202,8 +202,8 @@ const PricingPage: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <button 
-                    className="btn btn-primary" 
+                  <button
+                    className="btn btn-primary"
                     onClick={() => handleStartTrial('basic')}
                     disabled={loading}
                   >
@@ -259,7 +259,7 @@ const PricingPage: React.FC = () => {
             <div className="pricing-card-footer">
               {isPremiumSubscriber ? (
                 <div style={{ textAlign: 'center' }}>
-                  <div className="btn btn-primary" style={{ 
+                  <div className="btn btn-primary" style={{
                     background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                     cursor: 'default',
                     position: 'relative'
@@ -271,8 +271,8 @@ const PricingPage: React.FC = () => {
                 </div>
               ) : isBasicSubscriber ? (
                 <div style={{ textAlign: 'center' }}>
-                  <button 
-                    className="btn btn-primary" 
+                  <button
+                    className="btn btn-primary"
                     onClick={() => handleStartTrial('premium')}
                     disabled={loading}
                     style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
@@ -284,8 +284,8 @@ const PricingPage: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <button 
-                    className="btn btn-primary" 
+                  <button
+                    className="btn btn-primary"
                     onClick={() => handleStartTrial('premium')}
                     disabled={loading}
                   >
@@ -309,7 +309,7 @@ const PricingPage: React.FC = () => {
         </div>
 
         {/* Upgrade Path */}
-        <div className="upgrade-path" style={{ 
+        <div className="upgrade-path" style={{
           margin: '3rem 0',
           padding: '2rem',
           background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)',
@@ -320,13 +320,13 @@ const PricingPage: React.FC = () => {
             <i className="fas fa-route" style={{ marginRight: '0.5rem', color: '#3b82f6' }}></i>
             Your Journey to Profitable Betting
           </h3>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-            gap: '1.5rem' 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '1.5rem'
           }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ 
+              <div style={{
                 background: '#f3f4f6',
                 borderRadius: '50%',
                 width: '60px',
@@ -343,7 +343,7 @@ const PricingPage: React.FC = () => {
               <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>See negative EV bets to understand what opportunities look like</p>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ 
+              <div style={{
                 background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 borderRadius: '50%',
                 width: '60px',
@@ -360,7 +360,7 @@ const PricingPage: React.FC = () => {
               <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Unlock positive EV main lines and start making profitable bets</p>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ 
+              <div style={{
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                 borderRadius: '50%',
                 width: '60px',
@@ -449,13 +449,13 @@ const PricingPage: React.FC = () => {
         {/* Value Proposition */}
         <div className="feature-comparison" style={{ marginTop: '2rem' }}>
           <h3 className="comparison-title">Why Upgrade?</h3>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '1.5rem',
             padding: '2rem 0'
           }}>
-            <div style={{ 
+            <div style={{
               background: 'rgba(59, 130, 246, 0.05)',
               border: '1px solid rgba(59, 130, 246, 0.2)',
               borderRadius: '12px',
@@ -466,7 +466,7 @@ const PricingPage: React.FC = () => {
               <h4 style={{ color: '#1e293b', marginBottom: '1rem', fontSize: '1.1rem' }}>Unlock Positive EV</h4>
               <p style={{ color: '#64748b', fontSize: '0.9rem' }}><strong>Basic ($3.99):</strong> See profitable main line opportunities instead of just losing bets. Start making money!</p>
             </div>
-            <div style={{ 
+            <div style={{
               background: 'rgba(245, 158, 11, 0.05)',
               border: '1px solid rgba(245, 158, 11, 0.2)',
               borderRadius: '12px',
@@ -477,7 +477,7 @@ const PricingPage: React.FC = () => {
               <h4 style={{ color: '#1e293b', marginBottom: '1rem', fontSize: '1.1rem' }}>5x More Markets</h4>
               <p style={{ color: '#64748b', fontSize: '0.9rem' }}><strong>Premium ($9.99):</strong> Player props and alternate lines provide significantly more opportunities daily.</p>
             </div>
-            <div style={{ 
+            <div style={{
               background: 'rgba(16, 185, 129, 0.05)',
               border: '1px solid rgba(16, 185, 129, 0.2)',
               borderRadius: '12px',
@@ -526,8 +526,8 @@ const PricingPage: React.FC = () => {
               }
             ].map((faq, index) => (
               <div key={index} className="faq-item">
-                <div 
-                  className="faq-question" 
+                <div
+                  className="faq-question"
                   onClick={() => toggleFaq(index)}
                   style={{ cursor: 'pointer' }}
                 >
@@ -546,4 +546,4 @@ const PricingPage: React.FC = () => {
   );
 };
 
-export default PricingPage; 
+export default PricingPage;

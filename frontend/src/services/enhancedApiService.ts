@@ -31,7 +31,7 @@ class EnhancedApiService {
     this.api.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`);
-        
+
         // Use in-memory token if available, otherwise get from Supabase
         let token = this.authToken;
         if (!token) {
@@ -46,7 +46,7 @@ class EnhancedApiService {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        
+
         return config;
       },
       (error) => {
@@ -63,23 +63,23 @@ class EnhancedApiService {
       },
       async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-        
+
         console.error(`❌ API Error: ${error.response?.status} ${error.config?.url}`, error.response?.data);
-        
+
         // Handle 401 Unauthorized with token refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
           console.warn('🔄 401 received - attempting token refresh...');
-          
+
           try {
             // Attempt to refresh the session
             const { data, error: refreshError } = await supabase.auth.refreshSession();
-            
+
             if (!refreshError && data.session) {
               console.log('✅ Token refreshed successfully');
               const newToken = data.session.access_token;
               this.setAuthToken(newToken);
-              
+
               // Retry the original request with new token
               if (originalRequest.headers) {
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -97,14 +97,14 @@ class EnhancedApiService {
             throw new Error('Session expired. Please log in again.');
           }
         }
-        
+
         // Handle other error cases
         if (error.response?.status === 403) {
           console.warn('🚫 Forbidden request - insufficient permissions');
         } else if (error.response?.status && error.response.status >= 500) {
           console.error('🔥 Server error - backend may be down');
         }
-        
+
         return Promise.reject(error);
       }
     );
@@ -194,17 +194,17 @@ class EnhancedApiService {
   private handleError(error: any): Error {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<ApiResponse>;
-      
+
       // Extract error message from response
-      const message = 
+      const message =
         axiosError.response?.data?.error ||
         axiosError.response?.data?.message ||
         axiosError.message ||
         'An unexpected error occurred';
-      
+
       return new Error(message);
     }
-    
+
     return error instanceof Error ? error : new Error('Unknown error occurred');
   }
 
