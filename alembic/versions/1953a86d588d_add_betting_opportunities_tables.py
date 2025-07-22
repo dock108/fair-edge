@@ -84,10 +84,18 @@ def upgrade() -> None:
     )
 
     # Create indexes for bets table
-    op.create_index("idx_bets_sport_league", "bets", ["sport", "league"], unique=False)
+    op.create_index(
+        "idx_bets_sport_league", "bets", [
+            "sport", "league"], unique=False)
     op.create_index("idx_bets_bet_type", "bets", ["bet_type"], unique=False)
-    op.create_index("idx_bets_teams", "bets", ["home_team", "away_team"], unique=False)
-    op.create_index("idx_bets_created_at", "bets", ["created_at"], unique=False)
+    op.create_index(
+        "idx_bets_teams", "bets", [
+            "home_team", "away_team"], unique=False)
+    op.create_index(
+        "idx_bets_created_at",
+        "bets",
+        ["created_at"],
+        unique=False)
     op.create_index(
         "idx_bets_sport_type_created",
         "bets",
@@ -123,10 +131,26 @@ def upgrade() -> None:
     )
 
     # Create indexes for bet_offers table
-    op.create_index("idx_bet_offers_bet_id", "bet_offers", ["bet_id"], unique=False)
-    op.create_index("idx_bet_offers_timestamp", "bet_offers", ["timestamp"], unique=False)
-    op.create_index("idx_bet_offers_book", "bet_offers", ["book"], unique=False)
-    op.create_index("idx_bet_offers_ev", "bet_offers", ["expected_value"], unique=False)
+    op.create_index(
+        "idx_bet_offers_bet_id",
+        "bet_offers",
+        ["bet_id"],
+        unique=False)
+    op.create_index(
+        "idx_bet_offers_timestamp",
+        "bet_offers",
+        ["timestamp"],
+        unique=False)
+    op.create_index(
+        "idx_bet_offers_book",
+        "bet_offers",
+        ["book"],
+        unique=False)
+    op.create_index(
+        "idx_bet_offers_ev",
+        "bet_offers",
+        ["expected_value"],
+        unique=False)
     op.create_index(
         "idx_bet_offers_bet_timestamp",
         "bet_offers",
@@ -134,8 +158,10 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(
-        "idx_bet_offers_refresh_cycle", "bet_offers", ["refresh_cycle_id"], unique=False
-    )
+        "idx_bet_offers_refresh_cycle",
+        "bet_offers",
+        ["refresh_cycle_id"],
+        unique=False)
     op.create_index(
         "idx_offers_recent_high_ev",
         "bet_offers",

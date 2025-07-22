@@ -11,11 +11,10 @@ import sys
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import os
-
-from dotenv import load_dotenv
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
+# Module imports after path modification - noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
 load_dotenv()
 
@@ -58,7 +57,8 @@ async def promote_user_to_admin(email: str):
             {"email": email},
         )
 
-        logger.info(f"✅ Successfully promoted {user_email} from {current_role} to admin")
+        logger.info(
+            f"✅ Successfully promoted {user_email} from {current_role} to admin")
         return True
 
 

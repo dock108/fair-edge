@@ -16,7 +16,8 @@ class OddsCalculator:
     """Calculator for odds analysis and +EV identification - now uses unified math utils"""
 
     def __init__(self):
-        self.sharp_books = ["pinnacle"]  # Books considered "sharp" for fair odds calculation
+        # Books considered "sharp" for fair odds calculation
+        self.sharp_books = ["pinnacle"]
         self.us_books = ["draftkings", "fanduel"]  # Major US books
         self.exchanges = ["novig", "prophetx"]  # Betting exchanges
 
@@ -43,7 +44,8 @@ class OddsCalculator:
                 MathUtils.probability_to_decimal(fair_prob2),
             ]
         else:
-            # For multi-outcome markets, use the original normalization approach
+            # For multi-outcome markets, use the original normalization
+            # approach
             implied_probs = [MathUtils.decimal_to_probability(odds) for odds in odds_list]
             total_prob = sum(implied_probs)
 
@@ -64,7 +66,8 @@ class OddsCalculator:
         if not market_odds:
             return None
 
-        # Priority order: Pinnacle first, then average of DK/FD if Pinnacle not available
+        # Priority order: Pinnacle first, then average of DK/FD if Pinnacle not
+        # available
         fair_odds = {}
 
         # Try to use Pinnacle (sharp book) first
@@ -165,7 +168,10 @@ class OddsCalculator:
                                 "offered_odds": offered_odds,
                                 "fair_odds": fair_price,
                                 "ev_percentage": ev_percentage,
-                                "action": f"Take bet on {SportsConfig.BOOKMAKERS.get(bookmaker_key, {}).get('name', bookmaker_key)}",
+                                "action": (
+                                    f"Take bet on "
+                                    f"{SportsConfig.BOOKMAKERS.get(bookmaker_key, dict()).get('name', bookmaker_key)}"
+                                ),
                                 "description": self._format_bet_description(
                                     market_key, outcome, market_data
                                 ),
@@ -271,7 +277,11 @@ class OddsCalculator:
                                 "expected_profit_margin": self._calculate_maker_profit_margin(
                                     fair_price, suggested_odds, commission
                                 ),
-                                "action": f"Post on {SportsConfig.BOOKMAKERS.get(exchange, {}).get('name', exchange)} at {suggested_odds:.2f}",
+                                "action": (
+                                    f"Post on "
+                                    f"{SportsConfig.BOOKMAKERS.get(exchange, dict()).get('name', exchange)} "
+                                    f"at {suggested_odds:.2f}"
+                                ),
                                 "description": self._format_bet_description(
                                     market_key, {"name": outcome_name}, market_data
                                 ),

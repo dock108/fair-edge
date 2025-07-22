@@ -31,7 +31,8 @@ class PushNotificationService:
 
     def __init__(self):
         self.apns_base_url = settings.apns_base_url
-        self.apns_topic = settings.apns_topic or settings.apple_bundle_id  # Use topic or bundle ID
+        # Use topic or bundle ID
+        self.apns_topic = settings.apns_topic or settings.apple_bundle_id
         self.apns_key_id = settings.apns_key_id
         self.apns_team_id = settings.apns_team_id
         self.apns_private_key = settings.apns_private_key
@@ -404,7 +405,7 @@ class PushNotificationService:
             # Get active device tokens for all users
             device_tokens = (
                 session.query(DeviceToken)
-                .filter(and_(DeviceToken.user_id.in_(user_ids), DeviceToken.is_active == True))
+                .filter(and_(DeviceToken.user_id.in_(user_ids), DeviceToken.is_active.is_(True)))
                 .all()
             )
 

@@ -54,7 +54,8 @@ celery_app.conf.update(
     worker_max_tasks_per_child=100,  # Restart worker to prevent memory leaks
     worker_disable_rate_limits=False,
     # Beat Scheduler Configuration
-    beat_schedule_filename="/app/celery-data/beat.db",  # Store in persistent volume for Docker
+    beat_schedule_filename="/app/celery-data/beat.db",
+    # Store in persistent volume for Docker
     # Beat Schedule Configuration - Dynamically configured based on environment
     beat_schedule=get_celery_beat_schedule(),
     # Result Backend Settings

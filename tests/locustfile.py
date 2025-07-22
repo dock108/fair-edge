@@ -3,7 +3,7 @@ Load Testing Configuration for Fair-Edge API
 Simulates realistic user behavior patterns for performance testing
 """
 
-import json
+# import json  # Currently unused
 import random
 
 from locust import HttpUser, between, task
@@ -61,7 +61,8 @@ class SubscriberUser(HttpUser):
     def on_start(self):
         """Called when a subscriber starts - simulate authentication"""
         # In a real scenario, this would authenticate and get a token
-        # For load testing, we'll simulate subscriber behavior without real auth
+        # For load testing, we'll simulate subscriber behavior without real
+        # auth
         self.client.get("/health")
         self.client.get("/api/user-info")
 

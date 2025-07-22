@@ -208,7 +208,9 @@ async def get_refresh_history(
             },
             "api_call_optimization": {
                 "strategy": "Only refresh when dashboard is active or when stale data accessed",
-                "estimated_api_calls_saved": "Approximately 75% reduction compared to fixed 5-minute intervals",
+                "estimated_api_calls_saved": (
+                    "Approximately 75% reduction compared to fixed 5-minute intervals"
+                ),
                 "current_interval": "15 minutes when active, on-demand when inactive",
             },
             "timestamp": datetime.now().isoformat(),

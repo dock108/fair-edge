@@ -5,12 +5,10 @@ Provides monitoring, metrics, and performance tracking for the betting opportuni
 persistence system.
 """
 
-import json
 import logging
-import time
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -241,14 +239,14 @@ def log_performance_metrics():
         summary = persistence_monitor.get_performance_summary()
         health = persistence_monitor.check_health()
 
-        logger.info(f"Persistence Performance Summary:")
+        logger.info("Persistence Performance Summary:")
         logger.info(f"  Total Operations (24h): {summary['total_operations']}")
         logger.info(f"  Success Rate: {summary['overall_success_rate']:.1f}%")
         logger.info(f"  Health Status: {health['status']}")
 
         if summary.get("operations_by_type", {}).get("batch_save"):
             batch_stats = summary["operations_by_type"]["batch_save"]
-            logger.info(f"  Batch Save Performance:")
+            logger.info("  Batch Save Performance:")
             logger.info(f"    Count: {batch_stats['count']}")
             logger.info(f"    Avg Duration: {batch_stats['avg_duration_ms']:.0f}ms")
             logger.info(f"    P95 Duration: {batch_stats['p95_duration_ms']:.0f}ms")

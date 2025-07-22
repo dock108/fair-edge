@@ -7,7 +7,6 @@ Specifically designed for Celery tasks with pgbouncer compatibility.
 """
 
 import hashlib
-import json
 import logging
 import os
 import sys
@@ -18,9 +17,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import dateutil.parser
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from models import Bet, BetOffer
-from services.persistence_monitoring import persistence_monitor
-from utils.math_utils import MathUtils
+# Module imports after path modification - noqa: E402
+from models import Bet, BetOffer  # noqa: E402
+from services.persistence_monitoring import persistence_monitor  # noqa: E402
+from utils.math_utils import MathUtils  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +162,8 @@ class SyncBetPersistenceService:
             "refresh_cycle_id": self.refresh_cycle_id,
         }
 
-    # All the parsing and extraction methods remain the same as the async version
+    # All the parsing and extraction methods remain the same as the async
+    # version
     def _parse_teams(self, event_name: str) -> Tuple[Optional[str], Optional[str]]:
         """Parse team names from event string with improved cleaning"""
         if not event_name:
@@ -223,7 +224,8 @@ class SyncBetPersistenceService:
         description_lower = description.lower()
         if any(keyword in description_lower for keyword in baseball_prop_keywords):
             # For baseball props, player name is typically at the beginning
-            # Examples: "Zac Gallen Over 2.5 Earned Runs", "Ketel Marte Under 1.5 Total Bases"
+            # Examples: "Zac Gallen Over 2.5 Earned Runs", "Ketel Marte Under
+            # 1.5 Total Bases"
             import re
 
             # Extract name before "Over/Under" or before prop keyword
@@ -234,7 +236,8 @@ class SyncBetPersistenceService:
                 potential_name = re.sub(r"\s+", " ", potential_name)
                 return potential_name if len(potential_name.split()) <= 3 else None
 
-            # Fallback: extract first 1-3 words if they don't contain prop keywords
+            # Fallback: extract first 1-3 words if they don't contain prop
+            # keywords
             words = description.split()
             if len(words) >= 2:
                 for i in range(min(3, len(words)), 0, -1):
@@ -251,7 +254,8 @@ class SyncBetPersistenceService:
         description = opportunity.get("Bet Description", "").lower()
         event = opportunity.get("Event", "").lower()
 
-        # MLB/Baseball patterns - check for team names and baseball-specific terms
+        # MLB/Baseball patterns - check for team names and baseball-specific
+        # terms
         baseball_teams = [
             "giants",
             "diamondbacks",
@@ -386,7 +390,8 @@ class SyncBetPersistenceService:
             try:
                 # Handle Unix timestamp (seconds or milliseconds)
                 if isinstance(time_value, (int, float)):
-                    # Check if it's in milliseconds (typical for JavaScript timestamps)
+                    # Check if it's in milliseconds (typical for JavaScript
+                    # timestamps)
                     if time_value > 1e12:  # Likely milliseconds
                         timestamp = time_value / 1000
                     else:  # Likely seconds
@@ -533,7 +538,13 @@ class SyncBetPersistenceService:
         source = opportunity.get("Best_Odds_Source", "")
 
         # Only support these 5 books
-        known_books = {"novig", "prophetx", "draftkings", "fanduel", "pinnacle"}
+        # known_books = {
+        #     "novig",
+        #     "prophetx",
+        #     "draftkings",
+        #     "fanduel",
+        #     "pinnacle"
+        # }
 
         # Normalize common bookmaker names with comprehensive matching
         book_mapping = {
@@ -626,7 +637,7 @@ class SyncBetPersistenceService:
             logger.info("Saving opportunities via Supabase REST API")
             import os
 
-            import requests
+            import requests  # noqa: F401
 
             # Get Supabase credentials
             supabase_url = os.getenv("SUPABASE_URL")
@@ -670,7 +681,9 @@ class SyncBetPersistenceService:
                 results["errors"].extend(batch_results["errors"])
 
             logger.info(
-                f"✅ REST API persistence completed: {bets_created} bets created, {offers_created} offers created, {offers_skipped} offers skipped (duplicates)"
+                f"✅ REST API persistence completed: {bets_created} bets created, "
+                f"{offers_created} offers created, "
+                f"{offers_skipped} offers skipped (duplicates)"
             )
 
             # Update results
@@ -803,7 +816,8 @@ class SyncBetPersistenceService:
             "errors": [],
         }
 
-        # Group opportunities by bet_id and extract all books from "All Available Odds"
+        # Group opportunities by bet_id and extract all books from "All
+        # Available Odds"
         bet_groups: Dict[str, Dict[str, Any]] = {}
 
         for opportunity in opportunities:
@@ -816,14 +830,17 @@ class SyncBetPersistenceService:
                     bet_groups[bet_id] = {
                         "bet_data": self._extract_bet_data(opportunity, bet_id),
                         "books": {},
-                        "opportunity": opportunity,  # Store the full opportunity for later use
+                        # Store the full opportunity for later use
+                        "opportunity": opportunity,
                     }
                     logger.debug(
-                        f"Created new bet group: {bet_id[:16]}... for {opportunity.get('Event', 'Unknown')[:50]}..."
+                        f"Created new bet group: {bet_id[:16]}... for "
+                        f"{opportunity.get('Event', 'Unknown')[:50]}..."
                     )
 
                 # For now, still use the single book method but store the opportunity
-                # The key change is in _create_aggregated_offer where we'll parse "All Available Odds"
+                # The key change is in _create_aggregated_offer where we'll
+                # parse "All Available Odds"
                 book_id = self._determine_book(opportunity)
                 if book_id:
                     odds_data = self._parse_odds_data(opportunity)
@@ -860,7 +877,7 @@ class SyncBetPersistenceService:
             if i < 3:  # Log first 3 examples
                 books_list = list(group_data["books"].keys())
                 logger.info(
-                    f"  Bet {i+1}: {bet_id[:16]}... has {len(books_list)} books: {books_list}"
+                    f"  Bet {i+1}: {bet_id[:16]}... has " f"{len(books_list)} books: {books_list}"
                 )
 
         for bet_id, group_data in bet_groups.items():
@@ -953,7 +970,8 @@ class SyncBetPersistenceService:
 
         books_data = {}
 
-        # Parse format: "DraftKings: +120; FanDuel: +124; Pinnacle: +125; ProphetX: +142 (+139); Novig: +155 (+152)"
+        # Parse format: "DraftKings: +120; FanDuel: +124; Pinnacle: +125;
+        # ProphetX: +142 (+139); Novig: +155 (+152)"
         odds_parts = all_odds_str.split(";")
 
         for part in odds_parts:
@@ -980,7 +998,8 @@ class SyncBetPersistenceService:
                             break
 
                     if book_id:
-                        # Extract American odds (handle both "+120" and "+142 (+139)" formats)
+                        # Extract American odds (handle both "+120" and "+142
+                        # (+139)" formats)
                         import re
 
                         odds_match = re.search(r"([+-]?\d+)", odds_str)
@@ -1158,7 +1177,7 @@ class SyncBetPersistenceService:
 
             if response.status_code != 200:
                 logger.warning(
-                    f"Failed to fetch existing offers for bet {bet_id}: {response.status_code}"
+                    f"Failed to fetch existing offers for bet {bet_id}: " f"{response.status_code}"
                 )
                 return True
 
@@ -1259,9 +1278,10 @@ class SyncBetPersistenceService:
             )
 
             if response.status_code != 200:
-                # If we can't fetch existing offers, create the new one to be safe
+                # If we can't fetch existing offers, create the new one to be
+                # safe
                 logger.warning(
-                    f"Failed to fetch existing offers for bet {bet_id}: {response.status_code}"
+                    f"Failed to fetch existing offers for bet {bet_id}: " f"{response.status_code}"
                 )
                 return True
 
@@ -1297,7 +1317,8 @@ class SyncBetPersistenceService:
                     for odds_field in ["american", "decimal"]:
                         if old_value.get(odds_field) != new_value.get(odds_field):
                             logger.debug(
-                                f"Offer change detected in {field}.{odds_field}: {old_value.get(odds_field)} -> {new_value.get(odds_field)}"
+                                f"Offer change detected in {field}.{odds_field}: "
+                                f"{old_value.get(odds_field)} -> {new_value.get(odds_field)}"
                             )
                             return True
                 elif old_value != new_value:

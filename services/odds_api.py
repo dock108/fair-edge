@@ -22,7 +22,8 @@ DEBUG = settings.is_debug
 SUPPORTED_SPORTS = SportsConfig.SUPPORTED_SPORTS
 BOOKMAKERS = SportsConfig.BOOKMAKERS
 FEATURED_MARKETS = SportsConfig.FEATURED_MARKETS
-SPORT_FEATURED_MARKETS = SportsConfig.ADDITIONAL_MARKETS  # This is the sport-specific markets dict
+# This is the sport-specific markets dict
+SPORT_FEATURED_MARKETS = SportsConfig.ADDITIONAL_MARKETS
 ADDITIONAL_MARKETS = SportsConfig.ADDITIONAL_MARKETS
 MAJOR_BOOKS = SportsConfig.MAJOR_BOOKS
 
@@ -95,7 +96,8 @@ class OddsAPIClient:
         now = datetime.now(pytz.UTC)
         end_time = now + timedelta(hours=24)
 
-        # Format times for API (ISO 8601) - remove microseconds for cleaner format
+        # Format times for API (ISO 8601) - remove microseconds for cleaner
+        # format
         commence_time_from = now.replace(microsecond=0).isoformat().replace("+00:00", "Z")
         commence_time_to = end_time.replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -174,7 +176,8 @@ class OddsAPIClient:
                 .isoformat()
                 .replace("+00:00", "Z"),
                 "regions": "us,us_ex,eu",  # Include us_ex for exchanges
-                "markets": ",".join(FEATURED_MARKETS),  # Start with basic markets only
+                # Start with basic markets only
+                "markets": ",".join(FEATURED_MARKETS),
                 "bookmakers": ",".join(bookmaker_keys),
                 "oddsFormat": "decimal",
                 "dateFormat": "iso",
@@ -257,7 +260,7 @@ class OddsAPIClient:
                     )
                 else:
                     logger.debug(
-                        f"Event {event.get('id', 'unknown')} filtered out - no valid markets"
+                        f"Event {event.get('id', 'unknown')} filtered out - " "no valid markets"
                     )
 
             filtered_data[sport_key] = filtered_events
@@ -371,11 +374,13 @@ class OddsAPIClient:
 
             # For spreads and totals, ensure we have opposing outcomes
             if market_key == "spreads":
-                # Should have same point values but opposite signs or different teams
+                # Should have same point values but opposite signs or different
+                # teams
                 points = [outcome.get("point") for outcome in outcomes]
                 if None in points:
                     return False
-                # Points should be opposite (e.g., +7.5 and -7.5) or different teams
+                # Points should be opposite (e.g., +7.5 and -7.5) or different
+                # teams
                 return abs(points[0] + points[1]) < 0.1 or points[0] != points[1]
 
             elif market_key == "totals":
@@ -391,7 +396,8 @@ class OddsAPIClient:
 
         # For player/pitcher/batter props, check for Over/Under pairs by player
         if market_key.startswith(("player_", "pitcher_", "batter_")):
-            # Group outcomes by player (description) and check for over/under pairs
+            # Group outcomes by player (description) and check for over/under
+            # pairs
             players = {}
             for outcome in outcomes:
                 description = outcome.get("description", "").strip()
@@ -414,7 +420,8 @@ class OddsAPIClient:
                 player_outcomes = player_data["outcomes"]
                 player_points = player_data["points"]
 
-                # Must have exactly 2 outcomes (over/under) with same point threshold
+                # Must have exactly 2 outcomes (over/under) with same point
+                # threshold
                 if (
                     len(player_outcomes) == 2
                     and len(player_points) == 1

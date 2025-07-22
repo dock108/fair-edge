@@ -37,7 +37,8 @@ PROCESSING_STATUS_TTL = 600  # 10 minutes for status tracking
     soft_time_limit=10 * 60,  # 10 minutes soft limit
     time_limit=12 * 60,  # 12 minutes hard limit
 )
-def calc_ev_batch(self, batch_id: str, _options: Optional[Dict[str, Any]] = None):
+def calc_ev_batch(self, batch_id: str,
+                  _options: Optional[Dict[str, Any]] = None):
     """
     Calculate EV for a batch of opportunities - heavy computation task
 
@@ -131,7 +132,9 @@ def calc_ev_batch(self, batch_id: str, _options: Optional[Dict[str, Any]] = None
             "opportunities": opportunities,
             "analytics": analytics,
             "generated_at": datetime.utcnow().isoformat(),
-            "processing_time_ms": round((time.perf_counter() - start_time) * 1000, 2),
+            "processing_time_ms": round(
+                (time.perf_counter() - start_time) * 1000,
+                2),
             "total_opportunities": len(opportunities),
         }
 
@@ -158,7 +161,8 @@ def calc_ev_batch(self, batch_id: str, _options: Optional[Dict[str, Any]] = None
 
         processing_time = time.perf_counter() - start_time
 
-        logger.info(f"✅ EV batch {batch_id} completed in {processing_time:.2f}s")
+        logger.info(
+            f"✅ EV batch {batch_id} completed in {processing_time:.2f}s")
         logger.info(f"   Generated {len(opportunities)} opportunities")
         logger.info(f"   Results cached with key: {batch_cache_key}")
 
@@ -166,9 +170,14 @@ def calc_ev_batch(self, batch_id: str, _options: Optional[Dict[str, Any]] = None
             "batch_id": batch_id,
             "status": "completed",
             "total_opportunities": len(opportunities),
-            "processing_time_seconds": round(processing_time, 2),
+            "processing_time_seconds": round(
+                processing_time,
+                2),
             "cache_key": batch_cache_key,
-            "expires_at": (datetime.utcnow() + timedelta(seconds=EV_BATCH_TTL)).isoformat(),
+            "expires_at": (
+                datetime.utcnow()
+                + timedelta(
+                    seconds=EV_BATCH_TTL)).isoformat(),
         }
 
     except Exception as e:
@@ -213,7 +222,8 @@ def calc_ev_incremental(self, sport_key: str, market_key: str):
     start_time = time.perf_counter()
 
     try:
-        logger.info(f"🎯 Starting incremental EV calc: {sport_key} - {market_key}")
+        logger.info(
+            f"🎯 Starting incremental EV calc: {sport_key} - {market_key}")
 
         # This would implement targeted fetching for specific markets
         # For now, we'll use the same underlying computation but filter results
@@ -229,7 +239,8 @@ def calc_ev_incremental(self, sport_key: str, market_key: str):
 
         processing_time = time.perf_counter() - start_time
 
-        logger.info(f"✅ Incremental EV calc completed in {processing_time:.2f}s")
+        logger.info(
+            f"✅ Incremental EV calc completed in {processing_time:.2f}s")
 
         return {
             "sport_key": sport_key,
@@ -239,7 +250,8 @@ def calc_ev_incremental(self, sport_key: str, market_key: str):
         }
 
     except Exception as e:
-        logger.error(f"❌ Incremental EV calc failed for {sport_key}-{market_key}: {str(e)}")
+        logger.error(
+            f"❌ Incremental EV calc failed for {sport_key}-{market_key}: {str(e)}")
         raise
 
 

@@ -50,15 +50,18 @@ def safe_label(value: Any, label_name: str = "unknown") -> Optional[str]:
 
     # Check if contains only safe characters
     # For numeric input (int/float), allow decimal points in the string representation
-    # For string input, use stricter validation, with exceptions for endpoint labels
+    # For string input, use stricter validation, with exceptions for endpoint
+    # labels
     if isinstance(value, (int, float, bool)):
         # Numeric values converted to strings can have decimal points
         safe_chars_pattern = re.compile(r"^[a-zA-Z0-9_.]+$")
     elif label_name == "endpoint":
-        # Endpoint labels can contain forward slashes and curly braces (API paths with placeholders)
+        # Endpoint labels can contain forward slashes and curly braces (API
+        # paths with placeholders)
         safe_chars_pattern = re.compile(r"^[a-zA-Z0-9_/{}]+$")
     else:
-        # String values must be alphanumeric + underscores only (strict Prometheus labels)
+        # String values must be alphanumeric + underscores only (strict
+        # Prometheus labels)
         safe_chars_pattern = ALLOWED_LABEL_CHARS
 
     if not safe_chars_pattern.match(clean_value):
@@ -124,7 +127,8 @@ def get_cardinality_stats() -> Dict[str, Dict[str, Any]]:
             "distinct_values": len(values),
             "is_high_cardinality": len(values)
             >= MAX_DISTINCT_VALUES_PER_LABEL * 0.8,  # 80% threshold
-            "sample_values": (list(values)[:5] if values else []),  # First 5 values as examples
+            # First 5 values as examples
+            "sample_values": (list(values)[:5] if values else []),
         }
 
     return stats
@@ -132,7 +136,6 @@ def get_cardinality_stats() -> Dict[str, Dict[str, Any]]:
 
 def reset_cardinality_tracker():
     """Reset the cardinality tracker (useful for testing or periodic cleanup)"""
-    global _label_cardinality_tracker
     _label_cardinality_tracker.clear()
     logger.info("Cardinality tracker reset")
 
@@ -164,7 +167,8 @@ def validate_metric_labels(metric_name: str, labels: Dict[str, Any]) -> bool:
 
         if total_combinations > 10000:  # Arbitrary high limit
             logger.warning(
-                f"Metric {metric_name} may cause high cardinality: {total_combinations} combinations"
+                f"Metric {metric_name} may cause high cardinality: {total_combinations} "
+                "combinations"
             )
             return False
 
@@ -272,7 +276,8 @@ def safe_endpoint_label(endpoint: str) -> Optional[str]:
         "/{uuid}",
         normalized,
     )
-    # Replace numeric IDs (but only pure numbers, not UUIDs that start with numbers)
+    # Replace numeric IDs (but only pure numbers, not UUIDs that start with
+    # numbers)
     normalized = re.sub(r"/\d+(?![a-f0-9-])", "/{id}", normalized)
 
     # Remove special characters (but keep curly braces for placeholders)

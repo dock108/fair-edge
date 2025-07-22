@@ -60,15 +60,18 @@ async def get_opportunities(
         # Track dashboard activity
         dashboard_activity.track_dashboard_access(user_id=user_id, session_id=session_id)
 
-        # Check if we should refresh data on load (if stale and no recent activity)
+        # Check if we should refresh data on load (if stale and no recent
+        # activity)
         should_refresh_on_load = dashboard_activity.should_refresh_on_load()
         refresh_triggered = False
 
         if should_refresh_on_load:
             logger.info("🔄 Triggering refresh on dashboard load - data is stale")
-            # Trigger background refresh with skip_activity_check=True for on-demand refresh
+            # Trigger background refresh with skip_activity_check=True for
+            # on-demand refresh
             task = refresh_odds_data.delay(force_refresh=False, skip_activity_check=True)
-            background_tasks.add_task(lambda: task)  # Add to background tasks for proper handling
+            # Add to background tasks for proper handling
+            background_tasks.add_task(lambda: task)
             refresh_triggered = True
 
         # Get cached EV data
@@ -93,7 +96,8 @@ async def get_opportunities(
         # Apply role-based filtering
         user_role_for_filtering = user.role if user else "free"
         logger.info(
-            f"🎯 User context: {user.email if user else 'unauthenticated'} (role: {user_role_for_filtering})"
+            f"🎯 User context: {user.email if user else 'unauthenticated'} "
+            f"(role: {user_role_for_filtering})"
         )
         logger.info(
             f"📊 Formatting {len(ev_data)} opportunities for role: {user_role_for_filtering}"
@@ -102,7 +106,8 @@ async def get_opportunities(
             ev_data, user_role=user_role_for_filtering, limit=limit
         )
         logger.info(
-            f"✅ Formatted {len(filtered_opportunities)} opportunities for role {user_role_for_filtering}"
+            f"✅ Formatted {len(filtered_opportunities)} opportunities "
+            f"for role {user_role_for_filtering}"
         )
 
         # Apply search filtering if search term provided
@@ -119,7 +124,8 @@ async def get_opportunities(
                 )
             ]
             logger.info(
-                f"Search filter '{search_term}': {original_count} -> {len(filtered_opportunities)} opportunities"
+                f"Search filter '{search_term}': {original_count} -> "
+                f"{len(filtered_opportunities)} opportunities"
             )
 
         # Add metadata
@@ -184,7 +190,8 @@ async def refresh_opportunities(
     try:
         logger.info(f"Manual refresh triggered by admin: {admin_user.email}")
 
-        # Start background task with force_refresh=True and skip_activity_check=True for manual refresh
+        # Start background task with force_refresh=True and
+        # skip_activity_check=True for manual refresh
         task = refresh_odds_data.delay(force_refresh=True, skip_activity_check=True)
 
         return {

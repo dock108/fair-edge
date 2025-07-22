@@ -354,7 +354,8 @@ async def _handle_subscription_cancelled(subscription: dict):
         if result.data:
             user = result.data[0]
             logger.info(
-                f"Successfully downgraded user {user.get('id')} ({user.get('email')}) to free tier"
+                f"Successfully downgraded user {user.get('id')} "
+                f"({user.get('email')}) to free tier"
             )
         else:
             logger.warning(f"No user found for cancelled subscription {subscription_id}")
@@ -410,7 +411,8 @@ async def _handle_subscription_updated(subscription: dict):
         if result.data:
             user = result.data[0]
             logger.info(
-                f"Updated user {user.get('id')} ({user.get('email')}) to {user_role} (status: {status})"
+                f"Updated user {user.get('id')} ({user.get('email')}) "
+                f"to {user_role} (status: {status})"
             )
         else:
             logger.warning(f"No user found for subscription {subscription_id}")
@@ -456,7 +458,8 @@ async def _handle_payment_succeeded(invoice: dict):
 
                 if update_result.data:
                     logger.info(
-                        f"Confirmed active subscription for user {user.get('id')} ({user.get('email')}) - {user.get('role')}"
+                        f"Confirmed active subscription for user {user.get('id')} "
+                        f"({user.get('email')}) - {user.get('role')}"
                     )
                 else:
                     logger.error(f"Failed to update subscription status for user {user.get('id')}")
@@ -587,7 +590,10 @@ async def create_customer_portal_session(
         # Create Customer Portal session - Stripe API call
         session = stripe.billing_portal.Session.create(
             customer=stripe_customer_id,  # required param
-            return_url=f"{settings.checkout_success_url.replace('/upgrade/success', '')}/account",  # where to send them back
+            # where to send them back
+            return_url=(
+                f"{settings.checkout_success_url.replace('/upgrade/success', '')}" f"/account"
+            ),
         )
 
         logger.info(f"Created customer portal session for subscriber {user.id}")

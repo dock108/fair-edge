@@ -32,10 +32,12 @@ def upgrade() -> None:
     )
     book_type_enum.create(op.get_bind())
 
-    region_enum = postgresql.ENUM("US", "EU", "UK", "AU", "GLOBAL", name="region_enum")
+    region_enum = postgresql.ENUM(
+        "US", "EU", "UK", "AU", "GLOBAL", name="region_enum")
     region_enum.create(op.get_bind())
 
-    user_role_enum = postgresql.ENUM("FREE", "SUBSCRIBER", "ADMIN", name="user_role_enum")
+    user_role_enum = postgresql.ENUM(
+        "FREE", "SUBSCRIBER", "ADMIN", name="user_role_enum")
     user_role_enum.create(op.get_bind())
 
     subscription_status_enum = postgresql.ENUM(

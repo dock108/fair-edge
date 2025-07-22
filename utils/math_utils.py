@@ -144,7 +144,8 @@ class MathUtils:
         fair_probability: float, target_ev: float, fee_rate: float = 0.0
     ) -> float:
         """
-        Calculate maker probability for target EV after fees using two-stage approach
+        Calculate maker probability for target EV after fees using two-stage
+        approach
 
         Stage 1: Calculate 2% EV to cover exchange fees
         Stage 2: Add 2.5% EV buffer for profit margin
@@ -244,4 +245,5 @@ class MathUtils:
         return abs(back_to_american - american_odds) <= 1
 
 
-# All functions now consolidated in MathUtils class - no backward compatibility wrappers needed
+# All functions now consolidated in MathUtils class - no backward
+# compatibility wrappers needed

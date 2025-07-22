@@ -45,7 +45,8 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 _cache_lock = threading.Lock()
 
 logger.info(
-    f"Cache configuration: {'DEBUG' if DEBUG_MODE else 'PRODUCTION'} mode, {CACHE_DURATION//60} minute cache duration"
+    f"Cache configuration: {'DEBUG' if DEBUG_MODE else 'PRODUCTION'} mode, "
+    f"{CACHE_DURATION//60} minute cache duration"
 )
 
 
@@ -100,7 +101,8 @@ def deduplicate_opportunities(
             normalized_description = normalized_description.replace(" moneyline", "").strip()
 
         # Create a unique key combining event, normalized market, and normalized description
-        # This ensures we identify the same bet even if described slightly differently
+        # This ensures we identify the same bet even if described slightly
+        # differently
         unique_key = f"{event}|{normalized_market}|{normalized_description}".lower()
 
         # Always keep the most recent version (later in the list = more recent)
@@ -112,7 +114,8 @@ def deduplicate_opportunities(
     deduplicated.sort(key=lambda x: x.get("EV_Raw", 0), reverse=True)
 
     logger.info(
-        f"Deduplication: {len(opportunities)} → {len(deduplicated)} opportunities (removed {len(opportunities) - len(deduplicated)} duplicates)"
+        f"Deduplication: {len(opportunities)} → {len(deduplicated)} opportunities "
+        f"(removed {len(opportunities) - len(deduplicated)} duplicates)"
     )
 
     return deduplicated
@@ -123,7 +126,8 @@ def _load_cache_file(cache_file: str) -> Dict[str, Any]:
     try:
         if os.path.exists(cache_file):
             with open(cache_file, "rb") as f:
-                return pickle.load(f)  # nosec B301 - Loading trusted cache files only
+                # nosec B301 - Loading trusted cache files only
+                return pickle.load(f)
     except Exception as e:
         logger.debug(f"Failed to load cache file {cache_file}: {e}")
     return {}
@@ -213,7 +217,8 @@ def process_opportunities(
     raw_data: Dict[str, Any], force_refresh: bool = False
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """
-    Process raw odds data into betting opportunities with analytics (3-hour cache in debug mode, 30-minute cache in production)
+    Process raw odds data into betting opportunities with analytics
+    (3-hour cache in debug mode, 30-minute cache in production)
     Args:
         raw_data: Raw odds data from fetch_raw_odds_data()
         force_refresh: If True, bypass cache and process fresh data
@@ -291,7 +296,8 @@ def process_opportunities(
         # Sort opportunities by EV (highest first)
         opportunities.sort(key=lambda x: x.get("EV_Raw", 0), reverse=True)
 
-        # DEDUPLICATION: Remove duplicate opportunities, keeping only the most recent
+        # DEDUPLICATION: Remove duplicate opportunities, keeping only the most
+        # recent
         deduplicated_opportunities = deduplicate_opportunities(opportunities)
 
         # Update analytics with deduplicated counts
@@ -313,7 +319,9 @@ def process_opportunities(
             _save_cache_file(PROCESSED_DATA_CACHE_FILE, cache_data)
 
         logger.info(
-            f"Processed {len(opportunities)} opportunities ({len(deduplicated_opportunities)} after deduplication) in {analytics['processing_time']}s and cached to file"
+            f"Processed {len(opportunities)} opportunities "
+            f"({len(deduplicated_opportunities)} after deduplication) "
+            f"in {analytics['processing_time']}s and cached to file"
         )
         return result
 
@@ -398,7 +406,8 @@ def _analyze_single_market(
             return []
 
         # CRITICAL FILTER: Check if we have at least 2 major books with BOTH sides
-        # This prevents betting on markets where only 1 major book offers complete coverage
+        # This prevents betting on markets where only 1 major book offers
+        # complete coverage
         major_books_with_both_sides = BetMatcher.count_major_books_with_both_sides(
             market_odds, market_key
         )
@@ -412,7 +421,8 @@ def _analyze_single_market(
 
         # Process each outcome with full detail
         for outcome_name in fair_odds_result["outcomes"]:
-            # Check if this specific outcome has at least 2 major books offering it
+            # Check if this specific outcome has at least 2 major books
+            # offering it
             major_books_count = BetMatcher.count_major_books(outcome_name, market_odds, market_key)
             if major_books_count < 2:
                 continue  # Skip outcomes that don't have 2+ major books
@@ -510,7 +520,8 @@ def _format_bet_description(market_key: str, outcome_name: str, market_odds: Dic
     player_name = None
     point_value = None
 
-    # Look through all bookmakers for this outcome to extract detailed information
+    # Look through all bookmakers for this outcome to extract detailed
+    # information
     for bookmaker, outcomes in market_odds.items():
         for outcome in outcomes:
             if outcome.get("name") == outcome_name:
@@ -647,7 +658,8 @@ def _get_proposed_posting_odds(outcome_posting: Dict) -> str:
             if fair_american > 0:
                 # Positive odds: decimal = (american/100) + 1
                 fair_decimal = (fair_american / 100) + 1
-                # Target decimal odds = fair_decimal * (1 + target_ev) / (1 - commission)
+                # Target decimal odds = fair_decimal * (1 + target_ev) / (1 -
+                # commission)
                 target_decimal = fair_decimal * (1 + target_ev) / (1 - exchange_commission)
                 target_american = int((target_decimal - 1) * 100)
                 return f"+{target_american}"

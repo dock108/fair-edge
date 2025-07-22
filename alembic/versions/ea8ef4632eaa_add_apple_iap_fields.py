@@ -31,38 +31,77 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Add Apple IAP and Stripe fields to profiles table."""
     # Add Apple In-App Purchase fields
-    op.add_column("profiles", sa.Column("apple_transaction_id", sa.String(255), nullable=True))
     op.add_column(
         "profiles",
-        sa.Column("apple_original_transaction_id", sa.String(255), nullable=True),
+        sa.Column(
+            "apple_transaction_id",
+            sa.String(255),
+            nullable=True))
+    op.add_column(
+        "profiles",
+        sa.Column(
+            "apple_original_transaction_id",
+            sa.String(255),
+            nullable=True),
     )
-    op.add_column("profiles", sa.Column("apple_receipt_data", sa.Text, nullable=True))
     op.add_column(
         "profiles",
-        sa.Column("apple_subscription_group_id", sa.String(255), nullable=True),
+        sa.Column(
+            "apple_receipt_data",
+            sa.Text,
+            nullable=True))
+    op.add_column(
+        "profiles",
+        sa.Column(
+            "apple_subscription_group_id",
+            sa.String(255),
+            nullable=True),
     )
     op.add_column(
         "profiles",
-        sa.Column("apple_purchase_date", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
+            "apple_purchase_date",
+            sa.DateTime(
+                timezone=True),
+            nullable=True),
     )
     op.add_column(
         "profiles",
-        sa.Column("apple_expires_date", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
+            "apple_expires_date",
+            sa.DateTime(
+                timezone=True),
+            nullable=True),
     )
 
     # Add Stripe fields for web users (to maintain compatibility)
-    op.add_column("profiles", sa.Column("stripe_customer_id", sa.String(255), nullable=True))
-    op.add_column("profiles", sa.Column("stripe_subscription_id", sa.String(255), nullable=True))
+    op.add_column(
+        "profiles",
+        sa.Column(
+            "stripe_customer_id",
+            sa.String(255),
+            nullable=True))
+    op.add_column(
+        "profiles",
+        sa.Column(
+            "stripe_subscription_id",
+            sa.String(255),
+            nullable=True))
 
     # Create indexes for efficient lookups
-    op.create_index("idx_profiles_apple_transaction_id", "profiles", ["apple_transaction_id"])
+    op.create_index("idx_profiles_apple_transaction_id",
+                    "profiles", ["apple_transaction_id"])
     op.create_index(
         "idx_profiles_apple_original_transaction_id",
         "profiles",
         ["apple_original_transaction_id"],
     )
-    op.create_index("idx_profiles_stripe_customer_id", "profiles", ["stripe_customer_id"])
-    op.create_index("idx_profiles_stripe_subscription_id", "profiles", ["stripe_subscription_id"])
+    op.create_index(
+        "idx_profiles_stripe_customer_id",
+        "profiles",
+        ["stripe_customer_id"])
+    op.create_index("idx_profiles_stripe_subscription_id",
+                    "profiles", ["stripe_subscription_id"])
 
 
 def downgrade() -> None:
@@ -70,7 +109,9 @@ def downgrade() -> None:
     # Drop indexes first
     op.drop_index("idx_profiles_stripe_subscription_id", table_name="profiles")
     op.drop_index("idx_profiles_stripe_customer_id", table_name="profiles")
-    op.drop_index("idx_profiles_apple_original_transaction_id", table_name="profiles")
+    op.drop_index(
+        "idx_profiles_apple_original_transaction_id",
+        table_name="profiles")
     op.drop_index("idx_profiles_apple_transaction_id", table_name="profiles")
 
     # Drop columns

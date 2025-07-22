@@ -1,6 +1,7 @@
 """
 Centralized bet identification and matching utilities
-All bet matching logic should flow through here to ensure consistency across the entire system
+All bet matching logic should flow through here to ensure consistency across
+the entire system
 """
 
 from typing import Any, Dict, List, Optional, Tuple
@@ -9,14 +10,16 @@ from utils.math_utils import MathUtils
 
 
 class BetMatcher:
-    """Centralized bet identification and matching for consistent behavior across the system"""
+    """Centralized bet identification and matching for consistent behavior
+    across the system"""
 
     @staticmethod
     def create_bet_identifier(outcome: Dict[str, Any], market_key: str = None) -> str:
         """
         Create a unique identifier for a bet outcome
 
-        This is the SINGLE source of truth for how bets are identified across the entire system.
+        This is the SINGLE source of truth for how bets are identified across
+        the entire system.
         All matching logic should use this function to ensure consistency.
 
         Args:
@@ -24,13 +27,15 @@ class BetMatcher:
             market_key: Market type (e.g., 'batter_hits', 'player_points')
 
         Returns:
-            Unique identifier string like "zach neto|batter_stolen_bases|0.5|over"
+            Unique identifier string like
+            "zach neto|batter_stolen_bases|0.5|over"
         """
         description = outcome.get("description", "").strip().lower()
         name = outcome.get("name", "").strip().lower()
         point = outcome.get("point")
 
-        # For player props, include player name, market type, point, and over/under
+        # For player props, include player name, market type, point, and
+        # over/under
         if market_key and (
             market_key.startswith("player_")
             or market_key.startswith("batter_")
@@ -62,7 +67,8 @@ class BetMatcher:
         market_odds: Dict[str, List[Dict[str, Any]]],
         market_key: str = None,
     ) -> Optional[str]:
-        """Create target identifier by finding a matching outcome in the market data"""
+        """Create target identifier by finding a matching outcome in the
+        market data"""
         result = BetMatcher.find_outcome_by_name(outcome_name, market_odds, market_key)
         if result:
             _, outcome = result
@@ -206,9 +212,11 @@ class BetMatcher:
         major_books: Optional[List[str]] = None,
     ) -> int:
         """
-        Count how many major books offer BOTH sides of a two-sided market
+        Count how many major books offer BOTH sides of a two-sided
+        market
 
-        For props: checks if the same player has both Over and Under at the same point
+        For props: checks if the same player has both Over and Under at
+        the same point
         For regular markets: checks if both outcomes exist
 
         Returns: Number of major books that have complete two-sided coverage
@@ -228,7 +236,8 @@ class BetMatcher:
             if not outcomes or len(outcomes) < 2:
                 continue
 
-            # For player/pitcher/batter props, group by player and check for over/under pairs
+            # For player/pitcher/batter props, group by player and check for
+            # over/under pairs
             if market_key and (
                 market_key.startswith("player_")
                 or market_key.startswith("batter_")
@@ -260,7 +269,8 @@ class BetMatcher:
                     count += 1
 
             else:
-                # For regular markets (h2h, spreads, totals), just check for 2 different outcomes
+                # For regular markets (h2h, spreads, totals), just check for 2
+                # different outcomes
                 outcome_names = {outcome.get("name", "").strip().lower() for outcome in outcomes}
                 if len(outcome_names) >= 2:
                     count += 1

@@ -68,7 +68,8 @@ class MakerOddsCalculator:
         return {
             "decimal": maker_result["decimal"],
             "american": maker_result["american"],
-            "maker_american_odds": maker_result["american"],  # For backward compatibility
+            # For backward compatibility
+            "maker_american_odds": maker_result["american"],
             "gross_ev": maker_result["gross_ev"],
             "net_ev": maker_result["net_ev"],
             "maker_probability": maker_result["maker_probability"],
@@ -180,9 +181,15 @@ class MakerOddsCalculator:
 
         # Choose the exchange that's further from fair (more room to post)
         if novig_distance > prophetx_distance:
-            return f"Post on Novig (More room vs fair: {novig_distance:.3f} vs {prophetx_distance:.3f})"
+            return (
+                f"Post on Novig (More room vs fair: {novig_distance:.3f} "
+                f"vs {prophetx_distance:.3f})"
+            )
         elif prophetx_distance > novig_distance:
-            return f"Post on ProphetX (More room vs fair: {prophetx_distance:.3f} vs {novig_distance:.3f})"
+            return (
+                f"Post on ProphetX (More room vs fair: {prophetx_distance:.3f} "
+                f"vs {novig_distance:.3f})"
+            )
         else:
             return "Post on Novig (Equal room, default choice)"
 
@@ -275,7 +282,8 @@ class MakerOddsCalculator:
 
         lines.append(f"📋 POSTING RECOMMENDATION: {outcome_name.upper()}")
         lines.append(
-            f"   Fair odds: {fair_odds.get('american', 'N/A'):+d} ({fair_odds.get('probability', 0):.1%} prob)"
+            f"   Fair odds: {fair_odds.get('american', 'N/A'):+d} "
+            f"({fair_odds.get('probability', 0):.1%} prob)"
         )
 
         # Show both back and lay options

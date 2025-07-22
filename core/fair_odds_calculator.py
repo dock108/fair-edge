@@ -25,7 +25,8 @@ class FairOddsCalculator:
     """
 
     def __init__(self):
-        self.major_books = SportsConfig.MAJOR_BOOKS  # ['pinnacle', 'draftkings', 'fanduel']
+        # ['pinnacle', 'draftkings', 'fanduel']
+        self.major_books = SportsConfig.MAJOR_BOOKS
 
     # Removed redundant wrapper methods - use MathUtils directly
 
@@ -176,7 +177,8 @@ class FairOddsCalculator:
                 "total_before_normalization": total_prob,
             }
 
-        # If we have both outcomes, also store the implied fair odds for the opposite
+        # If we have both outcomes, also store the implied fair odds for the
+        # opposite
         if len(fair_odds_result["outcomes"]) == 2:
             # Both outcomes calculated from their respective anchor books
             logger.debug(f"Fair odds calculated: {fair_odds_result['outcomes']}")

@@ -95,7 +95,8 @@ def setup_logging():
     """Setup complete logging configuration"""
     # Ensure logs directory exists - use relative path for local development
     logs_dir = Path("logs")  # Changed from "/app/logs" to "logs"
-    logs_dir.mkdir(parents=True, exist_ok=True)  # Added parents=True to create parent dirs
+    # Added parents=True to create parent dirs
+    logs_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         # Load and apply logging configuration

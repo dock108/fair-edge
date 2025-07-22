@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from typing import Any, AsyncGenerator, Dict
+from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -26,11 +26,10 @@ os.environ.update(
     }
 )
 
-# Import your app and database components AFTER setting env vars
-from app import app
-from core.settings import get_settings
-from db import get_db
-from models import Base
+# Import your app and database components AFTER setting env vars - noqa: E402
+from app import app  # noqa: E402
+from db import get_db  # noqa: E402
+from models import Base  # noqa: E402
 
 
 @pytest.fixture(scope="session")

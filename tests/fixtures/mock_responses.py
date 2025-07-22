@@ -1,6 +1,6 @@
 """Mock HTTP responses for external API testing."""
 
-import json
+# import json  # Currently unused
 from typing import Any, Dict
 from unittest.mock import MagicMock
 

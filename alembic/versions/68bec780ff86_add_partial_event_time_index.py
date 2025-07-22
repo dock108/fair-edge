@@ -23,8 +23,10 @@ def upgrade() -> None:
     # Note: PostgreSQL doesn't allow time-based partial indexes with immutable functions
     # So we create a regular index that will still provide good performance
     op.create_index(
-        "idx_bet_event_time_optimized", "bets", ["event_time"], postgresql_using="btree"
-    )
+        "idx_bet_event_time_optimized",
+        "bets",
+        ["event_time"],
+        postgresql_using="btree")
 
 
 def downgrade() -> None:

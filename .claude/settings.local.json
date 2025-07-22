@@ -70,7 +70,9 @@
       "Bash(PYTHONPATH=. pytest tests/unit/test_routes/test_admin.py::TestAdminRoutes::test_list_users_basic --tb=line -v)",
       "Bash(git add:*)",
       "Bash(black:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(autopep8:*)",
+      "Bash(autoflake:*)"
     ],
     "deny": []
   }

@@ -33,7 +33,9 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 # Validate required environment variables
 if not all([SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY]):
-    logger.warning("Missing Supabase environment variables. " "Database features will be limited.")
+    logger.warning(
+        "Missing Supabase environment variables. "
+        "Database features will be limited.")
 
 # Supabase client setup (for server-side operations)
 supabase: Client = None
@@ -117,7 +119,8 @@ async def get_db():
     This function is no longer used since we refactored to Supabase REST API.
     Kept for any remaining legacy code that might reference it.
     """
-    raise RuntimeError("get_db() is deprecated. Use get_supabase() directly instead.")
+    raise RuntimeError(
+        "get_db() is deprecated. Use get_supabase() directly instead.")
 
 
 async def get_async_session():
@@ -125,7 +128,8 @@ async def get_async_session():
     Legacy compatibility stub - no longer used.
     All database operations now use Supabase REST API directly.
     """
-    raise RuntimeError("Direct PostgreSQL sessions disabled. Use get_supabase() instead.")
+    raise RuntimeError(
+        "Direct PostgreSQL sessions disabled. Use get_supabase() instead.")
 
 
 async def execute_with_pgbouncer_retry(session, params: dict = None, max_retries: int = 2):
@@ -133,7 +137,8 @@ async def execute_with_pgbouncer_retry(session, params: dict = None, max_retries
     Legacy compatibility stub - no longer used.
     All database operations now use Supabase REST API directly.
     """
-    raise RuntimeError("Direct PostgreSQL queries disabled. Use get_supabase() instead.")
+    raise RuntimeError(
+        "Direct PostgreSQL queries disabled. Use get_supabase() instead.")
 
 
 async def check_database_connection() -> bool:

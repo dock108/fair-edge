@@ -15,16 +15,16 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import dateutil.parser
-from sqlalchemy import exists, select, text
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db import AsyncSessionLocal, get_pgbouncer_session
-from models import Bet, BetOffer
-from utils.math_utils import MathUtils
+# Module imports after path modification - noqa: E402
+from db import AsyncSessionLocal, get_pgbouncer_session  # noqa: E402
+from models import Bet, BetOffer  # noqa: E402
+from utils.math_utils import MathUtils  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -338,7 +338,8 @@ class BetPersistenceService:
     def _extract_player_name(self, opportunity: Dict[str, Any]) -> Optional[str]:
         """Extract player name for prop bets"""
         description = opportunity.get("Bet Description", "")
-        # Simple heuristic: if it contains common prop terms, try to extract name
+        # Simple heuristic: if it contains common prop terms, try to extract
+        # name
         prop_keywords = ["points", "rebounds", "assists", "hits", "strikeouts", "goals"]
         if any(keyword in description.lower() for keyword in prop_keywords):
             # Extract the first part before the prop type
@@ -443,7 +444,8 @@ class BetPersistenceService:
             try:
                 # Handle Unix timestamp (seconds or milliseconds)
                 if isinstance(time_value, (int, float)):
-                    # Check if it's in milliseconds (typical for JavaScript timestamps)
+                    # Check if it's in milliseconds (typical for JavaScript
+                    # timestamps)
                     if time_value > 1e12:  # Likely milliseconds
                         timestamp = time_value / 1000
                     else:  # Likely seconds
@@ -593,7 +595,8 @@ class BetPersistenceService:
         }
 
     async def _ensure_lookup_data(self, session: AsyncSession):
-        """Ensure basic lookup data exists in the database using raw SQL for pgbouncer compatibility"""
+        """Ensure basic lookup data exists in the database using raw SQL for
+        pgbouncer compatibility"""
         try:
             # Use raw SQL to avoid prepared statement caching issues
 

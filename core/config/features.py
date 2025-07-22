@@ -43,7 +43,8 @@ class FeatureConfig:
             "custom_filters": True,  # Allow search/sport filtering
             "api_rate_limit": "60/minute",
             "max_opportunities": None,  # Unlimited main line opportunities
-            "ev_threshold": -999.0,  # All EV values (using large negative number instead of -inf)
+            # All EV values (using large negative number instead of -inf)
+            "ev_threshold": -999.0,
         },
         "premium": {
             "markets": "all",  # All markets available
@@ -54,7 +55,8 @@ class FeatureConfig:
             "custom_filters": True,
             "api_rate_limit": "120/minute",
             "max_opportunities": None,  # Unlimited opportunities
-            "ev_threshold": -999.0,  # All EV values (using large negative number instead of -inf)
+            # All EV values (using large negative number instead of -inf)
+            "ev_threshold": -999.0,
         },
         # Keep subscriber for backward compatibility, map to premium
         "subscriber": {
@@ -66,7 +68,8 @@ class FeatureConfig:
             "custom_filters": True,
             "api_rate_limit": "120/minute",
             "max_opportunities": None,  # Unlimited opportunities
-            "ev_threshold": -999.0,  # All EV values (using large negative number instead of -inf)
+            # All EV values (using large negative number instead of -inf)
+            "ev_threshold": -999.0,
         },
         "admin": {
             "markets": "all",  # All markets available
@@ -77,7 +80,8 @@ class FeatureConfig:
             "custom_filters": True,
             "api_rate_limit": "unlimited",
             "max_opportunities": None,  # Unlimited opportunities
-            "ev_threshold": -999.0,  # All EV values (using large negative number instead of -inf)
+            # All EV values (using large negative number instead of -inf)
+            "ev_threshold": -999.0,
         },
     }
 

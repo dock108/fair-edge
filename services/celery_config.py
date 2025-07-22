@@ -19,7 +19,8 @@ def get_celery_beat_schedule():
         return {
             "stress-test-refresh-ev-data": {
                 "task": "tasks.odds.refresh_data",
-                "schedule": crontab(minute=f"*/{refresh_interval}"),  # Every N minutes
+                # Every N minutes
+                "schedule": crontab(minute=f"*/{refresh_interval}"),
                 "options": {
                     "expires": 60 * refresh_interval,
                     "retry": True,
@@ -108,4 +109,7 @@ def get_refresh_description():
     if environment == "development" or refresh_interval <= 5:
         return f"🔥 STRESS TEST MODE: Refreshing every {refresh_interval} minutes"
     else:
-        return "📊 PRODUCTION MODE: Business hours (7 AM - 10 PM EST) every 30 min, off-hours with activity check"
+        return (
+            "📊 PRODUCTION MODE: Business hours (7 AM - 10 PM EST) every 30 min, "
+            "off-hours with activity check"
+        )

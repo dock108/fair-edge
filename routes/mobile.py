@@ -230,7 +230,8 @@ async def register_device(
         )
 
         logger.info(
-            f"Registered device {device_request.device_id} for user {user.id}: {registration_result['status']}"
+            f"Registered device {device_request.device_id} for user {user.id}: "
+            f"{registration_result['status']}"
         )
 
         return {
@@ -306,7 +307,8 @@ async def update_notification_preferences(
         updated_devices = []
 
         # Note: In a full implementation, we would update each device's preferences
-        # in the database. For now, we'll return success with the new preferences.
+        # in the database. For now, we'll return success with the new
+        # preferences.
         for device in devices:
             if device["is_active"]:
                 updated_devices.append(device["device_id"])

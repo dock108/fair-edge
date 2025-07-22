@@ -52,7 +52,7 @@ async def get_redis_pool():
 
 async def cleanup_redis_connections():
     """Cleanup Redis connections"""
-    global redis_pool, active_connections
+    global redis_pool
 
     logger.info("🔧 Cleaning up Redis connections...")
 
@@ -110,7 +110,8 @@ class ConnectionManager:
             connection_user_map[websocket] = user_id
 
         logger.info(
-            f"WebSocket connected - User: {user_id or 'anonymous'}, Total: {len(self.active_connections)}"
+            f"WebSocket connected - User: {user_id or 'anonymous'}, "
+            f"Total: {len(self.active_connections)}"
         )
 
     def disconnect(self, websocket: WebSocket):
@@ -131,7 +132,8 @@ class ConnectionManager:
         connection_user_map.pop(websocket, None)
 
         logger.info(
-            f"WebSocket disconnected - User: {user_id or 'anonymous'}, Total: {len(self.active_connections)}"
+            f"WebSocket disconnected - User: {user_id or 'anonymous'}, "
+            f"Total: {len(self.active_connections)}"
         )
 
     async def send_to_user(self, user_id: str, message: Dict):
@@ -312,7 +314,8 @@ async def websocket_opportunities_endpoint(
                     if await should_send_to_user(data, user, subscription_data):
                         await websocket.send_json(data)
 
-                        # Trigger push notification for high-value opportunities
+                        # Trigger push notification for high-value
+                        # opportunities
                         if (
                             user_id
                             and data.get("type") == "opportunity_update"

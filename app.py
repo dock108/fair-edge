@@ -3,9 +3,10 @@ Fair-Edge Sports Betting Analysis API
 
 PRODUCTION-READY MODULAR FASTAPI APPLICATION
 
-This is the main FastAPI application that serves as the backend API for Fair-Edge,
-a comprehensive sports betting expected value (EV) analysis platform. The application
-has been refactored into a modular structure for better maintainability and scalability.
+This is the main FastAPI application that serves as the backend API for
+Fair-Edge, a comprehensive sports betting expected value (EV) analysis
+platform. The application has been refactored into a modular structure for
+better maintainability and scalability.
 
 MODULAR ARCHITECTURE:
 ===================
@@ -156,7 +157,8 @@ async def lifespan(app: FastAPI):
         logger.info("Running database migrations...")
         migration_success = await run_startup_migrations()
         if not migration_success:
-            logger.warning("Database migrations failed, but continuing startup...")
+            logger.warning(
+                "Database migrations failed, but continuing startup...")
 
         # Initialize Redis cache
         logger.info("Initializing Redis cache...")
@@ -216,9 +218,11 @@ def validate_environment():
 
         # Check for unsafe defaults
         if os.getenv("SUPABASE_JWT_SECRET") == "your-secret-key-here":
-            raise ValueError("SUPABASE_JWT_SECRET must be changed from default value in production")
+            raise ValueError(
+                "SUPABASE_JWT_SECRET must be changed from default value in production")
 
-    logger.info(f"Environment validation passed for {settings.environment} environment")
+    logger.info(
+        f"Environment validation passed for {settings.environment} environment")
 
 
 def create_app() -> FastAPI:

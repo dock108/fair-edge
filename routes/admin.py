@@ -100,7 +100,8 @@ async def list_users(
                     "role": user.get("role"),
                     "subscription_status": user.get("subscription_status"),
                     "created_at": user.get("created_at"),
-                    # Note: auth.users data not directly accessible via REST API
+                    # Note: auth.users data not directly accessible via REST
+                    # API
                     "last_sign_in_at": None,
                 }
             )
@@ -270,7 +271,8 @@ async def get_cache_statistics() -> Dict[str, Any]:
             "redis_total_commands": info.get("total_commands_processed", 0),
             "redis_uptime_days": info.get("uptime_in_days", 0),
             "keys_status": keys_exist,
-            "cache_hit_ratio": "Available via Redis INFO",  # Could implement detailed tracking
+            # Could implement detailed tracking
+            "cache_hit_ratio": "Available via Redis INFO",
         }
 
     except Exception as e:

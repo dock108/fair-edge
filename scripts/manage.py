@@ -11,11 +11,12 @@ import sys
 # Add project root to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import typer
-from config import settings
-from sqlalchemy import text
+# Module imports after path modification - noqa: E402
+import typer  # noqa: E402
+from config import settings  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
-from db import engine
+from db import engine  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,7 +38,10 @@ app.add_typer(system_app, name="system")
 
 
 @user_app.command("create-test-users")
-def create_test_users(count: int = typer.Option(3, help="Number of test users to create")):
+def create_test_users(
+    count: int = typer.Option(
+        3,
+        help="Number of test users to create")):
     """Create test users for each role level (free, subscriber, admin)"""
 
     async def _create_test_users():
@@ -93,14 +97,17 @@ def create_test_users(count: int = typer.Option(3, help="Number of test users to
                                 "subscription_status": user["subscription_status"],
                             },
                         )
-                        typer.echo(f"✅ Updated {user['role']} user: {user['email']}")
+                        typer.echo(
+                            f"✅ Updated {user['role']} user: {user['email']}")
                     else:
                         # Insert new user
                         await conn.execute(
                             text(
                                 """
-                                INSERT INTO profiles (id, email, role, subscription_status, created_at)
-                                VALUES (gen_random_uuid(), :email, :role, :subscription_status, NOW())
+                                INSERT INTO profiles
+                                (id, email, role, subscription_status, created_at)
+                                VALUES (gen_random_uuid(), :email, :role,
+                                        :subscription_status, NOW())
                             """
                             ),
                             {
@@ -109,13 +116,16 @@ def create_test_users(count: int = typer.Option(3, help="Number of test users to
                                 "subscription_status": user["subscription_status"],
                             },
                         )
-                        typer.echo(f"✅ Created {user['role']} user: {user['email']}")
+                        typer.echo(
+                            f"✅ Created {user['role']} user: {user['email']}")
 
                 except Exception as e:
-                    typer.echo(f"❌ Failed to create user {user['email']}: {e}", err=True)
+                    typer.echo(
+                        f"❌ Failed to create user {user['email']}: {e}", err=True)
                     raise
 
-            typer.echo(f"\n🎉 Successfully created {len(test_users)} test users!")
+            typer.echo(
+                f"\n🎉 Successfully created {len(test_users)} test users!")
 
     asyncio.run(_create_test_users())
 
@@ -152,7 +162,8 @@ def promote_admin(
                 {"email": email},
             )
 
-            typer.echo(f"✅ Successfully promoted {user_email} from {current_role} to admin")
+            typer.echo(
+                f"✅ Successfully promoted {user_email} from {current_role} to admin")
 
     asyncio.run(_promote_admin())
 
@@ -193,8 +204,10 @@ def show_config():
     typer.echo(
         f"Database URL: {'***configured***' if settings.db_connection_string else 'Not set'}"
     )
-    typer.echo(f"Odds API Key: {'***configured***' if settings.odds_api_key else 'Not set'}")
-    typer.echo(f"Refresh Interval: {settings.refresh_interval_minutes} minutes")
+    typer.echo(
+        f"Odds API Key: {'***configured***' if settings.odds_api_key else 'Not set'}")
+    typer.echo(
+        f"Refresh Interval: {settings.refresh_interval_minutes} minutes")
 
 
 @system_app.command("verify")

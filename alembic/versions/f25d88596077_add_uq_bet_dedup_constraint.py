@@ -22,13 +22,24 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Add event_time, sha_key fields and composite unique constraint to bets table."""
     # Add new columns to bets table
-    op.add_column("bets", sa.Column("event_time", sa.DateTime(), nullable=True))
-    op.add_column("bets", sa.Column("sha_key", sa.String(length=64), nullable=True))
+    op.add_column(
+        "bets",
+        sa.Column(
+            "event_time",
+            sa.DateTime(),
+            nullable=True))
+    op.add_column(
+        "bets",
+        sa.Column(
+            "sha_key",
+            sa.String(
+                length=64),
+            nullable=True))
 
     # Add composite unique constraint for deduplication
     op.create_unique_constraint(
-        "uq_bet_dedup", "bets", ["sport", "league", "bet_type", "event_time", "sha_key"]
-    )
+        "uq_bet_dedup", "bets", [
+            "sport", "league", "bet_type", "event_time", "sha_key"])
 
 
 def downgrade() -> None:

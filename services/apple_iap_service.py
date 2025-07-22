@@ -28,7 +28,6 @@ SUBSCRIPTION TIERS:
 - Premium Yearly ($89.99): Premium features with 25% discount
 """
 
-import json
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict
@@ -144,7 +143,7 @@ class AppleIAPService:
     ) -> Dict[str, Any]:
         """Process validated receipt and update user subscription"""
         try:
-            receipt = receipt_result.get("receipt", {})
+            # receipt = receipt_result.get("receipt", {})  # Currently unused
             latest_receipt_info = receipt_result.get("latest_receipt_info", [])
 
             if not latest_receipt_info:
@@ -193,7 +192,7 @@ class AppleIAPService:
                 "subscription_status": subscription_status,
                 "apple_transaction_id": transaction_id,
                 "apple_original_transaction_id": original_transaction_id,
-                "apple_receipt_data": receipt_result.get("latest_receipt", receipt_data),
+                "apple_receipt_data": receipt_result.get("latest_receipt"),
                 "apple_purchase_date": (purchase_date.isoformat() if purchase_date else None),
                 "apple_expires_date": (expires_date.isoformat() if expires_date else None),
                 "updated_at": datetime.now(tz=timezone.utc).isoformat(),

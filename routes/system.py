@@ -204,7 +204,10 @@ async def clear_cache_endpoint(
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid cache_type: {cache_type}. Use 'all', 'opportunities', 'analytics', or 'sessions'",
+                detail=(
+                    f"Invalid cache_type: {cache_type}. "
+                    f"Use 'all', 'opportunities', 'analytics', or 'sessions'"
+                ),
             )
 
         logger.warning(
@@ -246,7 +249,7 @@ async def get_celery_health(request: Request, admin_user: UserCtx = Depends(requ
         try:
             from kombu import Connection
 
-            with Connection(celery_app.conf.broker_url) as conn:
+            with Connection(celery_app.conf.broker_url):
                 # This is Redis-specific queue length checking
                 queue_lengths = {}
                 redis_client = get_redis_client()
@@ -254,7 +257,7 @@ async def get_celery_health(request: Request, admin_user: UserCtx = Depends(requ
                     try:
                         length = redis_client.llen(queue_name)
                         queue_lengths[queue_name] = length
-                    except:
+                    except Exception:
                         queue_lengths[queue_name] = "Unknown"
         except Exception:
             queue_lengths = {"note": "Queue length info unavailable"}

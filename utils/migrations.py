@@ -35,7 +35,7 @@ class MigrationManager:
         self.alembic_config_path = Path(__file__).parent.parent / "alembic.ini"
 
         if not self.database_url:
-            raise ValueError("Database URL not provided and not found in environment variables")
+            raise ValueError("Database URL not provided and not found in environment " "variables")
 
         # Convert to async URL if needed
         if not self.database_url.startswith("postgresql+asyncpg://"):

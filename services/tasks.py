@@ -73,7 +73,7 @@ def worker_shutdown_handler(_sender=None, **kwargs):
 
 def cleanup_celery():
     """Cleanup Celery workers gracefully"""
-    global is_shutting_down, active_tasks
+    global is_shutting_down
     is_shutting_down = True
 
     logger.info("🔧 Cleaning up Celery workers...")
@@ -216,7 +216,8 @@ def refresh_odds_data(self, force_refresh=False, skip_activity_check=False):
                     f"✅ Processed {len(sport_opportunities)} total opportunities across all sports"
                 )
 
-                # Add all sports as successful since we processed everything together
+                # Add all sports as successful since we processed everything
+                # together
                 for sport in SPORTS_SUPPORTED:
                     successful_sports.append(
                         {
@@ -613,7 +614,8 @@ def cleanup_old_data(self):
         raise exc
 
 
-# Removed orphaned process_ev_opportunities_task - functionality is handled by refresh_odds_data task
+# Removed orphaned process_ev_opportunities_task - functionality is handled by
+# refresh_odds_data task
 
 
 def get_celery_stats():

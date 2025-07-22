@@ -109,8 +109,11 @@ class Book(Base):
         default=BookType.US_BOOK,
     )
     region: Region = Column(
-        SAEnum(Region, name="region_enum", create_constraint=True), default=Region.US
-    )
+        SAEnum(
+            Region,
+            name="region_enum",
+            create_constraint=True),
+        default=Region.US)
     affiliate_url = Column(Text)
     active = Column(Boolean, default=True)
 
@@ -160,7 +163,10 @@ class Bet(Base):
     # Relationships
     sport_ref = relationship("Sport", back_populates="bets")
     league_ref = relationship("League", back_populates="bets")
-    offers = relationship("BetOffer", back_populates="bet_ref", cascade="all, delete-orphan")
+    offers = relationship(
+        "BetOffer",
+        back_populates="bet_ref",
+        cascade="all, delete-orphan")
 
     # Indexes for performance and composite unique constraint for deduplication
     __table_args__ = (
@@ -228,8 +234,11 @@ class Bet(Base):
         # Extract key fields from opportunity data
         sport = opportunity_data.get("sport", "")
         league = opportunity_data.get("league", "")
-        event_name = opportunity_data.get("Event", opportunity_data.get("event", ""))
-        bet_type = opportunity_data.get("Market", opportunity_data.get("bet_type", ""))
+        event_name = opportunity_data.get(
+            "Event", opportunity_data.get("event", ""))
+        bet_type = opportunity_data.get(
+            "Market", opportunity_data.get(
+                "bet_type", ""))
 
         # Extract parameters from description or other fields
         parameters = {}
@@ -269,7 +278,13 @@ class Bet(Base):
         elif "away" in bet_description.lower():
             outcome_side = "away"
 
-        return cls.generate_bet_id(sport, league, event_name, bet_type, parameters, outcome_side)
+        return cls.generate_bet_id(
+            sport,
+            league,
+            event_name,
+            bet_type,
+            parameters,
+            outcome_side)
 
 
 class BetOffer(Base):
@@ -309,7 +324,10 @@ class BetOffer(Base):
     # Quality metrics
     confidence_score = Column(Float)  # Confidence in this data point
     volume_indicator: VolumeIndicator = Column(
-        SAEnum(VolumeIndicator, name="volume_indicator_enum", create_constraint=True),
+        SAEnum(
+            VolumeIndicator,
+            name="volume_indicator_enum",
+            create_constraint=True),
         default=VolumeIndicator.UNKNOWN,
     )
 
@@ -345,7 +363,10 @@ class BetOffer(Base):
 
 # Additional indexes for common query patterns
 Index("idx_bets_sport_type_created", Bet.sport, Bet.bet_type, Bet.created_at)
-Index("idx_offers_recent_high_ev", BetOffer.timestamp, BetOffer.best_expected_value)
+Index(
+    "idx_offers_recent_high_ev",
+    BetOffer.timestamp,
+    BetOffer.best_expected_value)
 
 
 # User profiles table (enhance existing if needed)
@@ -361,7 +382,10 @@ class UserProfile(Base):
         default=UserRole.FREE,
     )
     subscription_status: SubscriptionStatus = Column(
-        SAEnum(SubscriptionStatus, name="subscription_status_enum", create_constraint=True),
+        SAEnum(
+            SubscriptionStatus,
+            name="subscription_status_enum",
+            create_constraint=True),
         default=SubscriptionStatus.NONE,
     )
     created_at = Column(DateTime, default=func.now())

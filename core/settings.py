@@ -179,10 +179,12 @@ class Settings(BaseSettings):
     # ===========================================
 
     # Admin Access Control - Production requires secure secret
-    admin_secret: str = "CHANGE_ME"  # SECURITY: Will fail fast in production if unchanged
+    # SECURITY: Will fail fast in production if unchanged
+    admin_secret: str = "CHANGE_ME"
 
     # JWT Authentication Configuration
-    supabase_jwt_algorithm: str = "HS256"  # JWT algorithm - Supabase default is HS256
+    # JWT algorithm - Supabase default is HS256
+    supabase_jwt_algorithm: str = "HS256"
 
     # ===========================================
     # APPLICATION ENVIRONMENT CONFIGURATION
@@ -219,16 +221,19 @@ class Settings(BaseSettings):
     checkout_cancel_url: str = "http://localhost:8000/pricing"
 
     # Apple In-App Purchase Configuration
-    apple_shared_secret: Optional[str] = None  # App Store shared secret for receipt validation
+    # App Store shared secret for receipt validation
+    apple_shared_secret: Optional[str] = None
     apple_bundle_id: str = "com.fairedge.app"  # iOS app bundle identifier
     apple_basic_product_id: str = "com.fairedge.basic_monthly"  # $3.99/month Basic plan
     apple_premium_monthly_product_id: str = (
         "com.fairedge.premium_monthly"  # $9.99/month Premium plan
     )
-    apple_premium_yearly_product_id: str = "com.fairedge.premium_yearly"  # $89.99/year Premium plan
+    # $89.99/year Premium plan
+    apple_premium_yearly_product_id: str = "com.fairedge.premium_yearly"
 
     # Apple Push Notification Service (APNs) Configuration
-    apns_key_id: Optional[str] = None  # APNs Key ID from Apple Developer Portal
+    # APNs Key ID from Apple Developer Portal
+    apns_key_id: Optional[str] = None
     apns_team_id: Optional[str] = None  # Apple Developer Team ID
     apns_private_key: Optional[str] = None  # APNs private key (ES256 format)
     apns_topic: Optional[str] = None  # APNs topic (usually the bundle ID)
@@ -297,7 +302,8 @@ class Settings(BaseSettings):
                 self.apns_key_id,
                 self.apns_team_id,
                 self.apns_private_key,
-                self.apns_topic or self.apple_bundle_id,  # Use bundle ID as topic if not specified
+                # Use bundle ID as topic if not specified
+                self.apns_topic or self.apple_bundle_id,
             ]
         )
 

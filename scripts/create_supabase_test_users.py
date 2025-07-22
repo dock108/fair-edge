@@ -7,13 +7,12 @@ import asyncio
 import logging
 import os
 import sys
-from typing import Any, Dict
-
-from dotenv import load_dotenv
-from supabase import Client, create_client
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from dotenv import load_dotenv  # noqa: E402
+from supabase import Client, create_client  # noqa: E402
 
 # Load environment variables
 load_dotenv()
@@ -85,7 +84,8 @@ async def create_test_users():
 
             if auth_response.user:
                 user_id = auth_response.user.id
-                logger.info(f"✅ Created Supabase user: {user_data['email']} (ID: {user_id})")
+                logger.info(
+                    f"✅ Created Supabase user: {user_data['email']} (ID: {user_id})")
 
                 # Create/update profile in backend database
                 profile_data = {
@@ -96,18 +96,23 @@ async def create_test_users():
                 }
 
                 # Upsert profile
-                profile_response = supabase.table("profiles").upsert(profile_data).execute()
+                profile_response = supabase.table(
+                    "profiles").upsert(profile_data).execute()
 
                 if profile_response.data:
-                    logger.info(f"✅ Created/updated profile for: {user_data['email']}")
+                    logger.info(
+                        f"✅ Created/updated profile for: {user_data['email']}")
                 else:
-                    logger.warning(f"⚠️ Failed to create profile for: {user_data['email']}")
+                    logger.warning(
+                        f"⚠️ Failed to create profile for: {user_data['email']}")
 
             else:
-                logger.error(f"❌ Failed to create Supabase user: {user_data['email']}")
+                logger.error(
+                    f"❌ Failed to create Supabase user: {user_data['email']}")
 
         except Exception as e:
-            logger.error(f"❌ Error creating user {user_data['email']}: {str(e)}")
+            logger.error(
+                f"❌ Error creating user {user_data['email']}: {str(e)}")
             continue
 
     # Verify users were created

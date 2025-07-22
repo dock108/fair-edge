@@ -10,8 +10,9 @@ import sys
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from dotenv import load_dotenv
-from supabase import Client, create_client
+# Module imports after path modification - noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+from supabase import Client, create_client  # noqa: E402
 
 # Load environment variables
 load_dotenv()
@@ -30,17 +31,22 @@ async def update_test_user_roles():
     # Validate required environment variables
     if not url:
         logger.error("❌ SUPABASE_URL environment variable is required")
-        logger.error("   Set it with: export SUPABASE_URL=https://your-project.supabase.co")
+        logger.error(
+            "   Set it with: export SUPABASE_URL=https://your-project.supabase.co")
         raise ValueError("Missing required environment variable: SUPABASE_URL")
 
     if not service_key:
-        logger.error("❌ SUPABASE_SERVICE_ROLE_KEY environment variable is required")
-        logger.error("   Get it from: https://supabase.com/dashboard → Settings → API")
-        raise ValueError("Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY")
+        logger.error(
+            "❌ SUPABASE_SERVICE_ROLE_KEY environment variable is required")
+        logger.error(
+            "   Get it from: https://supabase.com/dashboard → Settings → API")
+        raise ValueError(
+            "Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY")
 
     # Validate credential format
     if not url.startswith("https://") or not url.endswith(".supabase.co"):
-        raise ValueError("Invalid SUPABASE_URL format. Expected: https://your-project.supabase.co")
+        raise ValueError(
+            "Invalid SUPABASE_URL format. Expected: https://your-project.supabase.co")
 
     if not service_key.startswith("eyJ"):
         raise ValueError(

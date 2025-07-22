@@ -132,7 +132,8 @@ class EVAnalyzer:
         """
         # Input validation - ensure mathematically valid probabilities and odds
         if fair_probability <= 0 or fair_probability >= 1 or market_decimal_odds <= 1.0:
-            return -1.0  # Sentinel value for invalid inputs (graceful degradation)
+            # Sentinel value for invalid inputs (graceful degradation)
+            return -1.0
 
         # Delegate to unified math utilities for consistent EV calculation
         # Handles both gross EV (sportsbooks) and net EV (exchanges with fees)
@@ -239,7 +240,8 @@ class EVAnalyzer:
 
                 # Calculate EV with fee-adjusted odds if it's an exchange
                 if exchange_data["is_exchange"]:
-                    # Use adjusted decimal odds (fees already applied) with no additional fee
+                    # Use adjusted decimal odds (fees already applied) with no
+                    # additional fee
                     ev_percentage_adjusted = self.calculate_ev_percentage(
                         fair_probability, exchange_data["adjusted_decimal"], 0.0
                     )
@@ -263,8 +265,10 @@ class EVAnalyzer:
                         "exchange_data": (exchange_data if exchange_data["is_exchange"] else None),
                     },
                     "ev_analysis": {
-                        "ev_percentage": ev_percentage_adjusted,  # Use adjusted for main classification
-                        "ev_percentage_original": ev_percentage_original,  # Keep original for display
+                        # Use adjusted for main classification
+                        "ev_percentage": ev_percentage_adjusted,
+                        # Keep original for display
+                        "ev_percentage_original": ev_percentage_original,
                         "ev_display": f"{ev_percentage_adjusted*100:+.2f}%",
                         "ev_display_original": (
                             f"{ev_percentage_original*100:+.2f}%"

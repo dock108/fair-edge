@@ -125,7 +125,8 @@ class ExceptionHandler:
     def handle_cache_error(error: Exception, operation: str = "unknown") -> Dict[str, Any]:
         """Handle cache errors with fallback strategies"""
         if isinstance(error, CacheError):
-            # Include the original operation from the exception in the log message
+            # Include the original operation from the exception in the log
+            # message
             if hasattr(error, "operation") and error.operation:
                 logger.warning(
                     f"Cache error during {operation} (from {error.operation}): {error.message}"
@@ -193,7 +194,8 @@ class ExceptionHandler:
         """Handle authorization errors with role context"""
         if isinstance(error, AuthorizationError):
             logger.warning(
-                f"Authorization failed: {error.message} (required: {error.required_role}, user: {error.user_role})"
+                f"Authorization failed: {error.message} "
+                f"(required: {error.required_role}, user: {error.user_role})"
             )
             return HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

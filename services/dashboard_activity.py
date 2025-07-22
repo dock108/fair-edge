@@ -8,8 +8,8 @@ Only refreshes data automatically when dashboard is actively being used.
 import json
 import logging
 import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set
+from datetime import datetime
+from typing import Dict, Optional
 
 import redis
 
@@ -158,7 +158,8 @@ class DashboardActivityTracker:
 
             if is_active:
                 logger.debug(
-                    f"📊 Dashboard is active: {session_count} sessions, recent_activity={has_recent_activity}"
+                    f"📊 Dashboard is active: {session_count} sessions, "
+                    f"recent_activity={has_recent_activity}"
                 )
 
             return is_active
@@ -237,7 +238,8 @@ class DashboardActivityTracker:
                 time_since_refresh = time.time() - last_refresh
                 if time_since_refresh < self.refresh_interval:
                     logger.debug(
-                        f"🚫 No auto-refresh: Only {time_since_refresh:.0f}s since last refresh (need {self.refresh_interval}s)"
+                        f"🚫 No auto-refresh: Only {time_since_refresh:.0f}s since last refresh "
+                        f"(need {self.refresh_interval}s)"
                     )
                     return False
 
@@ -269,11 +271,13 @@ class DashboardActivityTracker:
 
             if is_stale:
                 logger.info(
-                    f"✅ Refresh on load: Data is stale ({time_since_refresh:.0f}s > {self.stale_threshold}s)"
+                    f"✅ Refresh on load: Data is stale "
+                    f"({time_since_refresh:.0f}s > {self.stale_threshold}s)"
                 )
             else:
                 logger.debug(
-                    f"🚫 No refresh on load: Data is fresh ({time_since_refresh:.0f}s < {self.stale_threshold}s)"
+                    f"🚫 No refresh on load: Data is fresh "
+                    f"({time_since_refresh:.0f}s < {self.stale_threshold}s)"
                 )
 
             return is_stale

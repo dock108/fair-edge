@@ -49,21 +49,33 @@ def upgrade():
     )
 
     # Create indexes
-    op.create_index("idx_device_tokens_user_id", "device_tokens", ["user_id"], unique=False)
+    op.create_index(
+        "idx_device_tokens_user_id",
+        "device_tokens",
+        ["user_id"],
+        unique=False)
     op.create_index(
         "idx_device_tokens_device_token",
         "device_tokens",
         ["device_token"],
         unique=False,
     )
-    op.create_index("idx_device_tokens_active", "device_tokens", ["is_active"], unique=False)
+    op.create_index(
+        "idx_device_tokens_active",
+        "device_tokens",
+        ["is_active"],
+        unique=False)
     op.create_index(
         "idx_device_tokens_user_active",
         "device_tokens",
         ["user_id", "is_active"],
         unique=False,
     )
-    op.create_index("idx_device_tokens_created_at", "device_tokens", ["created_at"], unique=False)
+    op.create_index(
+        "idx_device_tokens_created_at",
+        "device_tokens",
+        ["created_at"],
+        unique=False)
 
 
 def downgrade():

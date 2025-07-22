@@ -39,7 +39,8 @@ class SessionManager:
             value=access_token,
             max_age=3600,  # 1 hour in seconds
             httponly=True,  # Block JS access
-            secure=False,  # Always False for development (localhost doesn't use HTTPS)
+            secure=False,
+            # Always False for development (localhost doesn't use HTTPS)
             samesite="lax",  # CSRF protection
             path="/",  # Ensure cookie is available for all paths
             domain=None,  # Use default domain
